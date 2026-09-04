@@ -8,10 +8,11 @@ const settingSchema = new Schema(
       enum: ["position", "project", "status"],
       required: true,
     },
+    category: { type: String, trim: true },
     description: { type: String, trim: true },
     active: { type: Boolean, default: true, index: true },
   },
   { timestamps: true },
 );
-settingSchema.index({ kind: 1, name: 1 }, { unique: true });
+settingSchema.index({ kind: 1, category: 1, name: 1 }, { unique: true });
 export const SettingModel = models.Setting ?? model("Setting", settingSchema);

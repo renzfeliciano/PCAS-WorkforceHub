@@ -1,5 +1,5 @@
 import { model, models, Schema, type InferSchemaType } from "mongoose";
-import type { Role } from "@/types/employee";
+import type { Role } from "@/types/user";
 
 const userSchema = new Schema(
   {

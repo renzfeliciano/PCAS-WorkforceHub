@@ -1,10 +1,10 @@
-export type Role = "Admin" | "HR" | "Manager" | "Employee";
-
-export type LeaveCredits = { sickLeave: number; vacationLeave: number };
+export type Gender = "Male" | "Female";
+export type LeaveBalance = { leaveTypeId: string; balance: number };
 export type Employee = {
   id: string;
   employeeNumber: string;
   name: string;
+  gender: Gender;
   position: string;
   projectSite: string;
   dateHired: string;
@@ -16,6 +16,7 @@ export type Employee = {
   philHealthNumber: string;
   pagIbigNumber: string;
   tinNumber: string;
-  leaveCredits: LeaveCredits;
+  leaveBalances: LeaveBalance[];
+  archived: boolean;
+  createdAt: string;
 };
-export type EmployeeInput = Omit<Employee, "id">;

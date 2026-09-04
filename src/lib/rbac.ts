@@ -1,4 +1,4 @@
-import type { Role } from "@/types/employee";
+import type { Role } from "@/types/user";
 
 export const PERMISSIONS = [
   "employee:read",
@@ -15,16 +15,7 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   Admin: PERMISSIONS,
-  HR: [
-    "employee:read",
-    "employee:write",
-    "employee:delete",
-    "leave:read",
-    "leave:write",
-    "settings:read",
-    "settings:write",
-    "audit:read",
-  ],
+  HR: ["employee:read", "employee:write", "leave:read", "leave:write"],
   Manager: ["employee:read", "leave:read"],
   Employee: ["employee:read", "leave:read"],
 };
@@ -32,9 +23,11 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
 export const hasPermission = (role: Role, permission: Permission) =>
   ROLE_PERMISSIONS[role].includes(permission);
 
-export const canManageLeaveCredits = (role: Role) =>
-  role === "Admin" || role === "HR";
-export const canManageEmployees = (role: Role) =>
-  role === "Admin" || role === "HR";
-export const canManageSettings = (role: Role) =>
-  role === "Admin" || role === "HR";
+export const canAccessWorkspace = (role: Role) => role === "Admin" || role === "HR";
+export const canManageLeaveBalances = (role: Role) => role === "Admin" || role === "HR";
+/** Create and edit employee records. */
+export const canEditEmployees = (role: Role) => role === "Admin" || role === "HR";
+/** Archive (soft-delete) employee records. */
+export const canDeleteEmployees = (role: Role) => role === "Admin";
+export const canManageSettings = (role: Role) => role === "Admin";
+export const canManageUsers = (role: Role) => role === "Admin";

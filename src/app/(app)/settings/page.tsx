@@ -1,9 +1,11 @@
-import WorkforceHubShell from "@/components/workforce-hub-shell";
+import { withRoleGuard } from "@/lib/with-role-guard";
 import { isSeedingEnabled } from "@/lib/seed-flags";
+import { SettingsModule } from "@/features/settings/components/settings-module";
 
-export default function Home() {
+export default async function SettingsPage() {
+  await withRoleGuard(["Admin"]);
   return (
-    <WorkforceHubShell
+    <SettingsModule
       seedFlags={{
         position: isSeedingEnabled("position"),
         project: isSeedingEnabled("project"),

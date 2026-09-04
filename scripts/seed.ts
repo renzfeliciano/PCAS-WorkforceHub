@@ -26,10 +26,12 @@ async function seed() {
     const adminResult = await UserModel.updateOne(
       { username: adminUsername },
       {
+        $set: {
+          name: "PCAS WorkforceHub Admin",
+          ...(adminEmail ? { email: adminEmail } : {}),
+        },
         $setOnInsert: {
           username: adminUsername,
-          ...(adminEmail ? { email: adminEmail } : {}),
-          name: "Demo Super Admin",
           passwordHash,
           role: "Admin",
           active: true,

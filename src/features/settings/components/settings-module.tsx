@@ -1,23 +1,99 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, ShieldCheck, X } from "lucide-react";
-import { PERMISSIONS, ROLE_PERMISSIONS } from "@/lib/rbac";
-import type { Permission } from "@/lib/rbac";
-import type { Role } from "@/types/employee";
-import type { SettingItem, SettingKind } from "@/types/settings";
+import { ShieldCheck } from "lucide-react";
+import { useSettingsCatalog } from "@/features/settings/hooks/use-settings-catalog";
+import { useLeaveTypes } from "@/features/settings/hooks/use-leave-types";
+import { SettingsCatalogSection } from "@/features/settings/components/settings-catalog-section";
+import { LeaveTypesSection } from "@/features/settings/components/leave-types-section";
+import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
+import type { SettingKind } from "@/types/settings";
 
-type Props = Readonly<{ settings: SettingItem[]; seedFlags: Record<SettingKind, boolean>; onAdd: (item: SettingItem) => void; onDelete: (id: string) => void; onToggle: (id: string) => void; onUpdate: (item: SettingItem) => void }>;
-const roles: Role[] = ["Admin", "HR", "Manager", "Employee"];
-const labels: Record<SettingKind, string> = { position: "Positions", project: "Projects / sites", status: "Employment statuses" };
+const LABELS: Record<SettingKind, string> = {
+  position: "Positions",
+  project: "Projects / sites",
+  status: "Employment statuses",
+};
+const CATALOG_KINDS: SettingKind[] = ["position", "project", "status"];
 
-export function SettingsModule({ settings, seedFlags, onAdd, onDelete, onToggle, onUpdate }: Props) {
-  const [kind, setKind] = useState<SettingKind>("position"); const [name, setName] = useState(""); const [error, setError] = useState(""); const [editing, setEditing] = useState<SettingItem | null>(null); const [deleting, setDeleting] = useState<SettingItem | null>(null);
-  function addItem(event: { preventDefault(): void }) { event.preventDefault(); const value = name.trim(); if (!value) { setError("Enter a name before adding this option."); return; } if (settings.some((item) => item.kind === kind && item.name.toLowerCase() === value.toLowerCase())) { setError("This option already exists."); return; } onAdd({ id: `${kind}-${crypto.randomUUID()}`, name: value, kind, active: true }); setName(""); setError(""); }
-  async function seed(kindToSeed: SettingKind) { const response = await fetch("/api/v1/settings/seed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: kindToSeed }) }); if (response.ok) window.location.reload(); }
-  return <div className="settings-page"><div className="page-head"><div><p className="eyebrow">Workspace administration</p><h1>Settings</h1><p className="muted">Manage the options used across employee records.</p></div><span className="role-badge"><ShieldCheck size={15} /> Admin access</span></div><div className="settings-note"><ShieldCheck size={17} /><span><b>Admin and HR only.</b> Changes are validated and audit logged.</span></div><form className="setting-form" onSubmit={addItem}><select value={kind} onChange={(event) => setKind(event.target.value as SettingKind)} aria-label="Setting type"><option value="position">Position</option><option value="project">Project / site</option><option value="status">Employment status</option></select><input value={name} onChange={(event) => { setName(event.target.value); setError(""); }} placeholder="Add a new option" aria-label="New setting name" />{error && <span className="inline-error" role="alert">{error}</span>}<button className="button primary" type="submit" disabled={Boolean(error)}><Plus size={15} /> Add option</button></form><div className="settings-grid">{(["position", "project", "status"] as const).map((itemKind) => <section className="settings-card" key={itemKind}><div className="settings-card-head"><div><h2>{labels[itemKind]}</h2><p className="muted">{settings.filter((item) => item.kind === itemKind && item.active).length} active · {settings.filter((item) => item.kind === itemKind && !item.active).length} inactive</p></div><div className="settings-card-tools"><span className="settings-count">{settings.filter((item) => item.kind === itemKind).length}</span>{seedFlags[itemKind] && <button className="seed-button" type="button" onClick={() => seed(itemKind)}>Seed defaults</button>}</div></div><div className="setting-list">{settings.filter((item) => item.kind === itemKind).map((item) => <div className="setting-row" key={item.id}><span className="setting-dot" /><div><b>{item.name}</b>{item.description && <small>{item.description}</small>}</div><button type="button" className={`setting-state ${item.active ? "enabled" : "disabled"}`} onClick={() => onToggle(item.id)}>{item.active ? "Active" : "Inactive"}</button><button type="button" className="edit-setting" onClick={() => setEditing(item)} aria-label={`Edit ${item.name}`}>Edit</button><button type="button" className="delete-setting" onClick={() => setDeleting(item)} aria-label={`Delete ${item.name}`}>×</button></div>)}</div></section>)}</div><section className="permissions-panel"><div className="settings-card-head"><div><h2>Role permissions</h2><p className="muted">Server-enforced access policy for this workspace.</p></div><span className="role-badge"><ShieldCheck size={14} /> Policy baseline</span></div><div className="permission-table"><div className="permission-row permission-header"><span>Capability</span>{roles.map((role) => <span key={role}>{role}</span>)}</div>{PERMISSIONS.map((permission) => <div className="permission-row" key={permission}><span>{permissionLabel(permission)}</span>{roles.map((role) => <span className={ROLE_PERMISSIONS[role].includes(permission) ? "allowed" : "blocked"} key={role}>{ROLE_PERMISSIONS[role].includes(permission) ? "Allowed" : "No access"}</span>)}</div>)}</div></section>{editing && <EditDialog item={editing} onClose={() => setEditing(null)} onSave={(item) => { onUpdate(item); setEditing(null); }} />}{deleting && <DeleteDialog item={deleting} onClose={() => setDeleting(null)} onConfirm={() => { onDelete(deleting.id); setDeleting(null); }} />}</div>;
+export function SettingsModule({
+  seedFlags,
+}: Readonly<{ seedFlags: Record<SettingKind, boolean> }>) {
+  const settings = useSettingsCatalog();
+  const leaveTypes = useLeaveTypes();
+
+  return (
+    <div className="settings-page">
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Workspace administration</p>
+          <h1>Settings</h1>
+          <p className="muted">
+            Manage the options used across employee records.
+          </p>
+        </div>
+        <span className="role-badge">
+          <ShieldCheck size={15} /> Admin access
+        </span>
+      </div>
+      <div className="settings-note">
+        <ShieldCheck size={17} />
+        <span>
+          <b>Admin only.</b> Changes are validated and audit logged.
+        </span>
+      </div>
+      {(settings.error || leaveTypes.error) && (
+        <p className="inline-error" role="alert">
+          {settings.error ?? leaveTypes.error}
+        </p>
+      )}
+      <div className="settings-grid">
+        {CATALOG_KINDS.map((kind) => (
+          <SettingsCatalogSection
+            key={kind}
+            kind={kind}
+            label={LABELS[kind]}
+            items={settings.items.filter(
+              (item) =>
+                item.kind === kind &&
+                (kind !== "status" ||
+                  item.category === EMPLOYMENT_STATUS_CATEGORY),
+            )}
+            category={
+              kind === "status" ? EMPLOYMENT_STATUS_CATEGORY : undefined
+            }
+            seedEnabled={seedFlags[kind]}
+            onCreate={async (input) => {
+              await settings.create(input);
+            }}
+            onUpdate={async (id, input) => {
+              await settings.update(id, input);
+            }}
+            onToggle={async (id, active) => {
+              await settings.update(id, { active });
+            }}
+            onDelete={async (id) => {
+              await settings.remove(id);
+            }}
+            onSeed={async () => {
+              await settings.seed(kind);
+            }}
+          />
+        ))}
+      </div>
+      <div className="mt-5">
+        <LeaveTypesSection
+          items={leaveTypes.items}
+          onCreate={async (input) => {
+            await leaveTypes.create(input);
+          }}
+          onUpdate={async (id, input) => {
+            await leaveTypes.update(id, input);
+          }}
+          onDelete={async (id) => {
+            await leaveTypes.remove(id);
+          }}
+        />
+      </div>
+    </div>
+  );
 }
-
-function permissionLabel(permission: Permission) { return permission.split(":").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" "); }
-function EditDialog({ item, onClose, onSave }: Readonly<{ item: SettingItem; onClose: () => void; onSave: (item: SettingItem) => void }>) { const [name, setName] = useState(item.name); const [error, setError] = useState(""); return <div className="backdrop"><form className="modal" onSubmit={(event) => { event.preventDefault(); const value = name.trim(); if (!value) { setError("Name is required."); return; } onSave({ ...item, name: value }); }}><div className="modal-head"><div><p className="eyebrow">Edit catalog</p><h2>{item.name}</h2><p className="muted">Update this {item.kind} option.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="Close"><X size={18} /></button></div><label className="modal-field">Name<input value={name} onChange={(event) => { setName(event.target.value); setError(""); }} />{error && <small className="inline-error">{error}</small>}</label><div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={Boolean(error)}>Save changes</button></div></form></div>; }
-function DeleteDialog({ item, onClose, onConfirm }: Readonly<{ item: SettingItem; onClose: () => void; onConfirm: () => void }>) { return <div className="backdrop"><div className="modal warning-modal"><div className="warning-icon">!</div><p className="eyebrow">Permanent deletion</p><h2>Delete {item.name}?</h2><p className="muted">This removes the {item.kind} from Settings. Deactivate it instead when existing employee records still reference it.</p><div className="modal-actions"><button className="button secondary" onClick={onClose}>Cancel</button><button className="button danger" onClick={onConfirm}>Delete permanently</button></div></div></div>; }

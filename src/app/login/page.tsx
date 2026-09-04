@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,8 +29,7 @@ export default function LoginPage() {
     <main className="login-page">
       <section className="login-card">
         <div className="brand">
-          <span className="brand-mark">W</span> Workforce{" "}
-          <span className="brand-accent">Hub</span>
+          <Logo size={34} /> Workforce<span className="brand-accent">Hub</span>
         </div>
         <div className="login-copy">
           <p className="eyebrow">Secure workspace</p>

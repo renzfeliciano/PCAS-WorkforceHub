@@ -1,7 +1,7 @@
 import { getServerSession, type Session } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import type { Role } from "@/types/employee";
+import type { Role } from "@/types/user";
 
 export async function withRoleGuard(
   allowedRoles: readonly Role[],
