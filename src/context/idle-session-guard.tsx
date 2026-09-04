@@ -7,6 +7,18 @@ import { Button } from "@/components/ui/button";
 
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"] as const;
 
+function formatCountdown(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  const minutesText = `${minutes} min`;
+  const secondsText = `${seconds} sec${seconds === 1 ? "" : "s"}`;
+
+  if (minutes === 0) return secondsText;
+  if (seconds === 0) return minutesText;
+  return `${minutesText} ${secondsText}`;
+}
+
 /**
  * Idle session policy: after `idleMs` of no activity, warn the user instead
  * of signing them out immediately. The warning counts down `warningMs`
@@ -91,7 +103,7 @@ export function IdleSessionGuard({
     <Modal
       eyebrow="Session timeout"
       title="Still there?"
-      description={`For your security, you'll be signed out in ${secondsLeft}s of inactivity.`}
+      description={`For your security, you'll be signed out in ${formatCountdown(secondsLeft)} of inactivity.`}
       onClose={handleStaySignedIn}
       actions={
         <>
