@@ -53,58 +53,56 @@ export function SettingsModule({
       {settings.isLoading || leaveTypes.isLoading ? (
         <SettingsCatalogSkeleton />
       ) : (
-        <>
-          <div className="settings-grid">
-            {CATALOG_KINDS.map((kind) => (
-              <SettingsCatalogSection
-                key={kind}
-                kind={kind}
-                label={LABELS[kind]}
-                items={settings.items.filter(
-                  (item) =>
-                    item.kind === kind &&
-                    (kind !== "status" ||
-                      item.category === EMPLOYMENT_STATUS_CATEGORY),
-                )}
-                category={
-                  kind === "status" ? EMPLOYMENT_STATUS_CATEGORY : undefined
-                }
-                seedEnabled={seedFlags[kind]}
-                onCreate={async (input) => {
-                  await settings.create(input);
-                }}
-                onUpdate={async (id, input) => {
-                  await settings.update(id, input);
-                }}
-                onToggle={async (id, active) => {
-                  await settings.update(id, { active });
-                }}
-                onDelete={async (id) => {
-                  await settings.remove(id);
-                }}
-                onSeed={async () => {
-                  await settings.seed(kind);
-                }}
-              />
-            ))}
-            <LeaveTypesSection
-              items={leaveTypes.items}
-              seedEnabled={leaveTypeSeedEnabled}
+        <div className="settings-grid">
+          {CATALOG_KINDS.map((kind) => (
+            <SettingsCatalogSection
+              key={kind}
+              kind={kind}
+              label={LABELS[kind]}
+              items={settings.items.filter(
+                (item) =>
+                  item.kind === kind &&
+                  (kind !== "status" ||
+                    item.category === EMPLOYMENT_STATUS_CATEGORY),
+              )}
+              category={
+                kind === "status" ? EMPLOYMENT_STATUS_CATEGORY : undefined
+              }
+              seedEnabled={seedFlags[kind]}
               onCreate={async (input) => {
-                await leaveTypes.create(input);
+                await settings.create(input);
               }}
               onUpdate={async (id, input) => {
-                await leaveTypes.update(id, input);
+                await settings.update(id, input);
+              }}
+              onToggle={async (id, active) => {
+                await settings.update(id, { active });
               }}
               onDelete={async (id) => {
-                await leaveTypes.remove(id);
+                await settings.remove(id);
               }}
               onSeed={async () => {
-                await leaveTypes.seed();
+                await settings.seed(kind);
               }}
             />
-          </div>
-        </>
+          ))}
+          <LeaveTypesSection
+            items={leaveTypes.items}
+            seedEnabled={leaveTypeSeedEnabled}
+            onCreate={async (input) => {
+              await leaveTypes.create(input);
+            }}
+            onUpdate={async (id, input) => {
+              await leaveTypes.update(id, input);
+            }}
+            onDelete={async (id) => {
+              await leaveTypes.remove(id);
+            }}
+            onSeed={async () => {
+              await leaveTypes.seed();
+            }}
+          />
+        </div>
       )}
     </div>
   );

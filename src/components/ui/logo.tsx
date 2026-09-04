@@ -1,19 +1,21 @@
 import Image from "next/image";
 
-const LOGO_INTRINSIC_WIDTH = 521;
-const LOGO_INTRINSIC_HEIGHT = 479;
+interface LogoProps {
+  readonly size?: number;
+}
 
-export function Logo({ size = 28 }: Readonly<{ size?: number }>) {
+const TRANSPARENT_LOGO_INTRINSIC_WIDTH = 521;
+const TRANSPARENT_LOGO_INTRINSIC_HEIGHT = 479;
+
+export function Logo({ size = 34 }: LogoProps) {
   return (
-    <span className="logo-badge">
-      <Image
-        src="/assets/images/pcas-logo-transparent.png"
-        alt="PCAS"
-        width={LOGO_INTRINSIC_WIDTH}
-        height={LOGO_INTRINSIC_HEIGHT}
-        style={{ width: size, height: "auto" }}
-        priority
-      />
-    </span>
+    <Image
+      src="/assets/images/pcas-logo-transparent.png"
+      alt="PCAS WorkforceHub"
+      width={TRANSPARENT_LOGO_INTRINSIC_WIDTH}
+      height={TRANSPARENT_LOGO_INTRINSIC_HEIGHT}
+      style={{ width: size, height: "auto" }}
+      priority
+    />
   );
 }

@@ -1,7 +1,10 @@
 import { withAuth } from "next-auth/middleware";
 
 export default withAuth({
-  pages: { signIn: "/login" },
+  pages: {
+    signIn: "/login",
+  },
+
   callbacks: {
     authorized: ({ token }) =>
       Boolean(token?.userId && token?.role && !token.expired),
@@ -9,5 +12,5 @@ export default withAuth({
 });
 
 export const config = {
-  matcher: ["/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!login|api/auth|_next/static|_next/image|assets|favicon.ico).*)"],
 };
