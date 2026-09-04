@@ -5,7 +5,9 @@ import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useCurrentUser } from "@/context/current-user-context";
+import { useSortState } from "@/hooks/use-sort-state";
 import { usePermissionUsers } from "@/features/permissions/hooks/use-permission-users";
+import type { UserListInitialData } from "@/features/permissions/hooks/use-permission-users";
 import { UsersTable } from "@/features/permissions/components/users-table";
 import { UserFormDialog } from "@/features/permissions/components/user-form-dialog";
 import { DeactivateUserDialog } from "@/features/permissions/components/deactivate-user-dialog";
@@ -13,13 +15,20 @@ import { ResetDataDialog } from "@/features/permissions/components/reset-data-di
 import { adminResetClient } from "@/features/permissions/api/admin-reset-client";
 import type { AppUser } from "@/types/user";
 
+const DEFAULT_PAGE_SIZE = 10;
+
 export function PermissionsModule({
   dataResetEnabled,
-  initialUsers,
-}: Readonly<{ dataResetEnabled: boolean; initialUsers?: AppUser[] }>) {
+  initialData,
+}: Readonly<{ dataResetEnabled: boolean; initialData?: UserListInitialData }>) {
   const currentUser = useCurrentUser();
-  const { items, isLoading, error, create, update, deactivate } =
-    usePermissionUsers(initialUsers);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const { sortBy, sortDir, toggleSort } = useSortState();
+  const { items, total, isLoading, error, create, update, deactivate } = usePermissionUsers(
+    { page, pageSize, sortBy, sortDir },
+    initialData,
+  );
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [deactivating, setDeactivating] = useState<AppUser | null>(null);
@@ -62,13 +71,27 @@ export function PermissionsModule({
       {isLoading ? (
         <TableSkeleton
           columnWidths={["25%", "20%", "15%", "15%", "20%"]}
-          rows={4}
+          rows={pageSize}
         />
       ) : (
         <UsersTable
           users={items}
           currentUserId={currentUser.id}
           activatingId={activatingId}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={(field) => {
+            toggleSort(field);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
           onEdit={setEditing}
           onActivate={handleActivate}
           onDeactivate={setDeactivating}

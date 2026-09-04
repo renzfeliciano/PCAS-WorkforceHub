@@ -2,31 +2,39 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usersClient } from "@/features/permissions/api/users-client";
+import type { UserListParams } from "@/features/permissions/api/users-client";
 import { createRequestCache } from "@/lib/request-cache";
 import type { CreateUserInput, UpdateUserInput } from "@/schemas/user";
 import type { AppUser } from "@/types/user";
 
-const CACHE_TTL_MS = 15_000;
-const cache = createRequestCache<{ items: AppUser[] }>(CACHE_TTL_MS);
+export type UserListInitialData = { items: AppUser[]; total: number };
 
-export function usePermissionUsers(initialItems?: AppUser[]) {
-  const [items, setItems] = useState<AppUser[]>(initialItems ?? []);
-  const [isLoading, setIsLoading] = useState(initialItems === undefined);
+const CACHE_TTL_MS = 15_000;
+const cache = createRequestCache<{ items: AppUser[]; total: number }>(CACHE_TTL_MS);
+
+export function usePermissionUsers(
+  { page, pageSize, sortBy, sortDir }: UserListParams,
+  initialData?: UserListInitialData,
+) {
+  const [items, setItems] = useState<AppUser[]>(initialData?.items ?? []);
+  const [total, setTotal] = useState(initialData?.total ?? 0);
+  const [isLoading, setIsLoading] = useState(initialData === undefined);
   const [error, setError] = useState<string | null>(null);
-  const hydrated = useRef(initialItems !== undefined);
+  const hydrated = useRef(initialData !== undefined);
 
   const load = useCallback(async () => {
     cache.clear();
     try {
-      const result = await usersClient.list();
+      const result = await usersClient.list({ page, pageSize, sortBy, sortDir });
       setItems(result.items);
+      setTotal(result.total);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page, pageSize, sortBy, sortDir]);
 
   useEffect(() => {
     if (hydrated.current) {
@@ -35,10 +43,13 @@ export function usePermissionUsers(initialItems?: AppUser[]) {
     }
     let cancelled = false;
     cache
-      .get("users", () => usersClient.list())
+      .get(JSON.stringify({ page, pageSize, sortBy, sortDir }), () =>
+        usersClient.list({ page, pageSize, sortBy, sortDir }),
+      )
       .then((result) => {
         if (cancelled) return;
         setItems(result.items);
+        setTotal(result.total);
         setError(null);
       })
       .catch((err) => {
@@ -50,7 +61,7 @@ export function usePermissionUsers(initialItems?: AppUser[]) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [page, pageSize, sortBy, sortDir]);
 
   const create = useCallback(
     async (input: CreateUserInput) => {
@@ -76,5 +87,5 @@ export function usePermissionUsers(initialItems?: AppUser[]) {
     [load],
   );
 
-  return { items, isLoading, error, reload: load, create, update, deactivate };
+  return { items, total, isLoading, error, reload: load, create, update, deactivate };
 }

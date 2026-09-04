@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api-client";
 import type { EmployeeInput, EmployeeUpdateInput } from "@/schemas/employee";
 import type { Employee, LeaveBalance } from "@/types/employee";
+import type { SortDir } from "@/types/list-query";
 
 export type EmployeeListParams = {
   page?: number;
@@ -8,6 +9,8 @@ export type EmployeeListParams = {
   query?: string;
   status?: string[];
   includeArchived?: boolean;
+  sortBy?: string;
+  sortDir?: SortDir;
 };
 export type EmployeeListResponse = {
   items: Employee[];
@@ -23,6 +26,8 @@ function buildQuery(params: EmployeeListParams) {
   if (params.query) search.set("query", params.query);
   if (params.status?.length) search.set("status", params.status.join(","));
   if (params.includeArchived) search.set("includeArchived", "true");
+  if (params.sortBy) search.set("sortBy", params.sortBy);
+  if (params.sortDir) search.set("sortDir", params.sortDir);
   return search.toString();
 }
 

@@ -14,7 +14,11 @@ type SettingsCatalogSectionProps = Readonly<{
   items: SettingItem[];
   category?: string;
   seedEnabled: boolean;
-  onCreate: (input: { name: string; kind: SettingKind; category?: string }) => Promise<void>;
+  onCreate: (input: {
+    name: string;
+    kind: SettingKind;
+    category?: string;
+  }) => Promise<void>;
   onUpdate: (id: string, input: { name: string }) => Promise<void>;
   onToggle: (id: string, active: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -72,7 +76,11 @@ export function SettingsCatalogSection({
               {isSeeding ? <Spinner size={11} /> : "Seed defaults"}
             </button>
           )}
-          <Button type="button" variant="primary" onClick={() => setAdding(true)}>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => setAdding(true)}
+          >
             Add
           </Button>
         </div>
@@ -119,11 +127,16 @@ export function SettingsCatalogSection({
           label={singularLabel}
           onClose={() => setAdding(false)}
           onSubmit={async ({ name }) => {
-            if (items.some((item) => item.name.toLowerCase() === name.toLowerCase()))
+            if (
+              items.some(
+                (item) => item.name.toLowerCase() === name.toLowerCase(),
+              )
+            )
               throw new Error("This option already exists.");
             await onCreate({ name, kind, category });
             setAdding(false);
           }}
+          submitLabel={`Add ${kind}`}
         />
       )}
       {editing && (

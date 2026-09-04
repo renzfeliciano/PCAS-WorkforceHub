@@ -2,13 +2,17 @@ import type { AuditLogger } from "@/lib/audit-logger";
 import { ForbiddenActionError } from "@/lib/app-errors";
 import { canManageUsers } from "@/lib/rbac";
 import { createUserSchema, updateUserSchema } from "@/schemas/user";
-import type { UserRepository } from "@/repositories/user-repository";
+import type { UserListFilters, UserRepository } from "@/repositories/user-repository";
 import type { AppUser, Role } from "@/types/user";
+import type { ListResult } from "@/types/list-query";
 
 type Actor = { role: Role; id: string; requestId: string };
 
-export async function listUsers(repository: UserRepository): Promise<AppUser[]> {
-  return repository.findAll();
+export async function listUsers(
+  repository: UserRepository,
+  filters: UserListFilters,
+): Promise<ListResult<AppUser>> {
+  return repository.findAll(filters);
 }
 
 export async function createUser(

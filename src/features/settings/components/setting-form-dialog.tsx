@@ -9,6 +9,7 @@ import type { SettingItem } from "@/types/settings";
 type SettingFormDialogProps = Readonly<{
   mode: "create" | "edit";
   label: string;
+  submitLabel?: string;
   initialValue?: SettingItem;
   onClose: () => void;
   onSubmit: (input: { name: string }) => Promise<void>;
@@ -17,6 +18,7 @@ type SettingFormDialogProps = Readonly<{
 export function SettingFormDialog({
   mode,
   label,
+  submitLabel,
   initialValue,
   onClose,
   onSubmit,
@@ -49,16 +51,23 @@ export function SettingFormDialog({
       eyebrow={mode === "create" ? "New option" : "Edit catalog"}
       title={mode === "create" ? `Add ${label}` : (initialValue?.name ?? "")}
       description={
-        mode === "create" ? `Add a new ${label} option.` : `Update this ${label} option.`
+        mode === "create"
+          ? `Add a new ${label} option.`
+          : `Update this ${label} option.`
       }
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button type="submit" variant="primary" isLoading={isSubmitting}>
-            {mode === "create" ? "Add option" : "Save changes"}
+            {mode === "create" ? (submitLabel ?? "Add option") : "Save changes"}
           </Button>
         </>
       }

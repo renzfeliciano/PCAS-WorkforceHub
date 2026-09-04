@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useCurrentUser } from "@/context/current-user-context";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useLeaveTypeOptions } from "@/hooks/use-leave-type-options";
+import { useSortState } from "@/hooks/use-sort-state";
 import {
   canDeleteEmployees,
   canEditEmployees,
@@ -27,7 +27,7 @@ import type { Employee } from "@/types/employee";
 
 const EXPORT_PAGE_SIZE = 100;
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 export function EmployeesModule({
   initialData,
@@ -41,6 +41,8 @@ export function EmployeesModule({
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const { sortBy, sortDir, toggleSort } = useSortState();
 
   const { activeItems: statuses } = useCatalogOptions(
     "status",
@@ -61,10 +63,12 @@ export function EmployeesModule({
   } = useEmployees(
     {
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
       query: rawQuery,
       status: selectedStatuses,
       includeArchived: showArchived,
+      sortBy,
+      sortDir,
     },
     initialData,
   );
@@ -179,7 +183,7 @@ export function EmployeesModule({
       {isLoading ? (
         <TableSkeleton
           columnWidths={["15%", "30%", "25%", "25%", "8%"]}
-          rows={PAGE_SIZE}
+          rows={pageSize}
         />
       ) : items.length === 0 ? (
         <EmptyState
@@ -187,26 +191,32 @@ export function EmployeesModule({
           description="Try a different search term or status filter."
         />
       ) : (
-        <>
-          <EmployeeTable
-            employees={items}
-            startIndex={(page - 1) * PAGE_SIZE}
-            canEdit={canEdit}
-            canDelete={canDelete}
-            canManageLeaveBalances={canManageLeave}
-            restoringId={restoringId}
-            onEdit={setEditing}
-            onLeaveBalances={setLeaveTarget}
-            onArchive={setArchiveTarget}
-            onRestore={handleRestore}
-          />
-          <Pagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            total={total}
-            onPageChange={setPage}
-          />
-        </>
+        <EmployeeTable
+          employees={items}
+          startIndex={(page - 1) * pageSize}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={(field) => {
+            toggleSort(field);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          canManageLeaveBalances={canManageLeave}
+          restoringId={restoringId}
+          onEdit={setEditing}
+          onLeaveBalances={setLeaveTarget}
+          onArchive={setArchiveTarget}
+          onRestore={handleRestore}
+        />
       )}
       {adding && (
         <EmployeeFormDialog

@@ -1,11 +1,22 @@
 import { Pencil } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import { Spinner } from "@/components/ui/spinner";
 import type { AppUser } from "@/types/user";
+import type { SortDir } from "@/types/list-query";
 
 type UsersTableProps = Readonly<{
   users: AppUser[];
   currentUserId: string;
   activatingId?: string | null;
+  sortBy?: string;
+  sortDir?: SortDir;
+  onSort: (field: string) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   onEdit: (user: AppUser) => void;
   onActivate: (user: AppUser) => void;
   onDeactivate: (user: AppUser) => void;
@@ -15,59 +26,111 @@ export function UsersTable({
   users,
   currentUserId,
   activatingId,
+  sortBy,
+  sortDir,
+  onSort,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
   onEdit,
   onActivate,
   onDeactivate,
 }: UsersTableProps) {
   return (
-    <div className="permission-table">
-      <div className="permission-row permission-header">
-        <span>Name</span>
-        <span>Username</span>
-        <span>Role</span>
-        <span>Status</span>
-        <span>Actions</span>
+    <div className="table-card">
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <SortableHeader
+                field="name"
+                label="Name"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="username"
+                label="Username"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="role"
+                label="Role"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="active"
+                label="Status"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>{user.name}</td>
+                <td>{user.username}</td>
+                <td>{user.role}</td>
+                <td>
+                  <span className={user.active ? "allowed" : "blocked"}>
+                    {user.active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+                <td>
+                  <div className="row-actions">
+                    <button
+                      type="button"
+                      className="edit"
+                      onClick={() => onEdit(user)}
+                      aria-label={`Edit ${user.name}`}
+                      title="Edit"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    {user.id !== currentUserId &&
+                      (user.active ? (
+                        <button
+                          type="button"
+                          className="deactivate-setting"
+                          onClick={() => onDeactivate(user)}
+                        >
+                          Deactivate
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="edit-setting"
+                          onClick={() => onActivate(user)}
+                          disabled={activatingId === user.id}
+                        >
+                          {activatingId === user.id ? <Spinner size={11} /> : "Activate"}
+                        </button>
+                      ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      {users.map((user) => (
-        <div className="permission-row" key={user.id}>
-          <span>{user.name}</span>
-          <span>{user.username}</span>
-          <span>{user.role}</span>
-          <span className={user.active ? "allowed" : "blocked"}>
-            {user.active ? "Active" : "Inactive"}
-          </span>
-          <span className="row-actions">
-            <button
-              type="button"
-              className="edit-setting"
-              onClick={() => onEdit(user)}
-              aria-label={`Edit ${user.name}`}
-              title="Edit"
-            >
-              <Pencil size={13} />
-            </button>
-            {user.id !== currentUserId &&
-              (user.active ? (
-                <button
-                  type="button"
-                  className="deactivate-setting"
-                  onClick={() => onDeactivate(user)}
-                >
-                  Deactivate
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="edit-setting"
-                  onClick={() => onActivate(user)}
-                  disabled={activatingId === user.id}
-                >
-                  {activatingId === user.id ? <Spinner size={11} /> : "Activate"}
-                </button>
-              ))}
-          </span>
-        </div>
-      ))}
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        itemLabel="user"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </div>
   );
 }

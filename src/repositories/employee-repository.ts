@@ -1,8 +1,17 @@
 import { isValidObjectId } from "mongoose";
 import { NotFoundError } from "@/lib/app-errors";
 import { EmployeeModel } from "@/repositories/models/employee-model";
+import { resolveSort } from "@/repositories/sort";
 import type { EmployeeInput, EmployeeUpdateInput } from "@/schemas/employee";
 import type { Employee, Gender, LeaveBalance } from "@/types/employee";
+import type { SortDir } from "@/types/list-query";
+
+const EMPLOYEE_SORT_FIELD_MAP = {
+  employeeNumber: "employeeNumber",
+  name: "name",
+  position: "position",
+  projectSite: "projectSite",
+} as const;
 
 export type EmployeeListFilters = {
   query?: string;
@@ -10,6 +19,8 @@ export type EmployeeListFilters = {
   includeArchived?: boolean;
   page?: number;
   pageSize?: number;
+  sortBy?: string;
+  sortDir?: SortDir;
 };
 export type EmployeeListResult = {
   items: Employee[];
@@ -100,9 +111,15 @@ export class MongoEmployeeRepository implements EmployeeRepository {
         { projectSite: pattern },
       ];
     }
+    const sort = resolveSort(
+      filters.sortBy,
+      filters.sortDir,
+      EMPLOYEE_SORT_FIELD_MAP,
+      { createdAt: -1 },
+    );
     const [docs, total] = await Promise.all([
       EmployeeModel.find(mongoQuery)
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .lean<EmployeeDocument[]>(),

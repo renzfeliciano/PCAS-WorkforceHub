@@ -6,5 +6,6 @@ export type LeaveType = {
   code: string;
   eligibility: LeaveEligibility;
   description?: string;
+  order: number;
   active: boolean;
 };

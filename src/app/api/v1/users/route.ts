@@ -2,6 +2,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { isGuardError, requireApiSession } from "@/lib/api-guard";
 import { apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
+import { userListQuerySchema } from "@/schemas/user";
 import { MongoUserRepository } from "@/repositories/user-repository";
 import { createUser, listUsers } from "@/services/user-service";
 
@@ -11,10 +12,14 @@ export async function GET(request: Request) {
   const guard = await requireApiSession(request, ["Admin"]);
   if (isGuardError(guard)) return guard;
   const { requestId, headers } = guard;
+  const parsed = userListQuerySchema.safeParse(
+    Object.fromEntries(new URL(request.url).searchParams),
+  );
+  if (!parsed.success) return mapServiceError(parsed.error, requestId, headers);
   try {
     await connectMongoDB();
-    const items = await listUsers(repository);
-    return apiJson({ items }, requestId, headers);
+    const result = await listUsers(repository, parsed.data);
+    return apiJson(result, requestId, headers);
   } catch (error) {
     return mapServiceError(error, requestId, headers);
   }

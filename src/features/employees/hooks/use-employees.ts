@@ -26,7 +26,7 @@ function fetchEmployees(filters: EmployeeListParams, signal: AbortSignal) {
 }
 
 export function useEmployees(
-  { page, pageSize, query, status, includeArchived }: EmployeeListParams,
+  { page, pageSize, query, status, includeArchived, sortBy, sortDir }: EmployeeListParams,
   initialData?: EmployeeListInitialData,
 ) {
   const [items, setItems] = useState<Employee[]>(initialData?.items ?? []);
@@ -42,7 +42,7 @@ export function useEmployees(
     setIsFetching(true);
     try {
       const result = await employeesClient.list(
-        { page, pageSize, query, status, includeArchived },
+        { page, pageSize, query, status, includeArchived, sortBy, sortDir },
         controller.signal,
       );
       setItems(result.items);
@@ -54,7 +54,7 @@ export function useEmployees(
       setIsLoading(false);
       setIsFetching(false);
     }
-  }, [page, pageSize, query, status, includeArchived]);
+  }, [page, pageSize, query, status, includeArchived, sortBy, sortDir]);
 
   useEffect(() => {
     if (hydrated.current) {
@@ -64,7 +64,10 @@ export function useEmployees(
     const controller = new AbortController();
     setIsFetching(true);
     const timeoutId = setTimeout(() => {
-      fetchEmployees({ page, pageSize, query, status, includeArchived }, controller.signal)
+      fetchEmployees(
+        { page, pageSize, query, status, includeArchived, sortBy, sortDir },
+        controller.signal,
+      )
         .then((result) => {
           setItems(result.items);
           setTotal(result.total);
@@ -83,7 +86,7 @@ export function useEmployees(
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [page, pageSize, query, status, includeArchived]);
+  }, [page, pageSize, query, status, includeArchived, sortBy, sortDir]);
 
   const create = useCallback(
     async (input: EmployeeInput) => {

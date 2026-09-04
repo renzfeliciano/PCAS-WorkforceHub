@@ -1,11 +1,21 @@
 import { Archive, Pencil, RotateCcw, Wallet } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 import { Spinner } from "@/components/ui/spinner";
-import { pluralize } from "@/lib/pluralize";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import type { Employee } from "@/types/employee";
+import type { SortDir } from "@/types/list-query";
 
 type EmployeeTableProps = Readonly<{
   employees: Employee[];
   startIndex: number;
+  sortBy?: string;
+  sortDir?: SortDir;
+  onSort: (field: string) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   canEdit: boolean;
   canDelete: boolean;
   canManageLeaveBalances: boolean;
@@ -19,6 +29,14 @@ type EmployeeTableProps = Readonly<{
 export function EmployeeTable({
   employees,
   startIndex,
+  sortBy,
+  sortDir,
+  onSort,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
   canEdit,
   canDelete,
   canManageLeaveBalances,
@@ -36,10 +54,34 @@ export function EmployeeTable({
           <thead>
             <tr>
               <th>#</th>
-              <th>Employee number</th>
-              <th>Employee name</th>
-              <th>Position</th>
-              <th>Project / site</th>
+              <SortableHeader
+                field="employeeNumber"
+                label="Employee number"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="name"
+                label="Employee name"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="position"
+                label="Position"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="projectSite"
+                label="Project / site"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
               {hasActions && <th />}
             </tr>
           </thead>
@@ -111,9 +153,14 @@ export function EmployeeTable({
           </tbody>
         </table>
       </div>
-      <div className="table-foot">
-        Showing <b>{employees.length}</b> {pluralize(employees.length, "employee")}
-      </div>
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        itemLabel="employee"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </div>
   );
 }

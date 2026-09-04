@@ -1,6 +1,14 @@
 import { z } from "zod";
+import { paginationQuerySchema, sortQuerySchema } from "@/schemas/list-query";
 
 const requiredText = z.string().trim().min(1);
+
+export const employeeSortFields = [
+  "employeeNumber",
+  "name",
+  "position",
+  "projectSite",
+] as const;
 export const genderSchema = z.enum(["Male", "Female"]);
 
 /** SSS: XX-XXXXXXX-X (10 digits) */
@@ -53,21 +61,21 @@ export const updateEmployeeSchema = employeeSchema.partial().extend({
   archived: z.boolean().optional(),
 });
 export const updateLeaveBalancesSchema = z.array(leaveBalanceSchema);
-export const employeeListQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  query: z.string().trim().optional(),
-  status: z
-    .string()
-    .trim()
-    .optional()
-    .transform((value) =>
-      value ? value.split(",").map((entry) => entry.trim()).filter(Boolean) : undefined,
-    ),
-  includeArchived: z
-    .union([z.literal("true"), z.literal("false")])
-    .optional()
-    .transform((value) => value === "true"),
-});
+export const employeeListQuerySchema = paginationQuerySchema(20)
+  .extend(sortQuerySchema(employeeSortFields).shape)
+  .extend({
+    query: z.string().trim().optional(),
+    status: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) =>
+        value ? value.split(",").map((entry) => entry.trim()).filter(Boolean) : undefined,
+      ),
+    includeArchived: z
+      .union([z.literal("true"), z.literal("false")])
+      .optional()
+      .transform((value) => value === "true"),
+  });
 export type EmployeeInput = z.infer<typeof employeeSchema>;
 export type EmployeeUpdateInput = z.infer<typeof updateEmployeeSchema>;

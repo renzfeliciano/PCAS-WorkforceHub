@@ -1,6 +1,13 @@
 import { z } from "zod";
+import { paginationQuerySchema, sortQuerySchema } from "@/schemas/list-query";
 
 export const roleSchema = z.enum(["Admin", "HR", "Manager", "Employee"]);
+
+export const userSortFields = ["name", "username", "role", "active"] as const;
+
+export const userListQuerySchema = paginationQuerySchema(20).extend(
+  sortQuerySchema(userSortFields).shape,
+);
 
 export const createUserSchema = z.object({
   username: z.string().trim().min(3).max(40),

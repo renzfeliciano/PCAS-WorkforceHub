@@ -21,6 +21,7 @@ type LeaveTypeDocument = {
   code: string;
   eligibility: LeaveEligibility;
   description?: string;
+  order: number;
   active: boolean;
 };
 
@@ -31,6 +32,7 @@ function toLeaveType(doc: LeaveTypeDocument): LeaveType {
     code: doc.code,
     eligibility: doc.eligibility,
     description: doc.description,
+    order: doc.order,
     active: doc.active,
   };
 }
@@ -43,13 +45,15 @@ function isDuplicateKeyError(error: unknown): boolean {
 
 export class MongoLeaveTypeRepository implements LeaveTypeRepository {
   async findAll(): Promise<LeaveType[]> {
-    const docs = await LeaveTypeModel.find().sort({ name: 1 }).lean<LeaveTypeDocument[]>();
+    const docs = await LeaveTypeModel.find().sort({ order: 1 }).lean<LeaveTypeDocument[]>();
     return docs.map(toLeaveType);
   }
 
   async create(input: CreateLeaveTypeInput): Promise<LeaveType> {
     try {
-      const doc = await LeaveTypeModel.create({ ...input, active: true });
+      const highest = await LeaveTypeModel.findOne().sort({ order: -1 }).lean<LeaveTypeDocument | null>();
+      const order = (highest?.order ?? -1) + 1;
+      const doc = await LeaveTypeModel.create({ ...input, order, active: true });
       return toLeaveType(doc.toObject() as LeaveTypeDocument);
     } catch (error) {
       if (isDuplicateKeyError(error))
@@ -85,14 +89,14 @@ export class MongoLeaveTypeRepository implements LeaveTypeRepository {
     entries: readonly { name: string; code: string; eligibility: LeaveEligibility }[],
   ): Promise<number> {
     const result = await LeaveTypeModel.bulkWrite(
-      entries.map((entry) => ({
+      entries.map((entry, index) => ({
         updateOne: {
           filter: { code: entry.code },
-          update: { $setOnInsert: { ...entry, active: true } },
+          update: { $setOnInsert: { ...entry, order: index, active: true } },
           upsert: true,
         },
       })),
-      { ordered: false },
+      { ordered: true },
     );
     return result.upsertedCount;
   }
