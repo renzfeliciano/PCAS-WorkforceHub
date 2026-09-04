@@ -10,6 +10,7 @@ const settingSchema = new Schema(
     },
     category: { type: String, trim: true },
     description: { type: String, trim: true },
+    sortOrder: { type: Number },
     active: { type: Boolean, default: true, index: true },
   },
   { timestamps: true },

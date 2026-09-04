@@ -1,7 +1,10 @@
 import { isValidObjectId } from "mongoose";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
 import { SettingModel } from "@/repositories/models/setting-model";
-import type { CreateSettingInput, UpdateSettingInput } from "@/schemas/settings";
+import type {
+  CreateSettingInput,
+  UpdateSettingInput,
+} from "@/schemas/settings";
 import type { SettingItem, SettingKind } from "@/types/settings";
 
 export type SettingListFilters = { kind?: SettingKind; category?: string };
@@ -21,6 +24,7 @@ type SettingDocument = {
   kind: SettingKind;
   category?: string;
   description?: string;
+  sortOrder?: number;
   active: boolean;
 };
 
@@ -37,7 +41,10 @@ function toSettingItem(doc: SettingDocument): SettingItem {
 
 function isDuplicateKeyError(error: unknown): boolean {
   return Boolean(
-    error && typeof error === "object" && "code" in error && (error as { code: unknown }).code === 11000,
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code: unknown }).code === 11000,
   );
 }
 
@@ -47,7 +54,7 @@ export class MongoSettingRepository implements SettingRepository {
     if (filters.kind) query.kind = filters.kind;
     if (filters.category) query.category = filters.category;
     const docs = await SettingModel.find(query)
-      .sort({ kind: 1, category: 1, name: 1 })
+      .sort({ kind: 1, category: 1, sortOrder: 1, createdAt: 1, name: 1 })
       .lean<SettingDocument[]>();
     return docs.map(toSettingItem);
   }
@@ -64,7 +71,9 @@ export class MongoSettingRepository implements SettingRepository {
       return toSettingItem(doc.toObject() as SettingDocument);
     } catch (error) {
       if (isDuplicateKeyError(error))
-        throw new ConflictError("A setting with this name already exists for this category");
+        throw new ConflictError(
+          "A setting with this name already exists for this category",
+        );
       throw error;
     }
   }
@@ -72,12 +81,18 @@ export class MongoSettingRepository implements SettingRepository {
   async update(id: string, patch: UpdateSettingInput): Promise<SettingItem> {
     if (!isValidObjectId(id)) throw new NotFoundError("Setting not found");
     try {
-      const doc = await SettingModel.findByIdAndUpdate(id, { $set: patch }, { new: true }).lean<SettingDocument | null>();
+      const doc = await SettingModel.findByIdAndUpdate(
+        id,
+        { $set: patch },
+        { new: true },
+      ).lean<SettingDocument | null>();
       if (!doc) throw new NotFoundError("Setting not found");
       return toSettingItem(doc);
     } catch (error) {
       if (isDuplicateKeyError(error))
-        throw new ConflictError("A setting with this name already exists for this category");
+        throw new ConflictError(
+          "A setting with this name already exists for this category",
+        );
       throw error;
     }
   }
