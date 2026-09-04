@@ -38,13 +38,13 @@ export default function LoginPage() {
         </div>
         <form onSubmit={submit} className="login-form">
           <label>
-            Username{" "}
+            Email or username{" "}
             <input
               name="username"
               type="text"
               autoComplete="username"
               required
-              placeholder="Enter your username"
+              placeholder="Enter your email or username"
             />
           </label>
           <label>

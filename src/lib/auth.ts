@@ -32,8 +32,9 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.username || !credentials.password) return null;
         await connectMongoDB();
+        const login = credentials.username.trim().toLowerCase();
         const user = await UserModel.findOne({
-          username: credentials.username,
+          $or: [{ username: login }, { email: login }],
           active: true,
         })
           .select("+passwordHash +activeSessionId")
