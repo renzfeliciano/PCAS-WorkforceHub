@@ -1,11 +1,15 @@
 import { Archive, Pencil, RotateCcw, Wallet } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { pluralize } from "@/lib/pluralize";
 import type { Employee } from "@/types/employee";
 
 type EmployeeTableProps = Readonly<{
   employees: Employee[];
+  startIndex: number;
   canEdit: boolean;
   canDelete: boolean;
   canManageLeaveBalances: boolean;
+  restoringId?: string | null;
   onEdit: (employee: Employee) => void;
   onLeaveBalances: (employee: Employee) => void;
   onArchive: (employee: Employee) => void;
@@ -14,9 +18,11 @@ type EmployeeTableProps = Readonly<{
 
 export function EmployeeTable({
   employees,
+  startIndex,
   canEdit,
   canDelete,
   canManageLeaveBalances,
+  restoringId,
   onEdit,
   onLeaveBalances,
   onArchive,
@@ -29,6 +35,7 @@ export function EmployeeTable({
         <table>
           <thead>
             <tr>
+              <th>#</th>
               <th>Employee number</th>
               <th>Employee name</th>
               <th>Position</th>
@@ -37,8 +44,9 @@ export function EmployeeTable({
             </tr>
           </thead>
           <tbody>
-            {employees.map((employee) => (
+            {employees.map((employee, index) => (
               <tr key={employee.id}>
+                <td>{startIndex + index + 1}</td>
                 <td>{employee.employeeNumber}</td>
                 <td>{employee.name}</td>
                 <td>{employee.position}</td>
@@ -76,8 +84,13 @@ export function EmployeeTable({
                             onClick={() => onRestore(employee)}
                             aria-label={`Restore ${employee.name}`}
                             title="Restore"
+                            disabled={restoringId === employee.id}
                           >
-                            <RotateCcw size={14} />
+                            {restoringId === employee.id ? (
+                              <Spinner size={14} />
+                            ) : (
+                              <RotateCcw size={14} />
+                            )}
                           </button>
                         ) : (
                           <button
@@ -85,7 +98,7 @@ export function EmployeeTable({
                             type="button"
                             onClick={() => onArchive(employee)}
                             aria-label={`Archive ${employee.name}`}
-                            title="Delete"
+                            title="Archive"
                           >
                             <Archive size={14} />
                           </button>
@@ -99,7 +112,7 @@ export function EmployeeTable({
         </table>
       </div>
       <div className="table-foot">
-        Showing <b>{employees.length}</b> employees
+        Showing <b>{employees.length}</b> {pluralize(employees.length, "employee")}
       </div>
     </div>
   );

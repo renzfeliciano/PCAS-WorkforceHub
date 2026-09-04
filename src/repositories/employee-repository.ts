@@ -6,7 +6,7 @@ import type { Employee, Gender, LeaveBalance } from "@/types/employee";
 
 export type EmployeeListFilters = {
   query?: string;
-  status?: string;
+  status?: string[];
   includeArchived?: boolean;
   page?: number;
   pageSize?: number;
@@ -88,9 +88,9 @@ export class MongoEmployeeRepository implements EmployeeRepository {
     const page = Math.max(1, filters.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
     const mongoQuery: Record<string, unknown> = {
-      archived: filters.includeArchived ? { $in: [true, false] } : false,
+      archived: filters.includeArchived ? true : false,
     };
-    if (filters.status) mongoQuery.employmentStatus = filters.status;
+    if (filters.status?.length) mongoQuery.employmentStatus = { $in: filters.status };
     if (filters.query) {
       const pattern = new RegExp(escapeRegex(filters.query.trim()), "i");
       mongoQuery.$or = [

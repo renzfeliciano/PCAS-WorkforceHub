@@ -4,9 +4,13 @@ import { useDashboardSummary } from "@/features/dashboard/hooks/use-dashboard-su
 import { StatCard } from "@/features/dashboard/components/stat-card";
 import { RecentEmployeesList } from "@/features/dashboard/components/recent-employees-list";
 import { UpcomingEventsList } from "@/features/dashboard/components/upcoming-events-list";
+import { DashboardSkeleton } from "@/features/dashboard/components/dashboard-skeleton";
+import type { DashboardSummary } from "@/services/dashboard-service";
 
-export function DashboardModule() {
-  const { data, isLoading, error } = useDashboardSummary();
+export function DashboardModule({
+  initialData,
+}: Readonly<{ initialData?: DashboardSummary }>) {
+  const { data, isLoading, error } = useDashboardSummary(initialData);
 
   if (error)
     return (
@@ -14,7 +18,7 @@ export function DashboardModule() {
         {error}
       </p>
     );
-  if (isLoading || !data) return null;
+  if (isLoading || !data) return <DashboardSkeleton />;
 
   const regularCount = data.statusBreakdown.find((entry) => entry.status === "Regular")?.count ?? 0;
   const contractualCount = data.statusBreakdown

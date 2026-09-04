@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type ConfirmDialogProps = Readonly<{
@@ -7,7 +8,9 @@ type ConfirmDialogProps = Readonly<{
   description: string;
   confirmLabel: string;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
+  deactivateLabel?: string;
+  onDeactivate?: () => void | Promise<void>;
 }>;
 
 export function ConfirmDialog({
@@ -18,7 +21,23 @@ export function ConfirmDialog({
   confirmLabel,
   onClose,
   onConfirm,
+  deactivateLabel = "Deactivate instead",
+  onDeactivate,
 }: ConfirmDialogProps) {
+  const [pending, setPending] = useState<"confirm" | "deactivate" | null>(null);
+  const [error, setError] = useState("");
+
+  async function run(action: "confirm" | "deactivate", handler: () => void | Promise<void>) {
+    setPending(action);
+    setError("");
+    try {
+      await handler();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setPending(null);
+    }
+  }
+
   return (
     <div className="backdrop">
       <div className="modal warning-modal">
@@ -26,11 +45,38 @@ export function ConfirmDialog({
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
         <p className="muted">{description}</p>
+        {error && (
+          <p className="inline-error" role="alert">
+            {error}
+          </p>
+        )}
         <div className="modal-actions">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={pending !== null}
+          >
             Cancel
           </Button>
-          <Button type="button" variant="danger" onClick={onConfirm}>
+          {onDeactivate && (
+            <Button
+              type="button"
+              variant="warning"
+              onClick={() => run("deactivate", onDeactivate)}
+              isLoading={pending === "deactivate"}
+              disabled={pending === "confirm"}
+            >
+              {deactivateLabel}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => run("confirm", onConfirm)}
+            isLoading={pending === "confirm"}
+            disabled={pending === "deactivate"}
+          >
             {confirmLabel}
           </Button>
         </div>

@@ -1,16 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usersClient } from "@/features/permissions/api/users-client";
+import { createRequestCache } from "@/lib/request-cache";
 import type { CreateUserInput, UpdateUserInput } from "@/schemas/user";
 import type { AppUser } from "@/types/user";
 
-export function usePermissionUsers() {
-  const [items, setItems] = useState<AppUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const CACHE_TTL_MS = 15_000;
+const cache = createRequestCache<{ items: AppUser[] }>(CACHE_TTL_MS);
+
+export function usePermissionUsers(initialItems?: AppUser[]) {
+  const [items, setItems] = useState<AppUser[]>(initialItems ?? []);
+  const [isLoading, setIsLoading] = useState(initialItems === undefined);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useRef(initialItems !== undefined);
 
   const load = useCallback(async () => {
+    cache.clear();
     try {
       const result = await usersClient.list();
       setItems(result.items);
@@ -23,9 +29,13 @@ export function usePermissionUsers() {
   }, []);
 
   useEffect(() => {
+    if (hydrated.current) {
+      hydrated.current = false;
+      return;
+    }
     let cancelled = false;
-    usersClient
-      .list()
+    cache
+      .get("users", () => usersClient.list())
       .then((result) => {
         if (cancelled) return;
         setItems(result.items);

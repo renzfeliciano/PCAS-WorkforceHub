@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import { EditSettingDialog } from "@/features/settings/components/edit-setting-dialog";
+import { Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { SettingFormDialog } from "@/features/settings/components/setting-form-dialog";
 import { DeleteSettingDialog } from "@/features/settings/components/delete-setting-dialog";
 import type { SettingItem, SettingKind } from "@/types/settings";
 
@@ -31,31 +33,21 @@ export function SettingsCatalogSection({
   onDelete,
   onSeed,
 }: SettingsCatalogSectionProps) {
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<SettingItem | null>(null);
   const [deleting, setDeleting] = useState<SettingItem | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const activeCount = items.filter((item) => item.active).length;
   const inactiveCount = items.length - activeCount;
+  const singularLabel = label.toLowerCase().replace(/s$/, "");
 
-  async function handleAdd(event: { preventDefault(): void }) {
-    event.preventDefault();
-    const value = name.trim();
-    if (!value) {
-      setError("Enter a name before adding this option.");
-      return;
-    }
-    if (items.some((item) => item.name.toLowerCase() === value.toLowerCase())) {
-      setError("This option already exists.");
-      return;
-    }
+  async function handleSeed() {
+    setIsSeeding(true);
     try {
-      await onCreate({ name: value, kind, category });
-      setName("");
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      await onSeed();
+    } finally {
+      setIsSeeding(false);
     }
   }
 
@@ -71,31 +63,20 @@ export function SettingsCatalogSection({
         <div className="settings-card-tools">
           <span className="settings-count">{items.length}</span>
           {seedEnabled && (
-            <button className="seed-button" type="button" onClick={onSeed}>
-              Seed defaults
+            <button
+              className="seed-button"
+              type="button"
+              onClick={handleSeed}
+              disabled={isSeeding}
+            >
+              {isSeeding ? <Spinner size={11} /> : "Seed defaults"}
             </button>
           )}
+          <Button type="button" variant="primary" onClick={() => setAdding(true)}>
+            Add
+          </Button>
         </div>
       </div>
-      <form className="setting-form" onSubmit={handleAdd}>
-        <input
-          value={name}
-          onChange={(event) => {
-            setName(event.target.value);
-            setError("");
-          }}
-          placeholder={`Add a new ${label.toLowerCase()} option`}
-          aria-label={`New ${label} name`}
-        />
-        {error && (
-          <span className="inline-error" role="alert">
-            {error}
-          </span>
-        )}
-        <button className="button primary" type="submit">
-          <Plus size={15} /> Add
-        </button>
-      </form>
       <div className="setting-list">
         {items.map((item) => (
           <div className="setting-row" key={item.id}>
@@ -116,25 +97,42 @@ export function SettingsCatalogSection({
               className="edit-setting"
               onClick={() => setEditing(item)}
               aria-label={`Edit ${item.name}`}
+              title="Edit"
             >
-              Edit
+              <Pencil size={13} />
             </button>
             <button
               type="button"
               className="delete-setting"
               onClick={() => setDeleting(item)}
               aria-label={`Delete ${item.name}`}
+              title="Delete"
             >
               ×
             </button>
           </div>
         ))}
       </div>
+      {adding && (
+        <SettingFormDialog
+          mode="create"
+          label={singularLabel}
+          onClose={() => setAdding(false)}
+          onSubmit={async ({ name }) => {
+            if (items.some((item) => item.name.toLowerCase() === name.toLowerCase()))
+              throw new Error("This option already exists.");
+            await onCreate({ name, kind, category });
+            setAdding(false);
+          }}
+        />
+      )}
       {editing && (
-        <EditSettingDialog
-          item={editing}
+        <SettingFormDialog
+          mode="edit"
+          label={singularLabel}
+          initialValue={editing}
           onClose={() => setEditing(null)}
-          onSave={async (input) => {
+          onSubmit={async (input) => {
             await onUpdate(editing.id, input);
             setEditing(null);
           }}
@@ -146,6 +144,10 @@ export function SettingsCatalogSection({
           onClose={() => setDeleting(null)}
           onConfirm={async () => {
             await onDelete(deleting.id);
+            setDeleting(null);
+          }}
+          onDeactivate={async () => {
+            await onToggle(deleting.id, false);
             setDeleting(null);
           }}
         />

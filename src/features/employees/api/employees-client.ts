@@ -6,7 +6,7 @@ export type EmployeeListParams = {
   page?: number;
   pageSize?: number;
   query?: string;
-  status?: string;
+  status?: string[];
   includeArchived?: boolean;
 };
 export type EmployeeListResponse = {
@@ -21,14 +21,14 @@ function buildQuery(params: EmployeeListParams) {
   if (params.page) search.set("page", String(params.page));
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
   if (params.query) search.set("query", params.query);
-  if (params.status && params.status !== "All") search.set("status", params.status);
+  if (params.status?.length) search.set("status", params.status.join(","));
   if (params.includeArchived) search.set("includeArchived", "true");
   return search.toString();
 }
 
 export const employeesClient = {
-  list: (params: EmployeeListParams) =>
-    apiRequest<EmployeeListResponse>(`/api/v1/employees?${buildQuery(params)}`),
+  list: (params: EmployeeListParams, signal?: AbortSignal) =>
+    apiRequest<EmployeeListResponse>(`/api/v1/employees?${buildQuery(params)}`, { signal }),
   create: (input: EmployeeInput) =>
     apiRequest<Employee>("/api/v1/employees", {
       method: "POST",

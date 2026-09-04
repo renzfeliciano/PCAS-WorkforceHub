@@ -1,16 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { settingsClient } from "@/features/settings/api/settings-client";
+import { createRequestCache } from "@/lib/request-cache";
 import type { CreateSettingInput, UpdateSettingInput } from "@/schemas/settings";
 import type { SettingItem, SettingKind } from "@/types/settings";
 
-export function useSettingsCatalog() {
-  const [items, setItems] = useState<SettingItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const CACHE_TTL_MS = 15_000;
+const cache = createRequestCache<{ items: SettingItem[] }>(CACHE_TTL_MS);
+
+export function useSettingsCatalog(initialItems?: SettingItem[]) {
+  const [items, setItems] = useState<SettingItem[]>(initialItems ?? []);
+  const [isLoading, setIsLoading] = useState(initialItems === undefined);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useRef(initialItems !== undefined);
 
   const load = useCallback(async () => {
+    cache.clear();
     try {
       const result = await settingsClient.list();
       setItems(result.items);
@@ -23,9 +29,13 @@ export function useSettingsCatalog() {
   }, []);
 
   useEffect(() => {
+    if (hydrated.current) {
+      hydrated.current = false;
+      return;
+    }
     let cancelled = false;
-    settingsClient
-      .list()
+    cache
+      .get("settings", () => settingsClient.list())
       .then((result) => {
         if (cancelled) return;
         setItems(result.items);

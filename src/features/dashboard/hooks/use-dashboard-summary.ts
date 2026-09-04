@@ -1,18 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dashboardClient } from "@/features/dashboard/api/dashboard-client";
+import { createRequestCache } from "@/lib/request-cache";
 import type { DashboardSummary } from "@/services/dashboard-service";
 
-export function useDashboardSummary() {
-  const [data, setData] = useState<DashboardSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const CACHE_TTL_MS = 15_000;
+const cache = createRequestCache<DashboardSummary>(CACHE_TTL_MS);
+
+export function useDashboardSummary(initialData?: DashboardSummary) {
+  const [data, setData] = useState<DashboardSummary | null>(initialData ?? null);
+  const [isLoading, setIsLoading] = useState(initialData === undefined);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useRef(initialData !== undefined);
 
   useEffect(() => {
+    if (hydrated.current) {
+      hydrated.current = false;
+      return;
+    }
     let cancelled = false;
-    dashboardClient
-      .summary()
+    cache
+      .get("summary", () => dashboardClient.summary())
       .then((result) => {
         if (!cancelled) setData(result);
       })

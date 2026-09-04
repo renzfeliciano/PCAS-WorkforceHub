@@ -3,17 +3,31 @@
 import { useState, type ReactNode } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
-export function AppShell({
+export function WorkspaceLayout({
   children,
   employeeCount,
 }: Readonly<{ children: ReactNode; employeeCount: number }>) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { isCollapsed, toggleCollapsed } = useSidebarCollapsed();
+
+  function closeMobileNav() {
+    setMobileNavOpen(false);
+  }
+
   return (
     <main className="app-shell">
+      <div
+        className={`sidebar-backdrop ${mobileNavOpen ? "open" : ""}`}
+        onClick={closeMobileNav}
+        aria-hidden="true"
+      />
       <Sidebar
         open={mobileNavOpen}
-        onNavigate={() => setMobileNavOpen(false)}
+        collapsed={isCollapsed}
+        onNavigate={closeMobileNav}
+        onToggleCollapse={toggleCollapsed}
         employeeCount={employeeCount}
       />
       <section className="main-content">

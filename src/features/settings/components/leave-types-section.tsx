@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   LeaveTypeFormDialog,
@@ -12,15 +13,34 @@ import type { LeaveType } from "@/types/leave-type";
 
 type LeaveTypesSectionProps = Readonly<{
   items: LeaveType[];
+  seedEnabled: boolean;
   onCreate: (input: LeaveTypeFormValues) => Promise<void>;
   onUpdate: (id: string, input: Partial<LeaveTypeFormValues> & { active?: boolean }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onSeed: () => Promise<void>;
 }>;
 
-export function LeaveTypesSection({ items, onCreate, onUpdate, onDelete }: LeaveTypesSectionProps) {
+export function LeaveTypesSection({
+  items,
+  seedEnabled,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onSeed,
+}: LeaveTypesSectionProps) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<LeaveType | null>(null);
   const [deleting, setDeleting] = useState<LeaveType | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  async function handleSeed() {
+    setIsSeeding(true);
+    try {
+      await onSeed();
+    } finally {
+      setIsSeeding(false);
+    }
+  }
 
   return (
     <section className="settings-card">
@@ -31,8 +51,18 @@ export function LeaveTypesSection({ items, onCreate, onUpdate, onDelete }: Leave
         </div>
         <div className="settings-card-tools">
           <span className="settings-count">{items.length}</span>
+          {seedEnabled && (
+            <button
+              className="seed-button"
+              type="button"
+              onClick={handleSeed}
+              disabled={isSeeding}
+            >
+              {isSeeding ? <Spinner size={11} /> : "Seed defaults"}
+            </button>
+          )}
           <Button type="button" variant="primary" onClick={() => setAdding(true)}>
-            <Plus size={14} /> Add
+            Add
           </Button>
         </div>
       </div>
@@ -58,14 +88,16 @@ export function LeaveTypesSection({ items, onCreate, onUpdate, onDelete }: Leave
               className="edit-setting"
               onClick={() => setEditing(item)}
               aria-label={`Edit ${item.name}`}
+              title="Edit"
             >
-              Edit
+              <Pencil size={13} />
             </button>
             <button
               type="button"
               className="delete-setting"
               onClick={() => setDeleting(item)}
               aria-label={`Delete ${item.name}`}
+              title="Delete"
             >
               ×
             </button>
@@ -97,13 +129,21 @@ export function LeaveTypesSection({ items, onCreate, onUpdate, onDelete }: Leave
         <ConfirmDialog
           eyebrow="Permanent deletion"
           title={`Delete ${deleting.name}?`}
-          description="This removes the leave type from Settings."
+          description="This permanently removes the leave type from Settings and cannot be undone. Deactivate it instead if existing employee records still reference it."
           confirmLabel="Delete permanently"
           onClose={() => setDeleting(null)}
           onConfirm={async () => {
             await onDelete(deleting.id);
             setDeleting(null);
           }}
+          onDeactivate={
+            deleting.active
+              ? async () => {
+                  await onUpdate(deleting.id, { active: false });
+                  setDeleting(null);
+                }
+              : undefined
+          }
         />
       )}
     </section>

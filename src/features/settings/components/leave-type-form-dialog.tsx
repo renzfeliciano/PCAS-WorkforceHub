@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import type { LeaveEligibility, LeaveType } from "@/types/leave-type";
 
 export type LeaveTypeFormValues = {
@@ -26,11 +27,13 @@ export function LeaveTypeFormDialog({
   onClose,
   onSubmit,
 }: LeaveTypeFormDialogProps) {
+  const { validate, handleChange, fieldError } = useInlineFormValidation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     event.preventDefault();
+    if (!validate(event.currentTarget)) return;
     const data = new FormData(event.currentTarget);
     const value = (field: string) => String(data.get(field) ?? "").trim();
     setIsSubmitting(true);
@@ -52,26 +55,27 @@ export function LeaveTypeFormDialog({
     <Modal
       as="form"
       onSubmit={handleSubmit}
+      onChange={handleChange}
       eyebrow={mode === "create" ? "New leave type" : "Edit leave type"}
       title={mode === "create" ? "Add leave type" : (initialValue?.name ?? "Leave type")}
       description="Offsets, maternity, paternity, and other leave categories."
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" isLoading={isSubmitting}>
             {mode === "create" ? "Add leave type" : "Save changes"}
           </Button>
         </>
       }
     >
       <div className="form-grid">
-        <FormField label="Name">
+        <FormField label="Name" name="name" error={fieldError("name")}>
           <input name="name" required defaultValue={initialValue?.name} />
         </FormField>
-        <FormField label="Code">
+        <FormField label="Code" name="code" error={fieldError("code")}>
           <input
             name="code"
             required
@@ -80,14 +84,18 @@ export function LeaveTypeFormDialog({
             placeholder="e.g. ML"
           />
         </FormField>
-        <FormField label="Eligibility">
+        <FormField label="Eligibility" name="eligibility" error={fieldError("eligibility")}>
           <select name="eligibility" defaultValue={initialValue?.eligibility ?? "Any"}>
             <option value="Any">Any</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>
           </select>
         </FormField>
-        <FormField label="Description (optional)">
+        <FormField
+          label="Description (optional)"
+          name="description"
+          error={fieldError("description")}
+        >
           <input name="description" defaultValue={initialValue?.description} />
         </FormField>
       </div>

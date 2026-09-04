@@ -1,32 +1,50 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { employeesClient } from "@/features/employees/api/employees-client";
 import type { EmployeeListParams } from "@/features/employees/api/employees-client";
+import { createRequestCache } from "@/lib/request-cache";
 import type { EmployeeInput, EmployeeUpdateInput } from "@/schemas/employee";
 import type { Employee, LeaveBalance } from "@/types/employee";
 
-export function useEmployees({
-  page,
-  pageSize,
-  query,
-  status,
-  includeArchived,
-}: EmployeeListParams) {
-  const [items, setItems] = useState<Employee[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+export type EmployeeListInitialData = { items: Employee[]; total: number };
+
+/**
+ * Standard for filtered/paginated tables: filter changes are debounced and the
+ * previous in-flight request is aborted, so rapid clicks/typing collapse into
+ * one request instead of hammering the API (and MongoDB Atlas behind it).
+ * Results are cached briefly per exact filter combination so flipping between
+ * recently-viewed filters doesn't refetch, and the cache is dropped on any
+ * mutation so stale data never lingers after a create/update/archive.
+ */
+const FILTER_DEBOUNCE_MS = 300;
+const CACHE_TTL_MS = 15_000;
+const cache = createRequestCache<{ items: Employee[]; total: number }>(CACHE_TTL_MS);
+
+function fetchEmployees(filters: EmployeeListParams, signal: AbortSignal) {
+  return cache.get(JSON.stringify(filters), () => employeesClient.list(filters, signal));
+}
+
+export function useEmployees(
+  { page, pageSize, query, status, includeArchived }: EmployeeListParams,
+  initialData?: EmployeeListInitialData,
+) {
+  const [items, setItems] = useState<Employee[]>(initialData?.items ?? []);
+  const [total, setTotal] = useState(initialData?.total ?? 0);
+  const [isLoading, setIsLoading] = useState(initialData === undefined);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useRef(initialData !== undefined);
 
   const load = useCallback(async () => {
+    cache.clear();
+    const controller = new AbortController();
+    setIsFetching(true);
     try {
-      const result = await employeesClient.list({
-        page,
-        pageSize,
-        query,
-        status,
-        includeArchived,
-      });
+      const result = await employeesClient.list(
+        { page, pageSize, query, status, includeArchived },
+        controller.signal,
+      );
       setItems(result.items);
       setTotal(result.total);
       setError(null);
@@ -34,28 +52,36 @@ export function useEmployees({
       setError(err instanceof Error ? err.message : "Failed to load employees");
     } finally {
       setIsLoading(false);
+      setIsFetching(false);
     }
   }, [page, pageSize, query, status, includeArchived]);
 
   useEffect(() => {
-    let cancelled = false;
-    employeesClient
-      .list({ page, pageSize, query, status, includeArchived })
-      .then((result) => {
-        if (cancelled) return;
-        setItems(result.items);
-        setTotal(result.total);
-        setError(null);
-      })
-      .catch((err) => {
-        if (!cancelled)
+    if (hydrated.current) {
+      hydrated.current = false;
+      return;
+    }
+    const controller = new AbortController();
+    setIsFetching(true);
+    const timeoutId = setTimeout(() => {
+      fetchEmployees({ page, pageSize, query, status, includeArchived }, controller.signal)
+        .then((result) => {
+          setItems(result.items);
+          setTotal(result.total);
+          setError(null);
+        })
+        .catch((err) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
           setError(err instanceof Error ? err.message : "Failed to load employees");
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+        })
+        .finally(() => {
+          setIsLoading(false);
+          setIsFetching(false);
+        });
+    }, FILTER_DEBOUNCE_MS);
     return () => {
-      cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [page, pageSize, query, status, includeArchived]);
 
@@ -102,6 +128,7 @@ export function useEmployees({
     items,
     total,
     isLoading,
+    isFetching,
     error,
     reload: load,
     create,

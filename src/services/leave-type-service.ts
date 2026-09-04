@@ -1,6 +1,7 @@
 import type { AuditLogger } from "@/lib/audit-logger";
 import { ForbiddenActionError } from "@/lib/app-errors";
 import { canManageSettings } from "@/lib/rbac";
+import { leaveTypeCatalog } from "@/lib/seed-catalog";
 import { createLeaveTypeSchema, updateLeaveTypeSchema } from "@/schemas/leave-type";
 import type { LeaveTypeRepository } from "@/repositories/leave-type-repository";
 import type { LeaveType } from "@/types/leave-type";
@@ -51,6 +52,24 @@ export async function updateLeaveType(
     requestId: actor.requestId,
   });
   return leaveType;
+}
+
+export async function seedLeaveTypeCatalog(
+  repository: LeaveTypeRepository,
+  audit: AuditLogger,
+  actor: Actor,
+): Promise<number> {
+  if (!canManageSettings(actor.role))
+    throw new ForbiddenActionError("Only Admin may manage leave types");
+  const inserted = await repository.seedDefaults(leaveTypeCatalog);
+  await audit.record({
+    action: "leave_type.seeded",
+    entityId: "leave-types",
+    actorRole: actor.role,
+    actorId: actor.id,
+    requestId: actor.requestId,
+  });
+  return inserted;
 }
 
 export async function deleteLeaveType(

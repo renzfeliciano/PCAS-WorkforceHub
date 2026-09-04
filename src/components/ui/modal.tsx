@@ -11,6 +11,8 @@ type ModalProps = Readonly<{
   actions?: ReactNode;
   as?: "div" | "form";
   onSubmit?: FormEventHandler<HTMLFormElement>;
+  onChange?: FormEventHandler<HTMLFormElement>;
+  className?: string;
 }>;
 
 export function Modal({
@@ -22,7 +24,10 @@ export function Modal({
   actions,
   as = "div",
   onSubmit,
+  onChange,
+  className,
 }: ModalProps) {
+  const modalClassName = ["modal", className].filter(Boolean).join(" ");
   const head = (
     <div className="modal-head">
       <div>
@@ -35,20 +40,21 @@ export function Modal({
       </IconButton>
     </div>
   );
+  const body = <div className="modal-body">{children}</div>;
   const footer = actions && <div className="modal-actions">{actions}</div>;
 
   return (
     <div className="backdrop">
       {as === "form" ? (
-        <form className="modal" onSubmit={onSubmit}>
+        <form className={modalClassName} onSubmit={onSubmit} onChange={onChange} noValidate>
           {head}
-          {children}
+          {body}
           {footer}
         </form>
       ) : (
-        <div className="modal">
+        <div className={modalClassName}>
           {head}
-          {children}
+          {body}
           {footer}
         </div>
       )}

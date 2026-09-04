@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Plus, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useCurrentUser } from "@/context/current-user-context";
 import { usePermissionUsers } from "@/features/permissions/hooks/use-permission-users";
 import { UsersTable } from "@/features/permissions/components/users-table";
@@ -14,13 +15,25 @@ import type { AppUser } from "@/types/user";
 
 export function PermissionsModule({
   dataResetEnabled,
-}: Readonly<{ dataResetEnabled: boolean }>) {
+  initialUsers,
+}: Readonly<{ dataResetEnabled: boolean; initialUsers?: AppUser[] }>) {
   const currentUser = useCurrentUser();
-  const { items, error, create, update, deactivate } = usePermissionUsers();
+  const { items, isLoading, error, create, update, deactivate } =
+    usePermissionUsers(initialUsers);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [deactivating, setDeactivating] = useState<AppUser | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
+
+  async function handleActivate(user: AppUser) {
+    setActivatingId(user.id);
+    try {
+      await update(user.id, { active: true });
+    } finally {
+      setActivatingId(null);
+    }
+  }
 
   return (
     <div className="settings-page">
@@ -33,14 +46,7 @@ export function PermissionsModule({
           </p>
         </div>
         <span className="role-badge">
-          <ShieldCheck size={15} /> Admin only
-        </span>
-      </div>
-      <div className="settings-note">
-        <ShieldCheck size={17} />
-        <span>
-          <b>Admin only.</b> You cannot change your own role or deactivate your
-          own account.
+          <ShieldCheck size={15} /> Admin access
         </span>
       </div>
       {error && (
@@ -50,15 +56,24 @@ export function PermissionsModule({
       )}
       <div className="actions section-toolbar">
         <Button variant="primary" type="button" onClick={() => setAdding(true)}>
-          <Plus size={16} /> Add user
+          Add user
         </Button>
       </div>
-      <UsersTable
-        users={items}
-        currentUserId={currentUser.id}
-        onEdit={setEditing}
-        onDeactivate={setDeactivating}
-      />
+      {isLoading ? (
+        <TableSkeleton
+          columnWidths={["25%", "20%", "15%", "15%", "20%"]}
+          rows={4}
+        />
+      ) : (
+        <UsersTable
+          users={items}
+          currentUserId={currentUser.id}
+          activatingId={activatingId}
+          onEdit={setEditing}
+          onActivate={handleActivate}
+          onDeactivate={setDeactivating}
+        />
+      )}
       {adding && (
         <UserFormDialog
           mode="create"
@@ -83,6 +98,8 @@ export function PermissionsModule({
           onClose={() => setEditing(null)}
           onSubmit={async (input) => {
             await update(editing.id, {
+              username: input.username,
+              email: input.email,
               name: input.name,
               role: editing.id === currentUser.id ? undefined : input.role,
               password: input.password,
@@ -114,7 +131,7 @@ export function PermissionsModule({
             onClick={() => setResetting(true)}
             className="mt-2"
           >
-            <AlertTriangle size={15} /> Reset all workspace data
+            Reset all workspace data
           </Button>
         </section>
       )}

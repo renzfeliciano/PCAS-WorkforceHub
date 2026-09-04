@@ -3,9 +3,17 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { connectMongoDB } from "@/lib/mongodb";
 import { UserModel } from "@/repositories/models/user-model";
-const inactivityMinutes = Number(
-  process.env.SESSION_INACTIVITY_MINUTES ?? "30",
-);
+import { parseDurationMs } from "@/lib/duration";
+/**
+ * The server-side cutoff matches the client's full idle + warning-countdown
+ * window (see IdleSessionGuard), so a "Stay signed in" click during the
+ * countdown still lands inside a still-valid window and genuinely extends
+ * the session, rather than the server invalidating it out from under the
+ * warning that's still being shown.
+ */
+const idleWarnMs = parseDurationMs(process.env.SESSION_INACTIVITY_MINUTES, 30 * 60_000);
+const idleTimeoutMs = parseDurationMs(process.env.SESSION_INACTIVITY_TIMEOUT, 30_000);
+const inactivityMs = idleWarnMs + idleTimeoutMs;
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET,
@@ -65,10 +73,7 @@ export const authOptions: NextAuthOptions = {
         token.sessionId = user.sessionId;
         token.lastActivityAt = Date.now();
       }
-      if (
-        Date.now() - (token.lastActivityAt ?? 0) >
-        inactivityMinutes * 60 * 1000
-      )
+      if (Date.now() - (token.lastActivityAt ?? 0) > inactivityMs)
         return { ...token, expired: true };
       if (token.userId && token.sessionId) {
         await connectMongoDB();

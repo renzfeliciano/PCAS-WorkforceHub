@@ -22,3 +22,7 @@ export function getEnabledSeedKinds(env: NodeJS.ProcessEnv = process.env) {
 export function isDataResetEnabled(env: NodeJS.ProcessEnv = process.env) {
   return env.ENABLE_DATA_RESET === "true";
 }
+
+export function isLeaveTypeSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
+  return env.ENABLE_LEAVE_TYPES_SEEDING === "true";
+}

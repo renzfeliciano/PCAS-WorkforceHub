@@ -16,4 +16,6 @@ export const leaveTypesClient = {
     }),
   delete: (id: string) =>
     apiRequest<{ id: string }>(`/api/v1/leave-types/${id}`, { method: "DELETE" }),
+  seed: () =>
+    apiRequest<{ inserted: number }>("/api/v1/leave-types/seed", { method: "POST" }),
 };

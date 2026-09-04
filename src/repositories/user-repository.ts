@@ -72,11 +72,18 @@ export class MongoUserRepository implements UserRepository {
 
   async update(id: string, patch: UpdateUserInput): Promise<AppUser> {
     if (!isValidObjectId(id)) throw new NotFoundError("User not found");
-    const { password, ...rest } = patch;
+    const { password, username, email, ...rest } = patch;
     const update: Record<string, unknown> = { ...rest };
+    if (username) update.username = username.trim().toLowerCase();
+    if (email) update.email = email.trim().toLowerCase();
     if (password) update.passwordHash = await hash(password, 12);
-    const doc = await UserModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean<UserDocument | null>();
-    if (!doc) throw new NotFoundError("User not found");
-    return toAppUser(doc);
+    try {
+      const doc = await UserModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean<UserDocument | null>();
+      if (!doc) throw new NotFoundError("User not found");
+      return toAppUser(doc);
+    } catch (error) {
+      if (isDuplicateKeyError(error)) throw new ConflictError("A user with this username already exists");
+      throw error;
+    }
   }
 }

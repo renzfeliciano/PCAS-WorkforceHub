@@ -10,6 +10,9 @@ export interface LeaveTypeRepository {
   update(id: string, patch: UpdateLeaveTypeInput): Promise<LeaveType>;
   delete(id: string): Promise<void>;
   deleteAll(): Promise<void>;
+  seedDefaults(
+    entries: readonly { name: string; code: string; eligibility: LeaveEligibility }[],
+  ): Promise<number>;
 }
 
 type LeaveTypeDocument = {
@@ -76,5 +79,21 @@ export class MongoLeaveTypeRepository implements LeaveTypeRepository {
 
   async deleteAll(): Promise<void> {
     await LeaveTypeModel.deleteMany({});
+  }
+
+  async seedDefaults(
+    entries: readonly { name: string; code: string; eligibility: LeaveEligibility }[],
+  ): Promise<number> {
+    const result = await LeaveTypeModel.bulkWrite(
+      entries.map((entry) => ({
+        updateOne: {
+          filter: { code: entry.code },
+          update: { $setOnInsert: { ...entry, active: true } },
+          upsert: true,
+        },
+      })),
+      { ordered: false },
+    );
+    return result.upsertedCount;
   }
 }

@@ -52,13 +52,14 @@ export function ResetDataDialog({ onClose, onConfirm }: ResetDataDialogProps) {
           </p>
         )}
         <div className="modal-actions">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button
             type="button"
             variant="danger"
-            disabled={!canConfirm || isSubmitting}
+            disabled={!canConfirm}
+            isLoading={isSubmitting}
             onClick={handleConfirm}
           >
             Reset all data

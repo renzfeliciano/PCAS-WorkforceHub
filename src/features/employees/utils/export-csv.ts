@@ -2,6 +2,7 @@ import type { Employee } from "@/types/employee";
 import type { LeaveType } from "@/types/leave-type";
 
 const HEADERS = [
+  "#",
   "Employee number",
   "Employee name",
   "Gender",
@@ -33,7 +34,8 @@ export function exportEmployeesCsv(
   employees: readonly Employee[],
   leaveTypes: readonly LeaveType[],
 ) {
-  const rows = employees.map((employee) => [
+  const rows = employees.map((employee, index) => [
+    index + 1,
     employee.employeeNumber,
     employee.name,
     employee.gender,

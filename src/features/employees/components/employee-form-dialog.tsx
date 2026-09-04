@@ -1,11 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
+import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
+import {
+  formatContactNumber,
+  formatPagIbigNumber,
+  formatPhilHealthNumber,
+  formatSssNumber,
+  formatTinNumber,
+} from "@/lib/input-mask";
 import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
 import type { Employee } from "@/types/employee";
 import type { EmployeeInput } from "@/schemas/employee";
@@ -29,11 +36,35 @@ export function EmployeeFormDialog({
     "status",
     EMPLOYMENT_STATUS_CATEGORY,
   );
+  const { validate, handleChange, fieldError } = useInlineFormValidation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [sssNumber, setSssNumber] = useState(initialValue?.sssNumber ?? "");
+  const [philHealthNumber, setPhilHealthNumber] = useState(
+    initialValue?.philHealthNumber ?? "",
+  );
+  const [pagIbigNumber, setPagIbigNumber] = useState(initialValue?.pagIbigNumber ?? "");
+  const [tinNumber, setTinNumber] = useState(initialValue?.tinNumber ?? "");
+  const [contactNumber, setContactNumber] = useState(initialValue?.contactNumber ?? "09");
+
+  const staleValue = (current: string | undefined, activeNames: string[]) =>
+    current && !activeNames.includes(current) ? current : undefined;
+  const stalePosition = staleValue(
+    initialValue?.position,
+    positions.map((item) => item.name),
+  );
+  const staleProject = staleValue(
+    initialValue?.projectSite,
+    projects.map((item) => item.name),
+  );
+  const staleStatus = staleValue(
+    initialValue?.employmentStatus,
+    statuses.map((item) => item.name),
+  );
 
   async function handleSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     event.preventDefault();
+    if (!validate(event.currentTarget)) return;
     const data = new FormData(event.currentTarget);
     const value = (field: string) => String(data.get(field) ?? "").trim();
     const input: EmployeeInput = {
@@ -44,12 +75,12 @@ export function EmployeeFormDialog({
       employmentStatus: value("employmentStatus"),
       dateHired: value("dateHired"),
       endOfContract: value("endOfContract"),
-      contactNumber: value("contactNumber"),
+      contactNumber,
       address: value("address"),
-      sssNumber: value("sssNumber"),
-      philHealthNumber: value("philHealthNumber"),
-      pagIbigNumber: value("pagIbigNumber"),
-      tinNumber: value("tinNumber"),
+      sssNumber,
+      philHealthNumber,
+      pagIbigNumber,
+      tinNumber,
       leaveBalances: initialValue?.leaveBalances ?? [],
     };
     setIsSubmitting(true);
@@ -65,28 +96,29 @@ export function EmployeeFormDialog({
   return (
     <Modal
       as="form"
+      className="modal-wide"
       onSubmit={handleSubmit}
+      onChange={handleChange}
       eyebrow={mode === "create" ? "New record" : "Edit record"}
       title={mode === "create" ? "Add employee" : `Edit ${initialValue?.name ?? "employee"}`}
       description="Employment, contact, and statutory ID details."
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {mode === "create" ? <Plus size={15} /> : <Save size={15} />}
+          <Button type="submit" variant="primary" isLoading={isSubmitting}>
             {mode === "create" ? "Create employee" : "Save changes"}
           </Button>
         </>
       }
     >
       <div className="form-grid">
-        <FormField label="Employee name">
+        <FormField label="Employee name" name="name" error={fieldError("name")}>
           <input name="name" required defaultValue={initialValue?.name} />
         </FormField>
-        <FormField label="Gender">
+        <FormField label="Gender" name="gender" error={fieldError("gender")}>
           <select name="gender" required defaultValue={initialValue?.gender ?? ""}>
             <option value="" disabled>
               Select gender
@@ -95,7 +127,7 @@ export function EmployeeFormDialog({
             <option value="Female">Female</option>
           </select>
         </FormField>
-        <FormField label="Position">
+        <FormField label="Position" name="position" error={fieldError("position")}>
           <select
             key={positionsLoading ? "loading" : "loaded"}
             name="position"
@@ -105,6 +137,9 @@ export function EmployeeFormDialog({
             <option value="" disabled>
               Select a position
             </option>
+            {stalePosition && (
+              <option value={stalePosition}>{stalePosition} (inactive)</option>
+            )}
             {positions.map((item) => (
               <option key={item.id} value={item.name}>
                 {item.name}
@@ -112,7 +147,7 @@ export function EmployeeFormDialog({
             ))}
           </select>
         </FormField>
-        <FormField label="Project / site">
+        <FormField label="Project / site" name="projectSite" error={fieldError("projectSite")}>
           <select
             key={projectsLoading ? "loading" : "loaded"}
             name="projectSite"
@@ -122,6 +157,7 @@ export function EmployeeFormDialog({
             <option value="" disabled>
               Select a project/site
             </option>
+            {staleProject && <option value={staleProject}>{staleProject} (inactive)</option>}
             {projects.map((item) => (
               <option key={item.id} value={item.name}>
                 {item.name}
@@ -129,7 +165,11 @@ export function EmployeeFormDialog({
             ))}
           </select>
         </FormField>
-        <FormField label="Employment status">
+        <FormField
+          label="Employment status"
+          name="employmentStatus"
+          error={fieldError("employmentStatus")}
+        >
           <select
             key={statusesLoading ? "loading" : "loaded"}
             name="employmentStatus"
@@ -139,6 +179,7 @@ export function EmployeeFormDialog({
             <option value="" disabled>
               Select a status
             </option>
+            {staleStatus && <option value={staleStatus}>{staleStatus} (inactive)</option>}
             {statuses.map((item) => (
               <option key={item.id} value={item.name}>
                 {item.name}
@@ -146,10 +187,14 @@ export function EmployeeFormDialog({
             ))}
           </select>
         </FormField>
-        <FormField label="Date hired">
+        <FormField label="Date hired" name="dateHired" error={fieldError("dateHired")}>
           <input type="date" name="dateHired" required defaultValue={initialValue?.dateHired} />
         </FormField>
-        <FormField label="End of contract">
+        <FormField
+          label="End of contract"
+          name="endOfContract"
+          error={fieldError("endOfContract")}
+        >
           <input
             type="date"
             name="endOfContract"
@@ -157,23 +202,71 @@ export function EmployeeFormDialog({
             defaultValue={initialValue?.endOfContract}
           />
         </FormField>
-        <FormField label="Contact number">
-          <input name="contactNumber" required defaultValue={initialValue?.contactNumber} />
+        <FormField
+          label="Contact number"
+          name="contactNumber"
+          error={fieldError("contactNumber")}
+        >
+          <input
+            name="contactNumber"
+            required
+            inputMode="numeric"
+            placeholder="09XX-XXX-XXXX"
+            maxLength={13}
+            value={contactNumber}
+            onChange={(event) => setContactNumber(formatContactNumber(event.target.value))}
+          />
         </FormField>
-        <FormField label="Address">
-          <input name="address" required defaultValue={initialValue?.address} />
+        <FormField label="Address" name="address" error={fieldError("address")} fullWidth>
+          <textarea name="address" required rows={3} defaultValue={initialValue?.address} />
         </FormField>
-        <FormField label="SSS no.">
-          <input name="sssNumber" required defaultValue={initialValue?.sssNumber} />
+        <FormField label="SSS no." name="sssNumber" error={fieldError("sssNumber")}>
+          <input
+            name="sssNumber"
+            required
+            inputMode="numeric"
+            placeholder="XX-XXXXXXX-X"
+            maxLength={12}
+            value={sssNumber}
+            onChange={(event) => setSssNumber(formatSssNumber(event.target.value))}
+          />
         </FormField>
-        <FormField label="PhilHealth no.">
-          <input name="philHealthNumber" required defaultValue={initialValue?.philHealthNumber} />
+        <FormField
+          label="PhilHealth no."
+          name="philHealthNumber"
+          error={fieldError("philHealthNumber")}
+        >
+          <input
+            name="philHealthNumber"
+            required
+            inputMode="numeric"
+            placeholder="XX-XXXXXXXXX-X"
+            maxLength={14}
+            value={philHealthNumber}
+            onChange={(event) => setPhilHealthNumber(formatPhilHealthNumber(event.target.value))}
+          />
         </FormField>
-        <FormField label="Pag-ibig no.">
-          <input name="pagIbigNumber" required defaultValue={initialValue?.pagIbigNumber} />
+        <FormField label="Pag-ibig no." name="pagIbigNumber" error={fieldError("pagIbigNumber")}>
+          <input
+            name="pagIbigNumber"
+            required
+            inputMode="numeric"
+            placeholder="XXXX-XXXX-XXXX"
+            maxLength={14}
+            value={pagIbigNumber}
+            onChange={(event) => setPagIbigNumber(formatPagIbigNumber(event.target.value))}
+          />
         </FormField>
-        <FormField label="TIN no.">
-          <input name="tinNumber" required defaultValue={initialValue?.tinNumber} />
+        <FormField label="TIN no." name="tinNumber" error={fieldError("tinNumber")}>
+          <input
+            name="tinNumber"
+            required
+            inputMode="numeric"
+            placeholder="XXX-XXX-XXX"
+            maxLength={15}
+            value={tinNumber}
+            onChange={(event) => setTinNumber(formatTinNumber(event.target.value))}
+          />
         </FormField>
       </div>
       {error && (

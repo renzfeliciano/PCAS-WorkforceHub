@@ -1,11 +1,12 @@
 import type { SettingKind } from "@/types/settings";
+import type { LeaveEligibility } from "@/types/leave-type";
 
 export const seedCatalog: Record<SettingKind, readonly string[]> = {
   position: [
     "President",
     "Operations Manager",
     "Administrative Head",
-    "Human Resources Generalist/Paralegal",
+    "Human Resources Generalist / Paralegal",
     "Accounting and Finance Generalist",
     "Property Manager",
     "Building Engineer",
@@ -42,3 +43,18 @@ export const seedCatalog: Record<SettingKind, readonly string[]> = {
     "AWOL",
   ],
 };
+
+export const leaveTypeCatalog: readonly {
+  name: string;
+  code: string;
+  eligibility: LeaveEligibility;
+}[] = [
+  { name: "Vacation Leave", code: "VL", eligibility: "Any" },
+  { name: "Sick Leave", code: "SL", eligibility: "Any" },
+  { name: "Service Incentive Leave", code: "SIL", eligibility: "Any" },
+  { name: "Paternity Leave", code: "PL", eligibility: "Male" },
+  { name: "Maternity Leave", code: "ML", eligibility: "Female" },
+  { name: "Solo Parent Leave", code: "SPL", eligibility: "Any" },
+  { name: "Bereavement Leave", code: "BL", eligibility: "Any" },
+  { name: "Offset", code: "OFF", eligibility: "Any" },
+];

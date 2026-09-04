@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   LayoutDashboard,
   Settings2,
   ShieldCheck,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Logo } from "@/components/ui/logo";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCurrentUser } from "@/context/current-user-context";
 
 type NavItem = {
@@ -20,11 +22,21 @@ type NavItem = {
   badge?: number;
 };
 
+type SidebarProps = Readonly<{
+  open: boolean;
+  collapsed: boolean;
+  onNavigate: () => void;
+  onToggleCollapse: () => void;
+  employeeCount: number;
+}>;
+
 export function Sidebar({
   open,
+  collapsed,
   onNavigate,
+  onToggleCollapse,
   employeeCount,
-}: Readonly<{ open: boolean; onNavigate: () => void; employeeCount: number }>) {
+}: SidebarProps) {
   const pathname = usePathname();
   const user = useCurrentUser();
 
@@ -45,11 +57,24 @@ export function Sidebar({
   }
 
   return (
-    <aside className={`sidebar ${open ? "open" : ""}`}>
+    <aside
+      className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}
+    >
+      <button
+        type="button"
+        className="sidebar-collapse-toggle"
+        onClick={onToggleCollapse}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
       <div className="brand">
-        <Logo size={30} /> Workforce<span className="brand-accent">Hub</span>
+        <Logo size={30} />
+        <span className="brand-text">
+          Workforce<span className="brand-accent">Hub</span>
+        </span>
       </div>
-      <nav>
+      <nav className="mt-5">
         <small className="nav-title">Workspace</small>
         {items.map((item) => {
           const Icon = item.icon;
@@ -60,6 +85,7 @@ export function Sidebar({
               href={item.href}
               className={active ? "active" : ""}
               onClick={onNavigate}
+              title={item.label}
             >
               <Icon size={17} />
               <span>{item.label}</span>
@@ -67,11 +93,10 @@ export function Sidebar({
             </Link>
           );
         })}
-        <button type="button" disabled title="Coming soon">
-          <CalendarDays size={17} />
-          <span>Leave &amp; time off</span>
-        </button>
       </nav>
+      <div className="sidebar-theme-toggle">
+        <ThemeToggle />
+      </div>
       <div className="user">
         <Avatar name={user.name} tone="coral" />
         <div>

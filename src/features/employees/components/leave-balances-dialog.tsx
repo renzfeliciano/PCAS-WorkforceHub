@@ -53,16 +53,17 @@ export function LeaveBalancesDialog({ employee, onClose, onSave }: LeaveBalances
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
           <Button
             type="button"
             variant="primary"
             onClick={handleSave}
-            disabled={isSaving || eligibleTypes.length === 0}
+            isLoading={isSaving}
+            disabled={eligibleTypes.length === 0}
           >
-            <ShieldCheck size={15} /> Save changes
+            Save changes
           </Button>
         </>
       }
