@@ -46,12 +46,12 @@ export function exportEmployeesCsv(
     employee.endOfContract ?? "",
     employee.lastDay ?? "",
     employee.employmentStatus,
-    employee.contactNumber,
-    employee.address,
-    employee.sssNumber,
-    employee.philHealthNumber,
-    employee.pagIbigNumber,
-    employee.tinNumber,
+    employee.contactNumber ?? "",
+    employee.address ?? "",
+    employee.sssNumber ?? "",
+    employee.philHealthNumber ?? "",
+    employee.pagIbigNumber ?? "",
+    employee.tinNumber ?? "",
     formatLeaveBalances(employee, leaveTypes),
   ]);
   const csv = [HEADERS, ...rows]

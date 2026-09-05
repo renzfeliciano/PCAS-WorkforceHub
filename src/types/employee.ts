@@ -11,12 +11,12 @@ export type Employee = {
   endOfContract?: string;
   lastDay?: string;
   employmentStatus: string;
-  contactNumber: string;
-  address: string;
-  sssNumber: string;
-  philHealthNumber: string;
-  pagIbigNumber: string;
-  tinNumber: string;
+  contactNumber?: string;
+  address?: string;
+  sssNumber?: string;
+  philHealthNumber?: string;
+  pagIbigNumber?: string;
+  tinNumber?: string;
   leaveBalances: LeaveBalance[];
   archived: boolean;
   createdAt: string;

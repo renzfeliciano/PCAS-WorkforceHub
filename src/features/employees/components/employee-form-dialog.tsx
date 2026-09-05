@@ -48,7 +48,7 @@ export function EmployeeFormDialog({
   );
   const [pagIbigNumber, setPagIbigNumber] = useState(initialValue?.pagIbigNumber ?? "");
   const [tinNumber, setTinNumber] = useState(initialValue?.tinNumber ?? "");
-  const [contactNumber, setContactNumber] = useState(initialValue?.contactNumber ?? "09");
+  const [contactNumber, setContactNumber] = useState(initialValue?.contactNumber ?? "");
   const [employmentStatus, setEmploymentStatus] = useState(initialValue?.employmentStatus ?? "");
 
   const showEndOfContract = needsEndOfContract(employmentStatus);
@@ -84,12 +84,12 @@ export function EmployeeFormDialog({
       dateHired: value("dateHired"),
       endOfContract: showEndOfContract ? value("endOfContract") : null,
       lastDay: showLastDay ? value("lastDay") : null,
-      contactNumber,
-      address: value("address"),
-      sssNumber,
-      philHealthNumber,
-      pagIbigNumber,
-      tinNumber,
+      contactNumber: contactNumber || null,
+      address: value("address") || null,
+      sssNumber: sssNumber || null,
+      philHealthNumber: philHealthNumber || null,
+      pagIbigNumber: pagIbigNumber || null,
+      tinNumber: tinNumber || null,
       leaveBalances: initialValue?.leaveBalances ?? [],
     };
     setIsSubmitting(true);
@@ -263,7 +263,6 @@ export function EmployeeFormDialog({
         >
           <input
             name="contactNumber"
-            required
             inputMode="numeric"
             placeholder="09XX-XXX-XXXX"
             title="Format: 09XX-XXX-XXXX"
@@ -276,7 +275,6 @@ export function EmployeeFormDialog({
         <FormField label="Address" name="address" error={fieldError("address")} fullWidth>
           <textarea
             name="address"
-            required
             rows={4}
             maxLength={255}
             defaultValue={initialValue?.address}
@@ -285,7 +283,6 @@ export function EmployeeFormDialog({
         <FormField label="SSS no." name="sssNumber" error={fieldError("sssNumber")}>
           <input
             name="sssNumber"
-            required
             inputMode="numeric"
             placeholder="XX-XXXXXXX-X"
             title="Format: XX-XXXXXXX-X"
@@ -302,7 +299,6 @@ export function EmployeeFormDialog({
         >
           <input
             name="philHealthNumber"
-            required
             inputMode="numeric"
             placeholder="XX-XXXXXXXXX-X"
             title="Format: XX-XXXXXXXXX-X"
@@ -315,7 +311,6 @@ export function EmployeeFormDialog({
         <FormField label="Pag-ibig no." name="pagIbigNumber" error={fieldError("pagIbigNumber")}>
           <input
             name="pagIbigNumber"
-            required
             inputMode="numeric"
             placeholder="XXXX-XXXX-XXXX"
             title="Format: XXXX-XXXX-XXXX"
@@ -328,7 +323,6 @@ export function EmployeeFormDialog({
         <FormField label="TIN no." name="tinNumber" error={fieldError("tinNumber")}>
           <input
             name="tinNumber"
-            required
             inputMode="numeric"
             placeholder="XXX-XXX-XXX"
             title="Format: XXX-XXX-XXX or XXX-XXX-XXX-XXX"

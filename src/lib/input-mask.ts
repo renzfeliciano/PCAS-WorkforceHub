@@ -19,5 +19,15 @@ export const formatPhilHealthNumber = (value: string) => formatGroupedDigits(val
 export const formatPagIbigNumber = (value: string) => formatGroupedDigits(value, [4, 4, 4]);
 /** TIN: XXX-XXX-XXX or XXX-XXX-XXX-XXX (9 or 12 digits) */
 export const formatTinNumber = (value: string) => formatGroupedDigits(value, [3, 3, 3, 3]);
-/** PH mobile number: XXXX-XXX-XXXX (11 digits) */
-export const formatContactNumber = (value: string) => formatGroupedDigits(value, [4, 3, 4]);
+/**
+ * PH mobile number: XXXX-XXX-XXXX (11 digits), always starting with "09" —
+ * once any digit is typed the "09" prefix is enforced (inserted if the user
+ * didn't type it), so it can't be replaced with a different leading pair.
+ * Clearing the field entirely still empties it back to the placeholder.
+ */
+export const formatContactNumber = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 0) return "";
+  const withPrefix = digits.startsWith("09") ? digits : `09${digits.replace(/^0?9?/, "")}`;
+  return formatGroupedDigits(withPrefix, [4, 3, 4]);
+};

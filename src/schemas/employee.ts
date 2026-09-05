@@ -53,12 +53,12 @@ const employeeObjectSchema = z.object({
   endOfContract: isoDate.optional().nullable(),
   lastDay: isoDate.optional().nullable(),
   employmentStatus: requiredText,
-  contactNumber: contactNumberSchema,
-  address: requiredText.max(255, "Must be 255 characters or fewer"),
-  sssNumber: sssNumberSchema,
-  philHealthNumber: philHealthNumberSchema,
-  pagIbigNumber: pagIbigNumberSchema,
-  tinNumber: tinNumberSchema,
+  contactNumber: contactNumberSchema.optional().nullable(),
+  address: z.string().trim().max(255, "Must be 255 characters or fewer").optional().nullable(),
+  sssNumber: sssNumberSchema.optional().nullable(),
+  philHealthNumber: philHealthNumberSchema.optional().nullable(),
+  pagIbigNumber: pagIbigNumberSchema.optional().nullable(),
+  tinNumber: tinNumberSchema.optional().nullable(),
   leaveBalances: z.array(leaveBalanceSchema).default([]),
 });
 
