@@ -25,6 +25,8 @@ export const hasPermission = (role: Role, permission: Permission) =>
 
 export const canAccessWorkspace = (role: Role) => role === "Admin" || role === "HR";
 export const canManageLeaveBalances = (role: Role) => role === "Admin" || role === "HR";
+/** Log/edit attendance; all roles can still view it. */
+export const canManageAttendance = (role: Role) => role === "Admin" || role === "HR";
 /** Create and edit employee records. */
 export const canEditEmployees = (role: Role) => role === "Admin" || role === "HR";
 /** Archive (soft-delete) employee records. */

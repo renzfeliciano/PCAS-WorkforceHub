@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -66,7 +67,15 @@ export function LeaveTypeFormDialog({
             Cancel
           </Button>
           <Button type="submit" variant="primary" isLoading={isSubmitting}>
-            {mode === "create" ? "Add leave type" : "Save changes"}
+            {mode === "create" ? (
+              <>
+                <Plus size={14} /> Add leave type
+              </>
+            ) : (
+              <>
+                <Save size={14} /> Save changes
+              </>
+            )}
           </Button>
         </>
       }

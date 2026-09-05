@@ -2,90 +2,8 @@
 
 :root {
   --ink: #16233d;
-  .button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
   --muted: #738186;
   --line: #e7eceb;
-  .edit-setting {
-    padding: 4px 7px;
-    border: 0;
-    border-radius: 4px;
-    color: var(--muted);
-    background: transparent;
-    font:
-      600 9px Arial,
-      sans-serif;
-  }
-  .edit-setting:hover {
-    color: var(--coral-dark);
-    background: #e6f0fa;
-  }
-  .inline-error {
-    display: block;
-    flex-basis: 100%;
-    margin-top: 4px;
-    color: #a35349;
-    font:
-      10px Arial,
-      sans-serif;
-  }
-  .modal-field {
-    display: block;
-    padding: 22px 0 0;
-    color: var(--muted);
-    font:
-      11px Arial,
-      sans-serif;
-  }
-  .modal-field input {
-    display: block;
-    width: 100%;
-    margin-top: 6px;
-    padding: 11px;
-    border: 1px solid var(--line);
-    border-radius: 5px;
-    outline: 0;
-    color: var(--ink);
-    font:
-      12px Arial,
-      sans-serif;
-  }
-  .warning-modal {
-    text-align: center;
-  }
-  .warning-icon {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 42px;
-    margin: 0 auto 17px;
-    border-radius: 50%;
-    color: #a35349;
-    background: #fae9e6;
-    font:
-      700 23px Georgia,
-      serif;
-  }
-  .warning-modal h2 {
-    margin: 0 0 10px;
-    font-size: 23px;
-  }
-  .warning-modal .muted {
-    line-height: 1.6;
-  }
-  .warning-modal .modal-actions {
-    justify-content: center;
-  }
-  .button.danger {
-    border-color: #bd6659;
-    color: #fff;
-    background: #bd6659;
-  }
-  .button.danger:hover {
-    background: #a35349;
-  }
   --paper: #f7f9fc;
   --sidebar: #eef2fa;
   --surface: #fff;
@@ -97,6 +15,90 @@
   --yellow: #dca94d;
   --purple: #8b79a9;
   --login-glow: #e6f0fa;
+  --coral-tint: #12619918;
+  --danger: #bd6659;
+}
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.edit-setting {
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  font:
+    600 9px Arial,
+    sans-serif;
+}
+.edit-setting:hover {
+  color: var(--coral-dark);
+  background: #e6f0fa;
+}
+.inline-error {
+  display: block;
+  flex-basis: 100%;
+  margin-top: 4px;
+  color: #a35349;
+  font:
+    10px Arial,
+    sans-serif;
+}
+.modal-field {
+  display: block;
+  padding: 22px 0 0;
+  color: var(--muted);
+  font:
+    11px Arial,
+    sans-serif;
+}
+.modal-field input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: 0;
+  color: var(--ink);
+  font:
+    12px Arial,
+    sans-serif;
+}
+.warning-modal {
+  text-align: center;
+}
+.warning-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 17px;
+  border-radius: 50%;
+  color: #a35349;
+  background: #fae9e6;
+  font:
+    700 23px Georgia,
+    serif;
+}
+.warning-modal h2 {
+  margin: 0 0 10px;
+  font-size: 23px;
+}
+.warning-modal .muted {
+  line-height: 1.6;
+}
+.warning-modal .modal-actions {
+  justify-content: center;
+}
+.button.danger {
+  border-color: #bd6659;
+  color: #fff;
+  background: #bd6659;
+}
+.button.danger:hover {
+  background: #a35349;
 }
 
 .dark {
@@ -115,6 +117,8 @@
   --yellow: #e3b968;
   --purple: #a190c2;
   --login-glow: #1f3050;
+  --coral-tint: #4391bf33;
+  --danger: #d9847a;
 }
 
 * {
@@ -703,6 +707,34 @@ td {
     12px Arial,
     sans-serif;
 }
+/*
+ * Keeps the row-number and employee-number columns in view when a table
+ * scrolls horizontally on narrow viewports. `.col-index` is the narrow "#"
+ * column (pinned at the left edge); `.col-sticky-2` is the column right
+ * after it (offset by `.col-index`'s fixed width) — currently "Employee
+ * number". Header cells get the higher z-index so the corner stays above
+ * both the sticky header row and these sticky columns during scroll.
+ */
+.col-index {
+  width: 44px;
+}
+.col-index,
+.col-sticky-2 {
+  position: sticky;
+  z-index: 1;
+  background: var(--surface);
+}
+.col-index {
+  left: 0;
+}
+.col-sticky-2 {
+  left: 44px;
+}
+thead .col-index,
+thead .col-sticky-2 {
+  z-index: 2;
+  background: var(--sidebar);
+}
 .employee {
   display: flex;
   align-items: center;
@@ -1060,7 +1092,13 @@ td {
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
 }
+.stacked-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
 .settings-card {
+  position: relative;
   min-height: 270px;
   padding: 19px;
   border: 1px solid var(--line);
@@ -1114,6 +1152,110 @@ td {
   flex-direction: column;
   height: 490px;
   overflow-y: auto;
+}
+/* Generic padded wrapper for a loading spinner standing in for list/table
+   data — keeps it from sitting cramped against the card edges. */
+.loading-pad {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+/* Anchored to its containing .settings-card's top-right corner (which is
+   position:relative) rather than centered like the app's standard Modal. */
+.balance-history-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  width: 260px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+.balance-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.balance-history-head b {
+  color: var(--ink);
+  font-size: 12px;
+}
+.balance-history-head button {
+  display: flex;
+  border: 0;
+  padding: 2px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.balance-history-head button:hover {
+  color: var(--coral);
+}
+.balance-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.balance-history-list li {
+  color: var(--ink);
+  font:
+    12px Arial,
+    sans-serif;
+}
+.balance-history-list small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font:
+    10px Arial,
+    sans-serif;
+}
+.balance-history-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font:
+    10px Arial,
+    sans-serif;
+}
+.balance-history-foot div {
+  display: flex;
+  gap: 4px;
+}
+.balance-history-foot button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  background: var(--paper);
+  cursor: pointer;
+}
+.balance-history-foot button:hover:not(:disabled) {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+.balance-history-foot button:disabled {
+  color: var(--line);
+  cursor: not-allowed;
 }
 .setting-row {
   display: flex;
@@ -1394,27 +1536,32 @@ td {
   .sidebar {
     position: fixed;
     z-index: 9;
-    .settings-card-tools {
-      align-items: flex-end;
-      flex-direction: column;
-    }
-    .setting-row {
-      gap: 5px;
-    }
-    .setting-row > div {
-      min-width: 0;
-    }
-    .setting-row b,
-    .setting-row small {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 120px;
-    }
     inset: 0 auto 0 0;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     box-shadow: 10px 0 30px #18302d20;
+  }
+  .settings-card-tools {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+  /*
+   * Scoped to .settings-grid (the narrow Settings catalog cards) — a bare
+   * .setting-row selector here would also truncate the same class reused in
+   * the full-width Leave records list, where there's plenty of room.
+   */
+  .settings-grid .setting-row {
+    gap: 5px;
+  }
+  .settings-grid .setting-row > div {
+    min-width: 0;
+  }
+  .settings-grid .setting-row b,
+  .settings-grid .setting-row small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 120px;
   }
   .sidebar.open {
     transform: translateX(0);
@@ -1856,5 +2003,171 @@ td {
     inset: 0;
     z-index: 8;
     background: #18302d59;
+  }
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 9px;
+  color: var(--muted);
+  text-decoration: none;
+  font:
+    600 11px Arial,
+    sans-serif;
+}
+.back-link:hover {
+  color: var(--coral);
+}
+.attendance-calendar-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.attendance-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+.attendance-calendar-head b {
+  min-width: 160px;
+  text-align: center;
+  color: var(--ink);
+  font-size: 15px;
+}
+.attendance-calendar-head button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--paper);
+}
+.attendance-calendar-head button:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+.attendance-calendar-loading {
+  display: flex;
+  justify-content: center;
+  padding: 60px 0;
+}
+.attendance-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* The weekday-label row is the one explicit row and keeps its natural
+     "auto" height; every day row after it is an implicit row governed by
+     grid-auto-rows below. Without a fixed size there, the browser can
+     occasionally compute a wildly oversized height for a row of button grid
+     items (observed 246px vs. the intended 66px) even though every item's
+     own box is 66px tall. Pinning the track size sidesteps that entirely. */
+  grid-template-rows: auto;
+  grid-auto-rows: 66px;
+  gap: 6px;
+}
+.attendance-calendar-weekday {
+  padding-bottom: 6px;
+  color: var(--muted);
+  text-align: center;
+  font:
+    600 10px Arial,
+    sans-serif;
+}
+.attendance-calendar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  height: 66px;
+  overflow: hidden;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--paper);
+  font: 11px Arial, sans-serif;
+  text-align: left;
+}
+.attendance-calendar-cell:not(:disabled) {
+  cursor: pointer;
+}
+.attendance-calendar-cell:disabled {
+  cursor: not-allowed;
+}
+.attendance-calendar-cell:not(:disabled):hover {
+  border-color: var(--coral);
+}
+.attendance-calendar-cell.empty {
+  border-color: transparent;
+  background: transparent;
+}
+.attendance-calendar-cell.today {
+  border-color: var(--coral);
+}
+.attendance-calendar-cell.marked {
+  background: var(--surface);
+}
+.attendance-calendar-cell.future {
+  opacity: 0.45;
+}
+.attendance-calendar-cell .day-number {
+  color: var(--muted);
+  font:
+    600 10px Arial,
+    sans-serif;
+}
+.attendance-calendar-cell .day-status {
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--coral-dark);
+  background: var(--coral-tint);
+  font:
+    600 10px Arial,
+    sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/*
+ * Attendance status color palette. Tints are derived from the same theme
+ * tokens used elsewhere (color-mix keeps them correct in both light and dark
+ * without needing separate tint variables per tone).
+ */
+.day-status.tone-success {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 18%, transparent);
+}
+.day-status.tone-danger {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+.day-status.tone-warning {
+  color: var(--yellow);
+  background: color-mix(in srgb, var(--yellow) 22%, transparent);
+}
+.day-status.tone-info {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 18%, transparent);
+}
+.day-status.tone-accent {
+  color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 18%, transparent);
+}
+@media (max-width: 640px) {
+  .attendance-calendar-grid {
+    grid-auto-rows: 48px;
+    gap: 4px;
+  }
+  .attendance-calendar-cell {
+    height: 48px;
+    font-size: 9px;
   }
 }

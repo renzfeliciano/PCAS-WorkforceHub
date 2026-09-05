@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -48,7 +49,7 @@ export function SettingFormDialog({
     <Modal
       as="form"
       onSubmit={handleSubmit}
-      eyebrow={mode === "create" ? "New option" : "Edit catalog"}
+      eyebrow={mode === "create" ? `New option` : "Edit catalog"}
       title={mode === "create" ? `Add ${label}` : (initialValue?.name ?? "")}
       description={
         mode === "create"
@@ -67,7 +68,15 @@ export function SettingFormDialog({
             Cancel
           </Button>
           <Button type="submit" variant="primary" isLoading={isSubmitting}>
-            {mode === "create" ? (submitLabel ?? "Add option") : "Save changes"}
+            {mode === "create" ? (
+              <>
+                <Plus size={14} /> {submitLabel ?? "Add option"}
+              </>
+            ) : (
+              <>
+                <Save size={14} /> Save changes
+              </>
+            )}
           </Button>
         </>
       }

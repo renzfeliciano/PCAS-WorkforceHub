@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useCurrentUser } from "@/context/current-user-context";
@@ -65,7 +65,7 @@ export function PermissionsModule({
       )}
       <div className="actions section-toolbar">
         <Button variant="primary" type="button" onClick={() => setAdding(true)}>
-          Add user
+          <UserPlus size={14} /> Add user
         </Button>
       </div>
       {isLoading ? (

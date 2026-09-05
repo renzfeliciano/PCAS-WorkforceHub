@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarDays,
+  CalendarRange,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
@@ -48,6 +50,8 @@ export function Sidebar({
       icon: Users,
       badge: employeeCount,
     },
+    { href: "/attendance", label: "Attendance", icon: CalendarDays },
+    { href: "/leave", label: "Leave management", icon: CalendarRange },
   ];
   if (user.role === "Admin") {
     items.push(
@@ -74,11 +78,13 @@ export function Sidebar({
           Workforce<span className="brand-accent">Hub</span>
         </span>
       </div>
-      <nav className="mt-5">
+      <nav className="mt-7">
         <small className="nav-title">Workspace</small>
         {items.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href;
+          const active =
+            pathname === item.href ||
+            (item.href !== "/" && pathname.startsWith(`${item.href}/`));
           return (
             <Link
               key={item.href}

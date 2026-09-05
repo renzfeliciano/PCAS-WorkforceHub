@@ -1,5 +1,9 @@
 import { withRoleGuard } from "@/lib/with-role-guard";
-import { isLeaveTypeSeedingEnabled, isSeedingEnabled } from "@/lib/seed-flags";
+import {
+  isAttendanceStatusSeedingEnabled,
+  isLeaveTypeSeedingEnabled,
+  isSeedingEnabled,
+} from "@/lib/seed-flags";
 import { connectMongoDB } from "@/lib/mongodb";
 import { MongoSettingRepository } from "@/repositories/setting-repository";
 import { MongoLeaveTypeRepository } from "@/repositories/leave-type-repository";
@@ -21,6 +25,7 @@ export default async function SettingsPage() {
         project: isSeedingEnabled("project"),
         status: isSeedingEnabled("status"),
       }}
+      attendanceStatusSeedEnabled={isAttendanceStatusSeedingEnabled()}
       leaveTypeSeedEnabled={isLeaveTypeSeedingEnabled()}
       initialSettings={initialSettings}
       initialLeaveTypes={initialLeaveTypes}

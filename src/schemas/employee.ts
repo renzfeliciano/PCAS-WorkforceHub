@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { paginationQuerySchema, sortQuerySchema } from "@/schemas/list-query";
+import { needsEndOfContract, needsLastDay } from "@/lib/employment-status";
 
 const requiredText = z.string().trim().min(1);
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
 export const employeeSortFields = [
   "employeeNumber",
@@ -40,26 +42,82 @@ export const leaveBalanceSchema = z.object({
   leaveTypeId: z.string().trim().min(1),
   balance: z.number().int().min(0),
 });
-export const employeeSchema = z.object({
-  name: requiredText,
+
+const employeeObjectSchema = z.object({
+  employeeNumber: requiredText,
+  name: requiredText.max(30, "Must be 30 characters or fewer"),
   gender: genderSchema,
   position: requiredText,
   projectSite: requiredText,
-  dateHired: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
-  endOfContract: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+  dateHired: isoDate,
+  endOfContract: isoDate.optional().nullable(),
+  lastDay: isoDate.optional().nullable(),
   employmentStatus: requiredText,
   contactNumber: contactNumberSchema,
-  address: requiredText,
+  address: requiredText.max(255, "Must be 255 characters or fewer"),
   sssNumber: sssNumberSchema,
   philHealthNumber: philHealthNumberSchema,
   pagIbigNumber: pagIbigNumberSchema,
   tinNumber: tinNumberSchema,
   leaveBalances: z.array(leaveBalanceSchema).default([]),
 });
+
+/**
+ * End of contract only applies to contractual/probationary staff, and last
+ * day only applies to AWOL/terminated/resigned staff (regular employees get
+ * neither). Only enforced when employmentStatus is present in the payload,
+ * so partial patches that don't touch status/dates are left alone.
+ */
+function withEmploymentDateRules<T extends z.ZodTypeAny>(schema: T) {
+  return schema.superRefine((data, ctx) => {
+    const { employmentStatus, endOfContract, lastDay } = data as {
+      employmentStatus?: string;
+      endOfContract?: string;
+      lastDay?: string;
+    };
+    if (!employmentStatus) return;
+
+    const requiresEndOfContract = needsEndOfContract(employmentStatus);
+    const requiresLastDay = needsLastDay(employmentStatus);
+
+    if (requiresEndOfContract && !endOfContract) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endOfContract"],
+        message: "End of contract is required for this employment status.",
+      });
+    }
+    if (!requiresEndOfContract && endOfContract) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endOfContract"],
+        message: "End of contract only applies to contractual or probationary employees.",
+      });
+    }
+    if (requiresLastDay && !lastDay) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lastDay"],
+        message: "Last day is required for this employment status.",
+      });
+    }
+    if (!requiresLastDay && lastDay) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lastDay"],
+        message: "Last day only applies to AWOL, terminated, or resigned employees.",
+      });
+    }
+  });
+}
+
+export const employeeSchema = withEmploymentDateRules(employeeObjectSchema);
 export const createEmployeeSchema = employeeSchema;
-export const updateEmployeeSchema = employeeSchema.partial().extend({
-  archived: z.boolean().optional(),
-});
+export const updateEmployeeSchema = withEmploymentDateRules(
+  employeeObjectSchema.partial().extend({
+    archived: z.boolean().optional(),
+  }),
+);
 export const updateLeaveBalancesSchema = z.array(leaveBalanceSchema);
 export const employeeListQuerySchema = paginationQuerySchema(20)
   .extend(sortQuerySchema(employeeSortFields).shape)

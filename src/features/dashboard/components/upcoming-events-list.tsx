@@ -20,6 +20,7 @@ export function UpcomingEventsList({ employees }: Readonly<{ employees: Employee
   return (
     <>
       {employees.map((employee) => {
+        if (!employee.endOfContract) return null;
         const { day, month } = formatDayMonth(employee.endOfContract);
         return (
           <div className="event" key={employee.id}>

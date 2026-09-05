@@ -8,7 +8,8 @@ export type Employee = {
   position: string;
   projectSite: string;
   dateHired: string;
-  endOfContract: string;
+  endOfContract?: string;
+  lastDay?: string;
   employmentStatus: string;
   contactNumber: string;
   address: string;

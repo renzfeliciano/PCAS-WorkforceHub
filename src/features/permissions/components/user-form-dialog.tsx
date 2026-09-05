@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Save, UserPlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -73,7 +74,15 @@ export function UserFormDialog({
             Cancel
           </Button>
           <Button type="submit" variant="primary" isLoading={isSubmitting}>
-            {mode === "create" ? "Create user" : "Save changes"}
+            {mode === "create" ? (
+              <>
+                <UserPlus size={14} /> Create user
+              </>
+            ) : (
+              <>
+                <Save size={14} /> Save changes
+              </>
+            )}
           </Button>
         </>
       }

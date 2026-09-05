@@ -7,6 +7,7 @@ type SortButtonProps = Readonly<{
   activeField?: string;
   direction?: SortDir;
   onSort: (field: string) => void;
+  className?: string;
 }>;
 
 function SortButton({ field, label, activeField, direction, onSort }: SortButtonProps) {
@@ -26,10 +27,13 @@ function SortButton({ field, label, activeField, direction, onSort }: SortButton
  * `<th>text</th>`, so sortability is opt-in per column rather than
  * table-wide.
  */
-export function SortableHeader(props: SortButtonProps) {
+export function SortableHeader({ className, ...props }: SortButtonProps) {
   const isActive = props.activeField === props.field;
   return (
-    <th aria-sort={isActive ? (props.direction === "desc" ? "descending" : "ascending") : "none"}>
+    <th
+      className={className}
+      aria-sort={isActive ? (props.direction === "desc" ? "descending" : "ascending") : "none"}
+    >
       <SortButton {...props} />
     </th>
   );

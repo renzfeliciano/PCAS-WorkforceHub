@@ -1,5 +1,5 @@
 import { isValidObjectId } from "mongoose";
-import { NotFoundError } from "@/lib/app-errors";
+import { ConflictError, NotFoundError } from "@/lib/app-errors";
 import { EmployeeModel } from "@/repositories/models/employee-model";
 import { resolveSort } from "@/repositories/sort";
 import type { EmployeeInput, EmployeeUpdateInput } from "@/schemas/employee";
@@ -48,7 +48,8 @@ type EmployeeDocument = {
   position: string;
   projectSite: string;
   dateHired: string;
-  endOfContract: string;
+  endOfContract?: string;
+  lastDay?: string;
   employmentStatus: string;
   contactNumber: string;
   address: string;
@@ -71,6 +72,7 @@ function toEmployee(doc: EmployeeDocument): Employee {
     projectSite: doc.projectSite,
     dateHired: doc.dateHired,
     endOfContract: doc.endOfContract,
+    lastDay: doc.lastDay,
     employmentStatus: doc.employmentStatus,
     contactNumber: doc.contactNumber,
     address: doc.address,
@@ -92,6 +94,22 @@ function isDuplicateKeyError(error: unknown): boolean {
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * `endOfContract`/`lastDay` are sent as `null` by the client when they don't
+ * apply to the selected employment status. A plain `$set` would leave a
+ * stale value in place (Mongo just ignores an absent key), so explicit
+ * nulls are routed to `$unset` instead of being written as literal nulls.
+ */
+function splitPatch(patch: Record<string, unknown>) {
+  const $set: Record<string, unknown> = {};
+  const $unset: Record<string, ""> = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) $unset[key] = "";
+    else if (value !== undefined) $set[key] = value;
+  }
+  return { $set, $unset };
 }
 
 export class MongoEmployeeRepository implements EmployeeRepository {
@@ -142,30 +160,31 @@ export class MongoEmployeeRepository implements EmployeeRepository {
   }
 
   async create(input: EmployeeInput): Promise<Employee> {
-    const year = Number(input.dateHired.slice(0, 4)) || new Date().getFullYear();
-    let lastError: unknown;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const existingForYear = await EmployeeModel.countDocuments({
-        employeeNumber: new RegExp(`^WH-${year}-`),
-      });
-      const sequence = existingForYear + 1 + attempt;
-      const employeeNumber = `WH-${year}-${String(sequence).padStart(3, "0")}`;
-      try {
-        const doc = await EmployeeModel.create({ ...input, employeeNumber, archived: false });
-        return toEmployee(doc.toObject() as EmployeeDocument);
-      } catch (error) {
-        lastError = error;
-        if (!isDuplicateKeyError(error)) throw error;
-      }
+    const { $set } = splitPatch(input);
+    try {
+      const doc = await EmployeeModel.create({ ...$set, archived: false });
+      return toEmployee(doc.toObject() as EmployeeDocument);
+    } catch (error) {
+      if (isDuplicateKeyError(error))
+        throw new ConflictError("That employee number is already in use.");
+      throw error;
     }
-    throw lastError instanceof Error ? lastError : new Error("Unable to create employee");
   }
 
   async update(id: string, patch: EmployeeUpdateInput): Promise<Employee> {
     if (!isValidObjectId(id)) throw new NotFoundError("Employee not found");
-    const doc = await EmployeeModel.findByIdAndUpdate(id, { $set: patch }, { new: true }).lean<EmployeeDocument | null>();
-    if (!doc) throw new NotFoundError("Employee not found");
-    return toEmployee(doc);
+    const { $set, $unset } = splitPatch(patch);
+    const update: Record<string, unknown> = { $set };
+    if (Object.keys($unset).length) update.$unset = $unset;
+    try {
+      const doc = await EmployeeModel.findByIdAndUpdate(id, update, { new: true }).lean<EmployeeDocument | null>();
+      if (!doc) throw new NotFoundError("Employee not found");
+      return toEmployee(doc);
+    } catch (error) {
+      if (isDuplicateKeyError(error))
+        throw new ConflictError("That employee number is already in use.");
+      throw error;
+    }
   }
 
   async archive(id: string): Promise<Employee> {

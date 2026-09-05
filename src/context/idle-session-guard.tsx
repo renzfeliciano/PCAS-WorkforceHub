@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSession, signOut } from "next-auth/react";
+import { RefreshCw } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
@@ -121,7 +122,7 @@ export function IdleSessionGuard({
             isLoading={isExtending}
             onClick={handleStaySignedIn}
           >
-            Stay signed in
+            <RefreshCw size={14} /> Stay signed in
           </Button>
         </>
       }

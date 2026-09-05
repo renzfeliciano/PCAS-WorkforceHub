@@ -76,8 +76,8 @@ export function useSettingsCatalog(initialItems?: SettingItem[]) {
     [load],
   );
   const seed = useCallback(
-    async (kind: SettingKind) => {
-      await settingsClient.seed(kind);
+    async (kind: SettingKind, category?: string) => {
+      await settingsClient.seed(kind, category);
       await load();
     },
     [load],

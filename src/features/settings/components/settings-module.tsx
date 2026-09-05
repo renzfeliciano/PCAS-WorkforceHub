@@ -6,28 +6,49 @@ import { useLeaveTypes } from "@/features/settings/hooks/use-leave-types";
 import { SettingsCatalogSection } from "@/features/settings/components/settings-catalog-section";
 import { LeaveTypesSection } from "@/features/settings/components/leave-types-section";
 import { SettingsCatalogSkeleton } from "@/features/settings/components/settings-catalog-skeleton";
-import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
+import { ATTENDANCE_STATUS_CATEGORY, EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
 import type { SettingItem, SettingKind } from "@/types/settings";
 import type { LeaveType } from "@/types/leave-type";
 
-const LABELS: Record<SettingKind, string> = {
-  position: "Positions",
-  project: "Projects / sites",
-  status: "Employment statuses",
+type CatalogSection = {
+  key: string;
+  kind: SettingKind;
+  category?: string;
+  label: string;
+  seedEnabled: boolean;
 };
-const CATALOG_KINDS: SettingKind[] = ["position", "project", "status"];
 
 export function SettingsModule({
   seedFlags,
+  attendanceStatusSeedEnabled,
   leaveTypeSeedEnabled,
   initialSettings,
   initialLeaveTypes,
 }: Readonly<{
   seedFlags: Record<SettingKind, boolean>;
+  attendanceStatusSeedEnabled: boolean;
   leaveTypeSeedEnabled: boolean;
   initialSettings?: SettingItem[];
   initialLeaveTypes?: LeaveType[];
 }>) {
+  const sections: CatalogSection[] = [
+    { key: "position", kind: "position", label: "Positions", seedEnabled: seedFlags.position },
+    { key: "project", kind: "project", label: "Projects / sites", seedEnabled: seedFlags.project },
+    {
+      key: "status:employment",
+      kind: "status",
+      category: EMPLOYMENT_STATUS_CATEGORY,
+      label: "Employment statuses",
+      seedEnabled: seedFlags.status,
+    },
+    {
+      key: "status:attendance",
+      kind: "status",
+      category: ATTENDANCE_STATUS_CATEGORY,
+      label: "Attendance statuses",
+      seedEnabled: attendanceStatusSeedEnabled,
+    },
+  ];
   const settings = useSettingsCatalog(initialSettings);
   const leaveTypes = useLeaveTypes(initialLeaveTypes);
 
@@ -54,21 +75,18 @@ export function SettingsModule({
         <SettingsCatalogSkeleton />
       ) : (
         <div className="settings-grid">
-          {CATALOG_KINDS.map((kind) => (
+          {sections.map((section) => (
             <SettingsCatalogSection
-              key={kind}
-              kind={kind}
-              label={LABELS[kind]}
+              key={section.key}
+              kind={section.kind}
+              label={section.label}
               items={settings.items.filter(
                 (item) =>
-                  item.kind === kind &&
-                  (kind !== "status" ||
-                    item.category === EMPLOYMENT_STATUS_CATEGORY),
+                  item.kind === section.kind &&
+                  (!section.category || item.category === section.category),
               )}
-              category={
-                kind === "status" ? EMPLOYMENT_STATUS_CATEGORY : undefined
-              }
-              seedEnabled={seedFlags[kind]}
+              category={section.category}
+              seedEnabled={section.seedEnabled}
               onCreate={async (input) => {
                 await settings.create(input);
               }}
@@ -82,7 +100,7 @@ export function SettingsModule({
                 await settings.remove(id);
               }}
               onSeed={async () => {
-                await settings.seed(kind);
+                await settings.seed(section.kind, section.category);
               }}
             />
           ))}

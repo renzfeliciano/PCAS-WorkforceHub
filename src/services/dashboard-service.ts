@@ -24,8 +24,8 @@ export async function getDashboardSummary(
   const now = Date.now();
   const windowEnd = now + UPCOMING_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const upcomingContractEndings = employees
-    .filter((employee) => {
-      const end = new Date(employee.endOfContract).getTime();
+    .filter((employee): employee is Employee & { endOfContract: string } => {
+      const end = new Date(employee.endOfContract ?? "").getTime();
       return Number.isFinite(end) && end >= now && end <= windowEnd;
     })
     .sort(

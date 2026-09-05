@@ -34,6 +34,7 @@ function buildQuery(params: EmployeeListParams) {
 export const employeesClient = {
   list: (params: EmployeeListParams, signal?: AbortSignal) =>
     apiRequest<EmployeeListResponse>(`/api/v1/employees?${buildQuery(params)}`, { signal }),
+  get: (id: string) => apiRequest<Employee>(`/api/v1/employees/${id}`),
   create: (input: EmployeeInput) =>
     apiRequest<Employee>("/api/v1/employees", {
       method: "POST",

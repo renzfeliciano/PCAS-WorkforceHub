@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -62,7 +62,7 @@ export function LeaveTypesSection({
             </button>
           )}
           <Button type="button" variant="primary" onClick={() => setAdding(true)}>
-            Add
+            <Plus size={14} /> Add
           </Button>
         </div>
       </div>

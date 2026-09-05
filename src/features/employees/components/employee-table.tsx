@@ -1,4 +1,4 @@
-import { Archive, Pencil, RotateCcw, Wallet } from "lucide-react";
+import { Archive, Pencil, RotateCcw } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Spinner } from "@/components/ui/spinner";
 import { SortableHeader } from "@/components/ui/sortable-header";
@@ -18,10 +18,8 @@ type EmployeeTableProps = Readonly<{
   onPageSizeChange: (pageSize: number) => void;
   canEdit: boolean;
   canDelete: boolean;
-  canManageLeaveBalances: boolean;
   restoringId?: string | null;
   onEdit: (employee: Employee) => void;
-  onLeaveBalances: (employee: Employee) => void;
   onArchive: (employee: Employee) => void;
   onRestore: (employee: Employee) => void;
 }>;
@@ -39,22 +37,21 @@ export function EmployeeTable({
   onPageSizeChange,
   canEdit,
   canDelete,
-  canManageLeaveBalances,
   restoringId,
   onEdit,
-  onLeaveBalances,
   onArchive,
   onRestore,
 }: EmployeeTableProps) {
-  const hasActions = canEdit || canDelete || canManageLeaveBalances;
+  const hasActions = canEdit || canDelete;
   return (
     <div className="table-card">
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>#</th>
+              <th className="col-index">#</th>
               <SortableHeader
+                className="col-sticky-2"
                 field="employeeNumber"
                 label="Employee number"
                 activeField={sortBy}
@@ -88,25 +85,14 @@ export function EmployeeTable({
           <tbody>
             {employees.map((employee, index) => (
               <tr key={employee.id}>
-                <td>{startIndex + index + 1}</td>
-                <td>{employee.employeeNumber}</td>
+                <td className="col-index">{startIndex + index + 1}</td>
+                <td className="col-sticky-2">{employee.employeeNumber}</td>
                 <td>{employee.name}</td>
                 <td>{employee.position}</td>
                 <td>{employee.projectSite}</td>
                 {hasActions && (
                   <td>
                     <div className="row-actions">
-                      {canManageLeaveBalances && (
-                        <button
-                          className="edit"
-                          type="button"
-                          onClick={() => onLeaveBalances(employee)}
-                          aria-label={`Leave balances for ${employee.name}`}
-                          title="Leave balances"
-                        >
-                          <Wallet size={14} />
-                        </button>
-                      )}
                       {canEdit && (
                         <button
                           className="edit"

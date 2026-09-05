@@ -2,11 +2,12 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { connectMongoDB } from "@/lib/mongodb";
-import { seedSettingsCatalog } from "@/services/settings-seed-service";
+import { seedAttendanceStatuses, seedSettingsCatalog } from "@/services/settings-seed-service";
 import { canManageSettings } from "@/lib/rbac";
+import { ATTENDANCE_STATUS_CATEGORY } from "@/types/settings";
 import type { SettingKind } from "@/types/settings";
 import { checkApiRateLimit, getClientIdentifier } from "@/lib/rate-limit";
-import { isSeedingEnabled } from "@/lib/seed-flags";
+import { isAttendanceStatusSeedingEnabled, isSeedingEnabled } from "@/lib/seed-flags";
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
     );
   const body = (await request.json().catch(() => ({}))) as {
     kind?: SettingKind;
+    category?: string;
   };
   const kind = body.kind;
   if (!kind || !["position", "project", "status"].includes(kind))
@@ -50,6 +52,22 @@ export async function POST(request: Request) {
       { error: "VALIDATION_ERROR", requestId },
       { status: 400, headers },
     );
+
+  const isAttendance = kind === "status" && body.category === ATTENDANCE_STATUS_CATEGORY;
+  if (isAttendance) {
+    if (!isAttendanceStatusSeedingEnabled())
+      return NextResponse.json(
+        { error: "SEEDING_DISABLED", requestId },
+        { status: 403, headers },
+      );
+    await connectMongoDB();
+    const result = await seedAttendanceStatuses();
+    return NextResponse.json(
+      { inserted: result.upsertedCount, kind, category: body.category, requestId },
+      { headers },
+    );
+  }
+
   if (!isSeedingEnabled(kind))
     return NextResponse.json(
       { error: "SEEDING_DISABLED", requestId },

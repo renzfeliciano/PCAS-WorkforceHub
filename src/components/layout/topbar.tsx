@@ -13,14 +13,24 @@ import { useCurrentUser } from "@/context/current-user-context";
 const CRUMBS: Record<string, string> = {
   "/": "Dashboard",
   "/employees": "Employees",
+  "/attendance": "Attendance",
+  "/leave": "Leave management",
   "/settings": "Settings",
   "/admin/permissions": "Permissions",
 };
 
+function crumbFor(pathname: string): string {
+  if (CRUMBS[pathname]) return CRUMBS[pathname];
+  const prefix = Object.keys(CRUMBS).find(
+    (href) => href !== "/" && pathname.startsWith(`${href}/`),
+  );
+  return prefix ? CRUMBS[prefix] : "Workspace";
+}
+
 export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
   const pathname = usePathname();
   const user = useCurrentUser();
-  const crumb = CRUMBS[pathname] ?? "Workspace";
+  const crumb = crumbFor(pathname);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   function handleSignOut() {
@@ -30,7 +40,11 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
 
   return (
     <header className="topbar">
-      <IconButton className="menu" onClick={onToggleNav} aria-label="Open navigation">
+      <IconButton
+        className="menu"
+        onClick={onToggleNav}
+        aria-label="Open navigation"
+      >
         <Menu size={19} />
       </IconButton>
       <div className="header-brand">
@@ -48,13 +62,17 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
           <b>{user.name}</b>
           <small>{user.role}</small>
         </div>
-        <button className="logout-button" onClick={handleSignOut} disabled={isSigningOut}>
+        <button
+          className="logout-button"
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+        >
           {isSigningOut ? (
             <Spinner size={13} />
           ) : (
             <>
-              <span>Log out</span>
               <LogOut size={15} />
+              <span>Log out</span>
             </>
           )}
         </button>

@@ -44,6 +44,19 @@ export const seedCatalog: Record<SettingKind, readonly string[]> = {
   ],
 };
 
+/** Seeded under the "status" kind, category "attendance" (see ATTENDANCE_STATUS_CATEGORY). */
+export const attendanceStatusCatalog: readonly string[] = [
+  "Present",
+  "Absent",
+  "Tardy / Late",
+  "Half-day",
+  "On leave",
+  "Day off",
+  "Restday work",
+  "Holiday work",
+  "Undertime",
+];
+
 export const leaveTypeCatalog: readonly {
   name: string;
   code: string;
@@ -51,10 +64,12 @@ export const leaveTypeCatalog: readonly {
 }[] = [
   { name: "Vacation Leave", code: "VL", eligibility: "Any" },
   { name: "Sick Leave", code: "SL", eligibility: "Any" },
-  { name: "Service Incentive Leave", code: "SIL", eligibility: "Any" },
-  { name: "Paternity Leave", code: "PL", eligibility: "Male" },
-  { name: "Maternity Leave", code: "ML", eligibility: "Female" },
-  { name: "Solo Parent Leave", code: "SPL", eligibility: "Any" },
-  { name: "Bereavement Leave", code: "BL", eligibility: "Any" },
-  { name: "Offset", code: "OFF", eligibility: "Any" },
+  { name: "Emergency Leave", code: "EL", eligibility: "Any" },
+  // commented for now
+  // { name: "Service Incentive Leave", code: "SIL", eligibility: "Any" },
+  // { name: "Paternity Leave", code: "PL", eligibility: "Male" },
+  // { name: "Maternity Leave", code: "ML", eligibility: "Female" },
+  // { name: "Solo Parent Leave", code: "SPL", eligibility: "Any" },
+  // { name: "Bereavement Leave", code: "BL", eligibility: "Any" },
+  // { name: "Offset", code: "OFF", eligibility: "Any" },
 ];

@@ -1,5 +1,5 @@
 import type { AuditLogger } from "@/lib/audit-logger";
-import { ForbiddenActionError } from "@/lib/app-errors";
+import { ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
 import { canDeleteEmployees, canEditEmployees, canManageLeaveBalances } from "@/lib/rbac";
 import {
   createEmployeeSchema,
@@ -11,12 +11,14 @@ import type {
   EmployeeListResult,
   EmployeeRepository,
 } from "@/repositories/employee-repository";
+import type { LeaveBalanceChangeRepository } from "@/repositories/leave-balance-change-repository";
 import type { Employee, LeaveBalance } from "@/types/employee";
+import type { LeaveBalanceChange } from "@/types/leave-balance-change";
 import type { Role } from "@/types/user";
 
 export type { EmployeeRepository, AuditLogger };
 
-type Actor = { role: Role; id: string; requestId: string };
+type Actor = { role: Role; id: string; name?: string; requestId: string };
 
 export async function listEmployees(
   repository: EmployeeRepository,
@@ -97,6 +99,7 @@ export async function archiveEmployee(
 export async function updateEmployeeLeaveBalances(
   repository: EmployeeRepository,
   audit: AuditLogger,
+  leaveBalanceHistory: LeaveBalanceChangeRepository,
   actor: Actor,
   employeeId: string,
   balances: LeaveBalance[],
@@ -104,7 +107,37 @@ export async function updateEmployeeLeaveBalances(
   if (!canManageLeaveBalances(actor.role))
     throw new ForbiddenActionError("Only Admin and HR may update leave balances");
   const validBalances = updateLeaveBalancesSchema.parse(balances);
+  const before = await repository.findById(employeeId);
+  if (!before) throw new NotFoundError("Employee not found");
   const employee = await repository.updateLeaveBalances(employeeId, validBalances);
+
+  // Only the leave types whose balance actually changed get a history entry —
+  // saving the form with everything else untouched shouldn't spam the trail.
+  const previousByType = new Map(before.leaveBalances.map((b) => [b.leaveTypeId, b.balance]));
+  const nextByType = new Map(validBalances.map((b) => [b.leaveTypeId, b.balance]));
+  const touchedTypeIds = new Set([...previousByType.keys(), ...nextByType.keys()]);
+  const changes = [...touchedTypeIds]
+    .map((leaveTypeId) => ({
+      leaveTypeId,
+      previousBalance: previousByType.get(leaveTypeId) ?? 0,
+      newBalance: nextByType.get(leaveTypeId) ?? 0,
+    }))
+    .filter((change) => change.previousBalance !== change.newBalance);
+
+  if (changes.length > 0) {
+    await leaveBalanceHistory.recordMany(
+      changes.map((change) => ({
+        employeeId,
+        leaveTypeId: change.leaveTypeId,
+        previousBalance: change.previousBalance,
+        newBalance: change.newBalance,
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+      })),
+    );
+  }
+
   await audit.record({
     action: "employee.leave_balances.updated",
     entityId: employeeId,
@@ -113,4 +146,13 @@ export async function updateEmployeeLeaveBalances(
     requestId: actor.requestId,
   });
   return employee;
+}
+
+export async function listLeaveBalanceHistory(
+  repository: LeaveBalanceChangeRepository,
+  employeeId: string,
+  page: number,
+  pageSize: number,
+): Promise<{ items: LeaveBalanceChange[]; total: number }> {
+  return repository.findByEmployee(employeeId, page, pageSize);
 }

@@ -45,6 +45,23 @@ export function useInlineFormValidation() {
   }
 
   /**
+   * Maps a server-side { fieldErrors: { field: string[] } } payload (from a
+   * VALIDATION_ERROR response) onto the same inline error state used for
+   * client-side checks, so a rule the browser couldn't check up front (e.g.
+   * an exact masked-input format) still points at the right field instead of
+   * only surfacing a generic top-level message.
+   */
+  function applyServerErrors(fieldErrors: Record<string, string[] | undefined>) {
+    setErrors((current) => {
+      const next = { ...current };
+      for (const [name, messages] of Object.entries(fieldErrors)) {
+        if (messages?.length) next[name] = messages[0];
+      }
+      return next;
+    });
+  }
+
+  /**
    * Attach to a <form onChange>: as soon as a field carries a value, its
    * inline error clears immediately rather than waiting for the next submit.
    * An error only reappears if validation fails again.
@@ -61,6 +78,7 @@ export function useInlineFormValidation() {
     clearError,
     reset,
     handleChange,
+    applyServerErrors,
     fieldError: (name: string) => errors[name],
   };
 }

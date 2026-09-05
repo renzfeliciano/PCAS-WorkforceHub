@@ -27,9 +27,9 @@ export const settingsClient = {
     }),
   delete: (id: string) =>
     apiRequest<{ id: string }>(`/api/v1/settings/${id}`, { method: "DELETE" }),
-  seed: (kind: SettingKind) =>
+  seed: (kind: SettingKind, category?: string) =>
     apiRequest<{ inserted: number; kind: SettingKind }>("/api/v1/settings/seed", {
       method: "POST",
-      body: JSON.stringify({ kind }),
+      body: JSON.stringify({ kind, category }),
     }),
 };

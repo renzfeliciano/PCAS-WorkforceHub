@@ -5,7 +5,7 @@ import { employeesClient } from "@/features/employees/api/employees-client";
 import type { EmployeeListParams } from "@/features/employees/api/employees-client";
 import { createRequestCache } from "@/lib/request-cache";
 import type { EmployeeInput, EmployeeUpdateInput } from "@/schemas/employee";
-import type { Employee, LeaveBalance } from "@/types/employee";
+import type { Employee } from "@/types/employee";
 
 export type EmployeeListInitialData = { items: Employee[]; total: number };
 
@@ -118,15 +118,6 @@ export function useEmployees(
     },
     [load],
   );
-  const updateLeaveBalances = useCallback(
-    async (id: string, balances: LeaveBalance[]) => {
-      const employee = await employeesClient.updateLeaveBalances(id, balances);
-      await load();
-      return employee;
-    },
-    [load],
-  );
-
   return {
     items,
     total,
@@ -138,6 +129,5 @@ export function useEmployees(
     update,
     archive,
     restore,
-    updateLeaveBalances,
   };
 }

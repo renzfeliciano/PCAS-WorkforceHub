@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { SettingFormDialog } from "@/features/settings/components/setting-form-dialog";
@@ -44,7 +44,12 @@ export function SettingsCatalogSection({
 
   const activeCount = items.filter((item) => item.active).length;
   const inactiveCount = items.length - activeCount;
-  const singularLabel = label.toLowerCase().replace(/s$/, "");
+  // Naive "strip trailing s" mangles "statuses" -> "statuse"; "-uses" plurals
+  // need "-uses" -> "-us" instead. Every other label in this app pluralizes
+  // with a plain "s" and is unaffected.
+  const singularLabel = label.toLowerCase().endsWith("uses")
+    ? label.toLowerCase().replace(/uses$/, "us")
+    : label.toLowerCase().replace(/s$/, "");
 
   async function handleSeed() {
     setIsSeeding(true);
@@ -81,7 +86,7 @@ export function SettingsCatalogSection({
             variant="primary"
             onClick={() => setAdding(true)}
           >
-            Add
+            <Plus size={14} /> Add
           </Button>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, LogIn } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -51,8 +51,17 @@ export default function LoginPage() {
           <h1>Welcome back</h1>
           <p className="muted">Sign in to manage your workforce operations.</p>
         </div>
-        <form onSubmit={submit} onChange={handleChange} className="login-form" noValidate>
-          <FormField label="Email or username" name="username" error={fieldError("username")}>
+        <form
+          onSubmit={submit}
+          onChange={handleChange}
+          className="login-form"
+          noValidate
+        >
+          <FormField
+            label="Email or username"
+            name="username"
+            error={fieldError("username")}
+          >
             <input
               name="username"
               type="text"
@@ -61,7 +70,11 @@ export default function LoginPage() {
               placeholder="Enter your email or username"
             />
           </FormField>
-          <FormField label="Password" name="password" error={fieldError("password")}>
+          <FormField
+            label="Password"
+            name="password"
+            error={fieldError("password")}
+          >
             <input
               name="password"
               type="password"
@@ -76,7 +89,7 @@ export default function LoginPage() {
             </p>
           )}
           <Button variant="primary" type="submit" isLoading={isSubmitting}>
-            Sign in
+            <LogIn size={14} /> Sign in
           </Button>
         </form>
         <div className="login-security">

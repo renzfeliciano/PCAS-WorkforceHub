@@ -1,6 +1,7 @@
 export type SettingKind = "position" | "project" | "status";
 
 export const EMPLOYMENT_STATUS_CATEGORY = "employment";
+export const ATTENDANCE_STATUS_CATEGORY = "attendance";
 
 export type SettingItem = {
   id: string;

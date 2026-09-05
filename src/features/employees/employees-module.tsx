@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
@@ -8,16 +9,11 @@ import { useCurrentUser } from "@/context/current-user-context";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useLeaveTypeOptions } from "@/hooks/use-leave-type-options";
 import { useSortState } from "@/hooks/use-sort-state";
-import {
-  canDeleteEmployees,
-  canEditEmployees,
-  canManageLeaveBalances,
-} from "@/lib/rbac";
+import { canDeleteEmployees, canEditEmployees } from "@/lib/rbac";
 import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
 import { EmployeeTable } from "@/features/employees/components/employee-table";
 import { EmployeeFilters } from "@/features/employees/components/employee-filters";
 import { EmployeeFormDialog } from "@/features/employees/components/employee-form-dialog";
-import { LeaveBalancesDialog } from "@/features/employees/components/leave-balances-dialog";
 import { ArchiveEmployeeDialog } from "@/features/employees/components/archive-employee-dialog";
 import { useEmployees } from "@/features/employees/hooks/use-employees";
 import type { EmployeeListInitialData } from "@/features/employees/hooks/use-employees";
@@ -35,7 +31,6 @@ export function EmployeesModule({
   const user = useCurrentUser();
   const canEdit = canEditEmployees(user.role);
   const canDelete = canDeleteEmployees(user.role);
-  const canManageLeave = canManageLeaveBalances(user.role);
 
   const [rawQuery, setRawQuery] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -59,7 +54,6 @@ export function EmployeesModule({
     update,
     archive,
     restore,
-    updateLeaveBalances,
   } = useEmployees(
     {
       page,
@@ -75,7 +69,6 @@ export function EmployeesModule({
 
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
-  const [leaveTarget, setLeaveTarget] = useState<Employee | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Employee | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -150,7 +143,7 @@ export function EmployeesModule({
               type="button"
               onClick={() => setAdding(true)}
             >
-              Add employee
+              <UserPlus size={14} /> Add employee
             </Button>
           )}
         </div>
@@ -210,10 +203,8 @@ export function EmployeesModule({
           }}
           canEdit={canEdit}
           canDelete={canDelete}
-          canManageLeaveBalances={canManageLeave}
           restoringId={restoringId}
           onEdit={setEditing}
-          onLeaveBalances={setLeaveTarget}
           onArchive={setArchiveTarget}
           onRestore={handleRestore}
         />
@@ -236,16 +227,6 @@ export function EmployeesModule({
           onSubmit={async (input) => {
             await update(editing.id, input);
             setEditing(null);
-          }}
-        />
-      )}
-      {leaveTarget && (
-        <LeaveBalancesDialog
-          employee={leaveTarget}
-          onClose={() => setLeaveTarget(null)}
-          onSave={async (balances) => {
-            await updateLeaveBalances(leaveTarget.id, balances);
-            setLeaveTarget(null);
           }}
         />
       )}

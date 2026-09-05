@@ -26,3 +26,7 @@ export function isDataResetEnabled(env: NodeJS.ProcessEnv = process.env) {
 export function isLeaveTypeSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
   return env.ENABLE_LEAVE_TYPES_SEEDING === "true";
 }
+
+export function isAttendanceStatusSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
+  return env.ENABLE_ATTENDANCE_STATUSES_SEEDING === "true";
+}

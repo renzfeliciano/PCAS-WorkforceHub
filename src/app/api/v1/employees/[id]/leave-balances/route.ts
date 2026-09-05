@@ -3,9 +3,11 @@ import { isGuardError, requireApiSession } from "@/lib/api-guard";
 import { apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
+import { MongoLeaveBalanceChangeRepository } from "@/repositories/leave-balance-change-repository";
 import { updateEmployeeLeaveBalances } from "@/services/employee-service";
 
 const repository = new MongoEmployeeRepository();
+const leaveBalanceHistory = new MongoLeaveBalanceChangeRepository();
 
 export async function PATCH(
   request: Request,
@@ -21,7 +23,13 @@ export async function PATCH(
     const employee = await updateEmployeeLeaveBalances(
       repository,
       auditLogger,
-      { role: session.user.role, id: session.user.id, requestId },
+      leaveBalanceHistory,
+      {
+        role: session.user.role,
+        id: session.user.id,
+        name: session.user.name ?? undefined,
+        requestId,
+      },
       id,
       body,
     );
