@@ -208,7 +208,11 @@ select option:focus {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 27px 16px 17px;
+  /* Top padding is set so the brand row's vertical center lines up with the
+     topbar's breadcrumb — .topbar is 73px tall and centers its content, so
+     the logo/wordmark should land at that same 36.5px center: 27px here
+     centered the ~34px-tall logo at 44px, ~7.5px below the breadcrumb. */
+  padding: 20px 16px 17px;
   background: var(--sidebar);
   border-right: 1px solid var(--line);
 }
@@ -2737,22 +2741,39 @@ input[type="checkbox"].toggle-input:disabled {
     position: sticky;
     top: 0;
     height: 100vh;
+    /* Matches the mobile drawer's z-index (below) so the sidebar is its own
+       stacking context here too — without this, .sidebar-collapse-toggle's
+       own z-index only wins against .topbar (z-index: 10) some of the time;
+       position: sticky elements get promoted to their own compositor layer,
+       and that layer's paint order didn't reliably respect a plain z-index
+       set on a non-stacking-context ancestor (.sidebar had z-index: auto). */
+    z-index: 11;
     transition: width 0.2s ease;
   }
   .sidebar-collapse-toggle {
     display: grid;
     place-items: center;
     position: absolute;
-    top: 30px;
-    right: -12px;
-    width: 24px;
-    height: 24px;
-    border: 1px solid var(--line);
+    /* Same ~36px center as the brand row and the topbar's breadcrumb
+       (21px + half of this 30px button). */
+    top: 21px;
+    right: -15px;
+    width: 30px;
+    height: 30px;
+    /* var(--line) is a deliberately faint hairline elsewhere (table/card
+       dividers), but that made this floating button's own edge nearly
+       invisible against --surface — especially where it overlaps the
+       topbar. A stronger, theme-aware ring keeps it reading as a button. */
+    border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
     border-radius: 50%;
     color: var(--muted);
     background: var(--surface);
-    box-shadow: 0 2px 6px #18302d1a;
-    z-index: 1;
+    box-shadow: 0 2px 8px #18302d26;
+    /* Above .topbar's z-index: 10 — this button straddles the sidebar/topbar
+       seam by design (half over each), and without outranking the topbar
+       here, its right half was rendering underneath the topbar's own
+       (opaque) box wherever the two overlapped. */
+    z-index: 11;
   }
   .sidebar-collapse-toggle:hover {
     color: var(--ink);
@@ -3093,19 +3114,27 @@ input[type="checkbox"].toggle-input:disabled {
 }
 @media (max-width: 640px) {
   .month-calendar-grid {
-    grid-auto-rows: 64px;
+    grid-auto-rows: 72px;
     gap: 4px;
   }
   .month-calendar-cell {
-    height: 64px;
+    height: 72px;
     padding: 4px;
+    gap: 2px;
     font-size: 9px;
   }
-  .month-calendar-cell .day-event {
-    display: none;
-  }
-  .month-calendar-cell .day-event:first-of-type {
-    display: block;
+  /*
+   * Below this width a full "time title" chip has no room to stay legible.
+   * The grid drops title text and shows just the time — still says
+   * something useful about the day — and JS (not CSS) decides how many of
+   * those compact chips fit, so a "+N more" badge always appears for
+   * whatever doesn't, instead of events silently disappearing.
+   */
+  .month-calendar-cell .day-event.compact {
+    width: auto;
+    max-width: 100%;
+    padding: 1px 5px;
+    font-variant-numeric: tabular-nums;
   }
 }
 

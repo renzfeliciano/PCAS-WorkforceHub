@@ -76,7 +76,11 @@ const employeeGroup: NavGroup = {
       icon: CalendarRange,
     },
     { href: "/employees/travel-orders", label: "Travel orders", icon: Plane },
-    { href: "/employees/asset-issuance", label: "Asset issuance", icon: Package },
+    {
+      href: "/employees/asset-issuance",
+      label: "Asset issuance",
+      icon: Package,
+    },
   ],
 };
 
@@ -195,20 +199,26 @@ export function Sidebar({
     const isOpen = collapsedOnDesktop || openGroup === group.key;
     return (
       <div key={group.key} className="nav-group">
-        <button
-          type="button"
-          className={`nav-group-header ${isGroupActive(group) ? "active" : ""}`}
-          onClick={() => toggleGroup(group.key)}
-          aria-expanded={isOpen}
-          title={group.label}
-        >
-          <GroupIcon size={17} />
-          <span>{group.label}</span>
-          <ChevronDown
-            size={14}
-            className={`nav-group-chevron ${isOpen ? "open" : ""}`}
-          />
-        </button>
+        {/* Collapsed to the icon rail, this header has nowhere to expand
+            into — its items already render below as their own icon links
+            — so the button would just sit there doing nothing on click.
+            Skip it and let the group's items stand on their own. */}
+        {!collapsedOnDesktop && (
+          <button
+            type="button"
+            className={`nav-group-header ${isGroupActive(group) ? "active" : ""}`}
+            onClick={() => toggleGroup(group.key)}
+            aria-expanded={isOpen}
+            title={group.label}
+          >
+            <GroupIcon size={17} />
+            <span>{group.label}</span>
+            <ChevronDown
+              size={14}
+              className={`nav-group-chevron ${isOpen ? "open" : ""}`}
+            />
+          </button>
+        )}
         {isOpen && (
           <div className="nav-group-items">{renderItems(group.items)}</div>
         )}
@@ -235,7 +245,7 @@ export function Sidebar({
         onClick={onToggleCollapse}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>
       <div className="brand">
         <Logo size={34} />

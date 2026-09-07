@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useCurrentUser } from "@/context/current-user-context";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { canManageEvents } from "@/lib/rbac";
 import { eventCategoryTone } from "@/lib/event-category-tone";
 import { eventsClient } from "@/features/events/api/events-client";
@@ -13,6 +14,13 @@ import type { WorkforceEvent } from "@/types/event";
 const MONTH_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MAX_VISIBLE_PER_DAY = 3;
+/**
+ * Below 640px a full "time title" chip has no room to stay legible, so the
+ * grid trades title text for just the time (still useful for "what's my day
+ * look like") and fits two per cell instead of the CSS trick previously
+ * used, which hid every event but the first with no "+more" hint at all.
+ */
+const MAX_VISIBLE_PER_DAY_COMPACT = 2;
 
 type Cursor = { year: number; monthIndex: number };
 type CalendarCell = { date: string; day: number } | null;
@@ -38,6 +46,8 @@ function todayIso() {
 export function EventsModule() {
   const user = useCurrentUser();
   const canManage = canManageEvents(user.role);
+  const isCompact = useMediaQuery("(max-width: 640px)");
+  const maxVisiblePerDay = isCompact ? MAX_VISIBLE_PER_DAY_COMPACT : MAX_VISIBLE_PER_DAY;
 
   const [cursor, setCursor] = useState<Cursor>(() => {
     const now = new Date();
@@ -136,7 +146,7 @@ export function EventsModule() {
               if (!cell) return <div className="month-calendar-cell empty" key={`pad-${index}`} />;
               const dayEvents = eventsByDate.get(cell.date) ?? [];
               const isToday = cell.date === todayIso();
-              const visible = dayEvents.slice(0, MAX_VISIBLE_PER_DAY);
+              const visible = dayEvents.slice(0, maxVisiblePerDay);
               const hiddenCount = dayEvents.length - visible.length;
               return (
                 <button
@@ -149,11 +159,11 @@ export function EventsModule() {
                   <span className="day-number">{cell.day}</span>
                   {visible.map((event) => (
                     <span
-                      className={`day-event tone-${eventCategoryTone(event.category)}`}
+                      className={`day-event tone-${eventCategoryTone(event.category)}${isCompact ? " compact" : ""}`}
                       key={event.id}
+                      title={`${event.time ? `${event.time} ` : ""}${event.title}`}
                     >
-                      {event.time ? `${event.time} ` : ""}
-                      {event.title}
+                      {isCompact ? event.time ?? event.title : `${event.time ? `${event.time} ` : ""}${event.title}`}
                     </span>
                   ))}
                   {hiddenCount > 0 && <span className="day-event-more">+{hiddenCount} more</span>}
