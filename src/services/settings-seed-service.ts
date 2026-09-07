@@ -1,6 +1,10 @@
 import { SettingModel } from "@/repositories/models/setting-model";
-import { attendanceStatusCatalog, seedCatalog } from "@/lib/seed-catalog";
-import { ATTENDANCE_STATUS_CATEGORY, EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
+import { attendanceStatusCatalog, recruitmentStageCatalog, seedCatalog } from "@/lib/seed-catalog";
+import {
+  ATTENDANCE_STATUS_CATEGORY,
+  EMPLOYMENT_STATUS_CATEGORY,
+  RECRUITMENT_STAGE_CATEGORY,
+} from "@/types/settings";
 import type { SettingKind } from "@/types/settings";
 
 type SeedRecord = { name: string; kind: SettingKind; category?: string; sortOrder: number };
@@ -41,6 +45,16 @@ export async function seedAttendanceStatuses() {
     name,
     kind: "status" as const,
     category: ATTENDANCE_STATUS_CATEGORY,
+    sortOrder,
+  }));
+  return upsertSettings(records);
+}
+
+export async function seedRecruitmentStages() {
+  const records = recruitmentStageCatalog.map((name, sortOrder) => ({
+    name,
+    kind: "status" as const,
+    category: RECRUITMENT_STAGE_CATEGORY,
     sortOrder,
   }));
   return upsertSettings(records);

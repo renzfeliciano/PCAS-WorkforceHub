@@ -15,6 +15,7 @@ WorkforceHub is a modular HRIS for employee records, project assignments, employ
 - [Environment Management](#environment-management)
 - [Delivery Roadmap](#delivery-roadmap)
 - [Production Readiness](#production-readiness)
+- [Security & Accessibility Standards](#security--accessibility-standards)
 - [Engineering Conventions](#engineering-conventions)
 
 ## Product Scope
@@ -221,7 +222,9 @@ Complete the current UI, replace remaining seed-backed employee mutations with r
 
 ### Phase 2: Identity and operational security
 
-Implement password login or approved OAuth, forgot/reset password, role assignment, single active session, inactivity timeout, CSRF-safe mutations, security headers, request IDs, structured errors, API versioning, and Redis-backed rate limiting.
+**Implemented:** single active session (server-side `activeSessionId` check invalidates a JWT the moment a user signs in elsewhere), inactivity timeout (checked live on every request in `middleware.ts`, not just lazily on the next client-side session fetch), CSRF-safe mutations (`SameSite=Lax` session cookie plus an explicit Origin check for state-changing `/api/*` requests), and security headers including a production-only CSP — see [Security & Accessibility Standards](#security--accessibility-standards).
+
+**Remaining:** password login or approved OAuth, forgot/reset password, role assignment, request IDs, structured errors, API versioning, and Redis-backed rate limiting.
 
 ### Phase 3: Leave and attendance
 
@@ -248,11 +251,39 @@ Before calling the application production-ready:
 - Add `/api/v1` routes with consistent response envelopes and error codes.
 - Use a distributed rate limiter with separate limits for authentication, reads, and mutations.
 - Enforce RBAC on the server and record all CRUD and leave-credit changes in immutable audit logs.
-- Validate and sanitize every external input; never log government IDs or secrets.
-- Configure security headers, strict CORS policy where applicable, request IDs, and bounded payload sizes.
+- Validate and sanitize every external input; never log government IDs or secrets. Any HTML rendered from user content must go through `sanitizeHtml()` — see below.
+- ~~Configure security headers~~ Done — see [Security & Accessibility Standards](#security--accessibility-standards). Still open: strict CORS policy where applicable, request IDs, and bounded payload sizes.
 - Add health/readiness checks that do not expose sensitive infrastructure details.
 - Configure Vercel Preview and Production variables independently.
 - Add unit and browser tests once the persistence/authentication boundary is implemented.
+
+## Security & Accessibility Standards
+
+These are enforced patterns, checked at review time — not aspirations.
+
+### XSS
+
+JSX escapes every rendered text node automatically, and the codebase has no `dangerouslySetInnerHTML` or other raw-HTML sink today. If one is ever introduced, it must go through `sanitizeHtml()` in `src/lib/sanitize.ts` (backed by `isomorphic-dompurify`, safe to import from both server and client code) rather than rendering raw HTML directly. Plain JSX text interpolation never needs this — only an actual HTML-injection sink does.
+
+### Injection (NoSQL)
+
+This app is MongoDB/Mongoose, so the SQL-injection equivalent is NoSQL operator injection. Two enforced rules:
+
+- Any free-text search that builds a `$regex` filter must escape regex metacharacters first — see `escapeRegex()` in `src/repositories/employee-repository.ts`.
+- Any credential or identity field taken from a request body must be explicitly `typeof value === "string"` checked before it reaches a query filter. Truthiness alone is not enough — `{ username: { $ne: null } }` is truthy. See `authorize()` in `src/lib/auth.ts`.
+
+### CSRF
+
+NextAuth's session cookie ships `SameSite=Lax` by default, which blocks cross-site fetch/XHR from carrying it. `middleware.ts` adds an explicit Origin-header check on top for state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) requests to `/api/*`, rejecting anything whose `Origin` doesn't match the app's own host — defense-in-depth, not reliance on a default the app doesn't directly control.
+
+### Security headers
+
+`next.config.ts` always sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security`, plus a `Content-Security-Policy` in production builds only (kept out of dev so it never fights Turbopack's HMR websocket). Verify any header change against a real production build — `npm run build && npm start` — not just the dev server, since the CSP is invisible there by design.
+
+### WAI-ARIA
+
+- `src/components/ui/modal.tsx` is the one Modal every dialog in the app composes — it carries `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, closes on Escape, and manages focus (moves in on open, returns to the trigger on close). Build new dialogs on top of it rather than a bespoke one.
+- Active navigation links carry `aria-current="page"` alongside their visual `.active` class; icon-only buttons carry `aria-label`; live-updating regions (toasts, the global loader) carry `role="status"`/`aria-live`.
 
 ## Engineering Conventions
 

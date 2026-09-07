@@ -1,8 +1,6 @@
-export type TravelOrderEmployee = {
-  employeeId: string;
-  employeeNumber: string;
-  name: string;
-};
+import type { EmployeeRef } from "@/types/employee";
+
+export type TravelOrderEmployee = EmployeeRef;
 
 export type TravelOrder = {
   id: string;

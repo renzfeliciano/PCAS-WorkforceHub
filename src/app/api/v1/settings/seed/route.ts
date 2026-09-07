@@ -2,12 +2,20 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { connectMongoDB } from "@/lib/mongodb";
-import { seedAttendanceStatuses, seedSettingsCatalog } from "@/services/settings-seed-service";
+import {
+  seedAttendanceStatuses,
+  seedRecruitmentStages,
+  seedSettingsCatalog,
+} from "@/services/settings-seed-service";
 import { canManageSettings } from "@/lib/rbac";
-import { ATTENDANCE_STATUS_CATEGORY } from "@/types/settings";
+import { ATTENDANCE_STATUS_CATEGORY, RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
 import type { SettingKind } from "@/types/settings";
 import { checkApiRateLimit, getClientIdentifier } from "@/lib/rate-limit";
-import { isAttendanceStatusSeedingEnabled, isSeedingEnabled } from "@/lib/seed-flags";
+import {
+  isAttendanceStatusSeedingEnabled,
+  isRecruitmentStageSeedingEnabled,
+  isSeedingEnabled,
+} from "@/lib/seed-flags";
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();
@@ -62,6 +70,21 @@ export async function POST(request: Request) {
       );
     await connectMongoDB();
     const result = await seedAttendanceStatuses();
+    return NextResponse.json(
+      { inserted: result.upsertedCount, kind, category: body.category, requestId },
+      { headers },
+    );
+  }
+
+  const isRecruitmentStage = kind === "status" && body.category === RECRUITMENT_STAGE_CATEGORY;
+  if (isRecruitmentStage) {
+    if (!isRecruitmentStageSeedingEnabled())
+      return NextResponse.json(
+        { error: "SEEDING_DISABLED", requestId },
+        { status: 403, headers },
+      );
+    await connectMongoDB();
+    const result = await seedRecruitmentStages();
     return NextResponse.json(
       { inserted: result.upsertedCount, kind, category: body.category, requestId },
       { headers },

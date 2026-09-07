@@ -15,7 +15,9 @@ export function StatCard({ icon: Icon, label, value, hint, dark }: StatCardProps
         <Icon size={16} />
       </span>
       <span>{label}</span>
-      <strong>{value}</strong>
+      <div className="metric-value">
+        <strong>{value}</strong>
+      </div>
       {hint && <small>{hint}</small>}
     </div>
   );

@@ -6,7 +6,11 @@ import { useLeaveTypes } from "@/features/settings/hooks/use-leave-types";
 import { SettingsCatalogSection } from "@/features/settings/components/settings-catalog-section";
 import { LeaveTypesSection } from "@/features/settings/components/leave-types-section";
 import { SettingsCatalogSkeleton } from "@/features/settings/components/settings-catalog-skeleton";
-import { ATTENDANCE_STATUS_CATEGORY, EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
+import {
+  ATTENDANCE_STATUS_CATEGORY,
+  EMPLOYMENT_STATUS_CATEGORY,
+  RECRUITMENT_STAGE_CATEGORY,
+} from "@/types/settings";
 import type { SettingItem, SettingKind } from "@/types/settings";
 import type { LeaveType } from "@/types/leave-type";
 
@@ -21,12 +25,14 @@ type CatalogSection = {
 export function SettingsModule({
   seedFlags,
   attendanceStatusSeedEnabled,
+  recruitmentStageSeedEnabled,
   leaveTypeSeedEnabled,
   initialSettings,
   initialLeaveTypes,
 }: Readonly<{
   seedFlags: Record<SettingKind, boolean>;
   attendanceStatusSeedEnabled: boolean;
+  recruitmentStageSeedEnabled: boolean;
   leaveTypeSeedEnabled: boolean;
   initialSettings?: SettingItem[];
   initialLeaveTypes?: LeaveType[];
@@ -47,6 +53,13 @@ export function SettingsModule({
       category: ATTENDANCE_STATUS_CATEGORY,
       label: "Attendance statuses",
       seedEnabled: attendanceStatusSeedEnabled,
+    },
+    {
+      key: "status:recruitment",
+      kind: "status",
+      category: RECRUITMENT_STAGE_CATEGORY,
+      label: "Recruitment stages",
+      seedEnabled: recruitmentStageSeedEnabled,
     },
   ];
   const settings = useSettingsCatalog(initialSettings);

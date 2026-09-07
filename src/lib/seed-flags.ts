@@ -30,3 +30,7 @@ export function isLeaveTypeSeedingEnabled(env: NodeJS.ProcessEnv = process.env) 
 export function isAttendanceStatusSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
   return env.ENABLE_ATTENDANCE_STATUSES_SEEDING === "true";
 }
+
+export function isRecruitmentStageSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
+  return env.ENABLE_RECRUITMENT_STAGES_SEEDING === "true";
+}

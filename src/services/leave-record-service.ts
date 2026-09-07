@@ -51,8 +51,8 @@ export async function createLeaveRecord(
 ): Promise<LeaveRecord> {
   if (!canManageLeaveBalances(actor.role))
     throw new ForbiddenActionError("Only Admin and HR may log leave records");
-  const valid = createLeaveRecordSchema.parse(input);
-  const days = inclusiveDayCount(valid.startDate, valid.endDate);
+  const { halfDay, ...valid } = createLeaveRecordSchema.parse(input);
+  const days = halfDay ? 0.5 : inclusiveDayCount(valid.startDate, valid.endDate);
   await adjustBalance(employeeRepository, employeeId, valid.leaveTypeId, -days);
   const record = await repository.create(employeeId, { ...valid, days });
   await audit.record({
@@ -77,8 +77,8 @@ export async function updateLeaveRecord(
     throw new ForbiddenActionError("Only Admin and HR may log leave records");
   const existing = await repository.findById(id);
   if (!existing) throw new NotFoundError("Leave record not found");
-  const valid = updateLeaveRecordSchema.parse(input);
-  const days = inclusiveDayCount(valid.startDate, valid.endDate);
+  const { halfDay, ...valid } = updateLeaveRecordSchema.parse(input);
+  const days = halfDay ? 0.5 : inclusiveDayCount(valid.startDate, valid.endDate);
 
   // Restore the old amount first, then deduct the new one, so switching leave
   // types (or lengthening the range) is validated against the true available

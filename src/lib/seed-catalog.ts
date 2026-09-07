@@ -57,6 +57,16 @@ export const attendanceStatusCatalog: readonly string[] = [
   "Undertime",
 ];
 
+/** Seeded under the "status" kind, category "recruitment" (see RECRUITMENT_STAGE_CATEGORY) — the Kanban columns on the Application tracking board. */
+export const recruitmentStageCatalog: readonly string[] = [
+  "Applied",
+  "Screening",
+  "Interview",
+  "Offer",
+  "Hired",
+  "Rejected",
+];
+
 export const leaveTypeCatalog: readonly {
   name: string;
   code: string;

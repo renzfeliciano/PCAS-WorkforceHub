@@ -2,6 +2,7 @@ import { withRoleGuard } from "@/lib/with-role-guard";
 import {
   isAttendanceStatusSeedingEnabled,
   isLeaveTypeSeedingEnabled,
+  isRecruitmentStageSeedingEnabled,
   isSeedingEnabled,
 } from "@/lib/seed-flags";
 import { connectMongoDB } from "@/lib/mongodb";
@@ -26,6 +27,7 @@ export default async function CatalogManagementPage() {
         status: isSeedingEnabled("status"),
       }}
       attendanceStatusSeedEnabled={isAttendanceStatusSeedingEnabled()}
+      recruitmentStageSeedEnabled={isRecruitmentStageSeedingEnabled()}
       leaveTypeSeedEnabled={isLeaveTypeSeedingEnabled()}
       initialSettings={initialSettings}
       initialLeaveTypes={initialLeaveTypes}

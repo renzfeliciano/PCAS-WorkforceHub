@@ -78,45 +78,49 @@ export function LeaveTypesSection({
       <div className="setting-list">
         {items.map((item) => (
           <div className="setting-row" key={item.id}>
-            <span className="setting-dot" />
-            <div>
-              <b>{item.name}</b>
-              <small>
-                {item.code} · {item.eligibility === "Any" ? "All employees" : `${item.eligibility} only`}
-              </small>
+            <div className="setting-row-name">
+              <span className="setting-dot" />
+              <div>
+                <b>{item.name}</b>
+                <small>
+                  {item.code} · {item.eligibility === "Any" ? "All employees" : `${item.eligibility} only`}
+                </small>
+              </div>
             </div>
-            <button
-              type="button"
-              className={`setting-state ${item.active ? "enabled" : "disabled"}`}
-              onClick={() => handleToggle(item)}
-              disabled={togglingId === item.id}
-            >
-              {togglingId === item.id ? (
-                <Spinner size={11} />
-              ) : item.active ? (
-                "Active"
-              ) : (
-                "Inactive"
-              )}
-            </button>
-            <button
-              type="button"
-              className="edit-setting"
-              onClick={() => setEditing(item)}
-              aria-label={`Edit ${item.name}`}
-              title="Edit"
-            >
-              <Pencil size={13} />
-            </button>
-            <button
-              type="button"
-              className="delete-setting"
-              onClick={() => setDeleting(item)}
-              aria-label={`Delete ${item.name}`}
-              title="Delete"
-            >
-              ×
-            </button>
+            <div className="setting-row-actions">
+              <button
+                type="button"
+                className={`setting-state ${item.active ? "enabled" : "disabled"}`}
+                onClick={() => handleToggle(item)}
+                disabled={togglingId === item.id}
+              >
+                {togglingId === item.id ? (
+                  <Spinner size={11} />
+                ) : item.active ? (
+                  "Active"
+                ) : (
+                  "Inactive"
+                )}
+              </button>
+              <button
+                type="button"
+                className="edit-setting"
+                onClick={() => setEditing(item)}
+                aria-label={`Edit ${item.name}`}
+                title="Edit"
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                type="button"
+                className="delete-setting"
+                onClick={() => setDeleting(item)}
+                aria-label={`Delete ${item.name}`}
+                title="Delete"
+              >
+                ×
+              </button>
+            </div>
           </div>
         ))}
       </div>

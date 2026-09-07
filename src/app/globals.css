@@ -17,6 +17,11 @@
   --login-glow: #e6f0fa;
   --coral-tint: #12619918;
   --danger: #bd6659;
+  /* --line reads fine against --surface (white), but --line and --sidebar
+     are too close in lightness for a divider drawn ON --sidebar itself
+     (e.g. above the sidebar footer) — this ink-tinted line stays visible
+     there regardless of which of the two colors sits behind it. */
+  --sidebar-line: rgba(22, 35, 61, 0.14);
 }
 .button:disabled {
   cursor: not-allowed;
@@ -119,6 +124,23 @@
   --login-glow: #1f3050;
   --coral-tint: #4391bf33;
   --danger: #d9847a;
+  --sidebar-line: rgba(255, 255, 255, 0.14);
+}
+
+/* Standard WAI-ARIA visually-hidden utility: content stays in the
+   accessibility tree (readable by screen readers, reachable by keyboard)
+   but isn't rendered on screen. Never use display:none for a label that's
+   meant to be announced. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 * {
@@ -211,17 +233,20 @@ select option:focus {
     transform: scale(1.3);
   }
 }
+/*
+ * A flat, uniform tint rather than a gradient — a fade needs "solid" and
+ * "transparent" zones sized against the sidebar's own height, and that
+ * height varies a lot (short mobile drawer vs. tall desktop sticky
+ * sidebar vs. the narrow collapsed rail). Any fixed split — percentage or
+ * pixel — lines up with nav content in one of those states and produces a
+ * visible seam in another. A flat tint has no zones to misalign, so it
+ * looks the same (and reads fine) in all of them.
+ */
 .sidebar-bg-scrim {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(
-    180deg,
-    var(--sidebar) 0%,
-    transparent 38%,
-    transparent 62%,
-    var(--sidebar) 100%
-  );
+  background: color-mix(in srgb, var(--sidebar) 88%, transparent);
   pointer-events: none;
 }
 .bg-carousel-slide {
@@ -244,14 +269,13 @@ select option:focus {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 0 12px;
+  padding: 0 12px 31px;
   font-size: 21px;
   font-weight: 700;
   letter-spacing: -0.7px;
 }
 .logo-badge {
   display: inline-flex;
-  padding: 4px;
   border-radius: 8px;
   background: transparent;
 }
@@ -409,7 +433,7 @@ nav button:disabled {
   gap: 9px;
   margin-top: 17px;
   padding: 17px 7px 0;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--sidebar-line);
 }
 .user b,
 .user small {
@@ -685,7 +709,9 @@ nav button:disabled {
 }
 .metric {
   position: relative;
-  min-height: 153px;
+  display: flex;
+  flex-direction: column;
+  min-height: 195px;
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -727,14 +753,19 @@ nav button:disabled {
     sans-serif;
 }
 .metric span:not(.metric-icon) {
+  padding-right: 42px;
   color: #81908e;
 }
 .metric.dark span {
   color: #b8c8c1;
 }
+.metric-value {
+  display: flex;
+  flex: 1;
+  align-items: center;
+}
 .metric strong {
   display: block;
-  margin: 20px 0 8px;
   font-size: 33px;
   line-height: 1;
 }
@@ -1262,7 +1293,7 @@ thead .col-sticky-2 {
 }
 .settings-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 15px;
 }
 .stacked-cards {
@@ -1282,8 +1313,20 @@ thead .col-sticky-2 {
   display: flex;
   justify-content: space-between;
   align-items: start;
+  gap: 10px;
   padding-bottom: 15px;
   border-bottom: 1px solid var(--line);
+}
+/* The title/subtitle column absorbs the squeeze on narrow screens — it
+   shrinks and wraps its own text (a natural two-liner) — while the action
+   button keeps its size and stays pinned to the same row, right-aligned,
+   instead of the whole head wrapping and dropping the button below. */
+.settings-card-head > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.settings-card-head > *:last-child {
+  flex-shrink: 0;
 }
 .settings-card h2 {
   margin: 0 0 5px;
@@ -1311,7 +1354,7 @@ thead .col-sticky-2 {
 .setting-list {
   display: flex;
   flex-direction: column;
-  height: 490px;
+  max-height: 490px;
   overflow-y: auto;
 }
 /* Generic padded wrapper for a loading spinner standing in for list/table
@@ -1445,14 +1488,34 @@ thead .col-sticky-2 {
 }
 /*
  * Scoped to .settings-grid (the narrow Settings catalog cards) — a bare
- * .setting-row selector here would also truncate the same class reused in
- * the full-width Leave records list, where there's plenty of room. Letting
- * the name/description use whatever width the card actually has (rather
- * than a fixed cap) means it only ellipsizes when it truly doesn't fit.
+ * .setting-row selector here would also affect the same class reused in
+ * the full-width Leave records and Travel orders lists, where a fixed
+ * split isn't the right call. Name gets a predictable half the row, a 10%
+ * gutter separates it from the actions, which get the remaining 40% — so
+ * the name always has known room before it ellipsizes, instead of
+ * shrinking around however wide the action buttons happen to be.
  */
-.settings-grid .setting-row > div {
+.settings-grid .setting-row {
+  display: grid;
+  grid-template-columns: 50% 10% 40%;
+  gap: 0;
+}
+.setting-row-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.setting-row-name > div {
   flex: 1;
   min-width: 0;
+}
+.setting-row-actions {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
 }
 .settings-grid .setting-row b,
 .settings-grid .setting-row small {
@@ -1467,8 +1530,26 @@ thead .col-sticky-2 {
   border-radius: 50%;
   background: var(--blue);
 }
+.setting-dot.tone-success {
+  background: var(--green);
+}
+.setting-dot.tone-danger {
+  background: var(--danger);
+}
+.setting-dot.tone-warning {
+  background: var(--yellow);
+}
+.setting-dot.tone-info {
+  background: var(--blue);
+}
+.setting-dot.tone-accent {
+  background: var(--purple);
+}
 .setting-row .edit-setting {
   margin-left: auto;
+}
+.setting-row-actions .edit-setting {
+  margin-left: 0;
 }
 .delete-setting {
   padding: 3px 7px;
@@ -1682,6 +1763,76 @@ thead .col-sticky-2 {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   padding: 23px 0;
+}
+/*
+ * Reusable toggle switch (src/components/ui/toggle.tsx). The input's own
+ * width/height are set via an element+attribute+class selector so they
+ * reliably beat generic `<container> input { width: 100% }` rules (e.g.
+ * .form-grid input) regardless of which rule happens to sit later in this
+ * file — a plain `.toggle-input` class alone would tie on specificity and
+ * could lose that fight depending on source order.
+ */
+.toggle-field {
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--sidebar);
+}
+.toggle-field label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font:
+    600 12px Arial,
+    sans-serif;
+  cursor: pointer;
+}
+.toggle-field small {
+  display: block;
+  margin: 4px 0 0 44px;
+  color: var(--muted);
+  font:
+    11px Arial,
+    sans-serif;
+}
+input[type="checkbox"].toggle-input {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border-radius: 100px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+input[type="checkbox"].toggle-input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+input[type="checkbox"].toggle-input:checked {
+  background: var(--coral);
+}
+input[type="checkbox"].toggle-input:checked::after {
+  transform: translateX(14px);
+}
+input[type="checkbox"].toggle-input:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+input[type="checkbox"].toggle-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .credit-grid {
   grid-template-columns: repeat(3, 1fr);
@@ -1963,7 +2114,8 @@ thead .col-sticky-2 {
 .employee-picker-option:hover {
   background: var(--sidebar);
 }
-.employee-picker-option input[type="checkbox"] {
+.employee-picker-option input[type="checkbox"],
+.employee-picker-option input[type="radio"] {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
@@ -2072,9 +2224,6 @@ thead .col-sticky-2 {
     flex-wrap: wrap;
     justify-content: flex-end;
   }
-  .settings-grid .setting-row {
-    gap: 5px;
-  }
   .sidebar.open {
     transform: translateX(0);
   }
@@ -2099,11 +2248,40 @@ thead .col-sticky-2 {
   .panels {
     grid-template-columns: 1fr;
   }
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
   .credit-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+/* Short viewports (landscape phones, small laptop windows with the sidebar
+   open) — tighten the sidebar's own vertical rhythm so more of the nav is
+   visible before it needs to scroll, instead of only relying on the fade
+   cue above. */
+@media (max-width: 900px) and (max-height: 480px) {
+  .sidebar {
+    padding: 14px 14px 10px;
+  }
+  .brand {
+    padding: 0 10px;
+    font-size: 17px;
+  }
+  nav {
+    gap: 1px;
+  }
+  nav a,
+  nav button {
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+  .nav-group-items {
+    margin-top: 1px;
+    padding-left: 10px;
+  }
+  .nav-bottom {
+    padding-top: 6px;
+  }
+  .user {
+    margin-top: 8px;
+    padding: 10px 7px 0;
   }
 }
 @media (max-width: 620px) {
@@ -2119,6 +2297,23 @@ thead .col-sticky-2 {
   .page-head h1 {
     font-size: 28px;
   }
+  /* On mobile the action button(s) drop below the title/description block
+     instead of squeezing onto the same row — full width, not inline. */
+  .settings-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .settings-card-head > div:first-child {
+    flex: initial;
+  }
+  /* The icon button (e.g. balance history) keeps its natural size; the
+     primary action next to it stretches to fill the rest of the row. */
+  .settings-card-head .actions .icon-button {
+    flex-shrink: 0;
+  }
+  .settings-card-head .actions .button {
+    flex: 1;
+  }
   .credit-grid {
     grid-template-columns: 1fr;
   }
@@ -2127,18 +2322,17 @@ thead .col-sticky-2 {
     margin-bottom: 32px;
   }
   .metric {
-    min-height: 135px;
+    min-height: 150px;
     padding: 15px;
   }
   .metric strong {
-    margin-top: 15px;
     font-size: 27px;
   }
-  .actions {
+  .page-head .actions {
     width: 100%;
     flex-wrap: wrap;
   }
-  .actions .button {
+  .page-head .actions .button {
     flex: 1;
   }
   .toolbar {
@@ -2302,7 +2496,7 @@ thead .col-sticky-2 {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 40px;
+  bottom: 10px;
   z-index: 1;
   padding: 0;
 }
@@ -2574,20 +2768,14 @@ thead .col-sticky-2 {
   .sidebar.collapsed .user > div {
     display: none;
   }
-  .sidebar.collapsed .brand {
-    justify-content: center;
-    padding: 0 0 31px;
-  }
+  .sidebar.collapsed .brand,
   .sidebar.collapsed nav a,
-  .sidebar.collapsed nav button {
+  .sidebar.collapsed nav button,
+  .sidebar.collapsed .user {
     justify-content: center;
-    padding: 10px;
   }
   .sidebar.collapsed .nav-group-items {
     padding-left: 0;
-  }
-  .sidebar.collapsed .user {
-    justify-content: center;
   }
 }
 @media (max-width: 900px) {
@@ -2766,4 +2954,310 @@ thead .col-sticky-2 {
     height: 48px;
     font-size: 9px;
   }
+}
+
+/*
+ * Events month calendar — same visual language as the attendance calendar
+ * above (weekday header row, bordered day cells), but each cell holds a
+ * stack of event chips instead of a single status badge, so it needs a
+ * taller fixed row height and its own tone-tinted chip styles.
+ */
+.month-calendar-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.month-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+.month-calendar-head b {
+  min-width: 160px;
+  text-align: center;
+  color: var(--ink);
+  font-size: 15px;
+}
+.month-calendar-head button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--paper);
+}
+.month-calendar-head button:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+.month-calendar-loading {
+  display: flex;
+  justify-content: center;
+  padding: 60px 0;
+}
+.month-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: auto;
+  grid-auto-rows: 108px;
+  gap: 6px;
+}
+.month-calendar-weekday {
+  padding-bottom: 6px;
+  color: var(--muted);
+  text-align: center;
+  font:
+    600 10px Arial,
+    sans-serif;
+}
+.month-calendar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  height: 108px;
+  overflow: hidden;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--paper);
+  font:
+    11px Arial,
+    sans-serif;
+  text-align: left;
+}
+.month-calendar-cell:hover {
+  border-color: var(--coral);
+}
+.month-calendar-cell.empty {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}
+.month-calendar-cell.today {
+  border-color: var(--coral);
+}
+.month-calendar-cell.marked {
+  background: var(--surface);
+}
+.month-calendar-cell .day-number {
+  color: var(--muted);
+  font:
+    600 10px Arial,
+    sans-serif;
+}
+.month-calendar-cell .day-event {
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font:
+    600 9px Arial,
+    sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.month-calendar-cell .day-event-more {
+  color: var(--muted);
+  font:
+    600 9px Arial,
+    sans-serif;
+}
+.day-event.tone-success {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 18%, transparent);
+}
+.day-event.tone-danger {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+.day-event.tone-warning {
+  color: var(--yellow);
+  background: color-mix(in srgb, var(--yellow) 22%, transparent);
+}
+.day-event.tone-info {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 18%, transparent);
+}
+.day-event.tone-accent {
+  color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 18%, transparent);
+}
+@media (max-width: 640px) {
+  .month-calendar-grid {
+    grid-auto-rows: 64px;
+    gap: 4px;
+  }
+  .month-calendar-cell {
+    height: 64px;
+    padding: 4px;
+    font-size: 9px;
+  }
+  .month-calendar-cell .day-event {
+    display: none;
+  }
+  .month-calendar-cell .day-event:first-of-type {
+    display: block;
+  }
+}
+
+/*
+ * Recruitment Kanban board — mobile-first. Below the desktop breakpoint,
+ * columns stack full-width and the page itself scrolls (a Kanban board
+ * squeezed into fixed-width horizontally-scrolling columns is awkward to
+ * use on a phone). At desktop width, columns switch to a side-by-side row
+ * that scrolls horizontally instead, the familiar board layout.
+ */
+.kanban-board {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.kanban-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+@media (min-width: 768px) {
+  /*
+   * Only side-by-side columns need a capped height + their own internal
+   * scrollbar to stay level with each other. Stacked mobile columns grow to
+   * fit their cards instead, so the whole page scrolls in one place rather
+   * than trapping the user in a small scrollable box per column.
+   */
+  .kanban-board {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .kanban-column {
+    flex: 0 0 260px;
+    width: auto;
+    max-height: calc(100vh - 260px);
+  }
+  .kanban-column-body {
+    overflow-y: auto;
+  }
+}
+.kanban-column.over {
+  border-color: var(--coral);
+  background: var(--coral-tint);
+}
+.kanban-column-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.kanban-column-count {
+  padding: 2px 8px;
+  border-radius: 100px;
+  color: var(--muted);
+  background: var(--surface);
+  font:
+    600 11px Arial,
+    sans-serif;
+}
+.kanban-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 80px;
+  padding: 12px;
+}
+.kanban-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(20, 34, 56, 0.05);
+}
+.kanban-card.dragging {
+  opacity: 0.5;
+}
+.kanban-card-overlay {
+  cursor: grabbing;
+  box-shadow: 0 12px 24px rgba(20, 34, 56, 0.2);
+}
+.kanban-card-head {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+}
+.kanban-card-handle {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+.kanban-card-handle:hover {
+  color: var(--coral);
+  background: var(--sidebar);
+}
+.kanban-card-handle:active {
+  cursor: grabbing;
+}
+.kanban-card-body b {
+  display: block;
+  font-size: 13px;
+}
+.kanban-card-body small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font:
+    11px Arial,
+    sans-serif;
+}
+.kanban-card-date {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font:
+    10px Arial,
+    sans-serif;
+}
+.kanban-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.kanban-card-move {
+  flex: 1;
+  min-width: 0;
+}
+.kanban-card-move select {
+  width: 100%;
+  padding: 5px 22px 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--ink);
+  background-color: var(--paper);
+  font:
+    10px Arial,
+    sans-serif;
 }

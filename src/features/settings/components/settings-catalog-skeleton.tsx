@@ -15,9 +15,11 @@ function SkeletonCard() {
       <div className="setting-list">
         {Array.from({ length: 4 }).map((_, index) => (
           <div className="setting-row" key={index}>
-            <Skeleton width={7} height={7} className="skeleton-round" />
-            <div style={{ flex: 1 }}>
-              <Skeleton width="60%" height={12} />
+            <div className="setting-row-name">
+              <Skeleton width={7} height={7} className="skeleton-round" />
+              <div style={{ flex: 1 }}>
+                <Skeleton width="60%" height={12} />
+              </div>
             </div>
           </div>
         ))}

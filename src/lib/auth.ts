@@ -4,19 +4,9 @@ import { compare } from "bcryptjs";
 
 import { connectMongoDB } from "@/lib/mongodb";
 import { UserModel } from "@/repositories/models/user-model";
-import { parseDurationMs } from "@/lib/duration";
+import { getInactivityMs } from "@/lib/duration";
 
-const idleWarnMs = parseDurationMs(
-  process.env.SESSION_INACTIVITY_MINUTES,
-  30 * 60_000,
-);
-
-const idleTimeoutMs = parseDurationMs(
-  process.env.SESSION_INACTIVITY_TIMEOUT,
-  30_000,
-);
-
-const inactivityMs = idleWarnMs + idleTimeoutMs;
+const inactivityMs = getInactivityMs();
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET,
@@ -47,7 +37,17 @@ export const authOptions: NextAuthOptions = {
       },
 
       async authorize(credentials) {
-        if (!credentials?.username || !credentials.password) {
+        // Explicit typeof checks, not just truthiness — credentials come
+        // straight off the request body, and a crafted payload like
+        // { username: { $ne: null } } is truthy but would otherwise reach
+        // the Mongo query below as an object instead of a string (a classic
+        // NoSQL operator-injection vector for login endpoints).
+        if (
+          typeof credentials?.username !== "string" ||
+          typeof credentials.password !== "string" ||
+          !credentials.username ||
+          !credentials.password
+        ) {
           return null;
         }
 

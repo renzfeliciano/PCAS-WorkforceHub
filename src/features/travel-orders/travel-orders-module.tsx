@@ -87,7 +87,14 @@ export function TravelOrdersModule({
               <span className="setting-dot" />
               <div>
                 <b>
-                  {order.employees.map((employee) => employee.name).join(", ")}
+                  {order.employees.length > 3
+                    ? `${order.employees
+                        .slice(0, 3)
+                        .map((employee) => employee.name)
+                        .join("; ")} and others...`
+                    : order.employees
+                        .map((employee) => employee.name)
+                        .join("; ")}
                 </b>
                 <small>
                   {order.startDate} to {order.endDate}

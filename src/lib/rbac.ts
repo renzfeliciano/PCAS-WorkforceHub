@@ -31,6 +31,12 @@ export const canManageAttendance = (role: Role) => role === "Admin" || role === 
 export const canEditEmployees = (role: Role) => role === "Admin" || role === "HR";
 /** Create, edit, and delete travel orders. */
 export const canManageTravelOrders = (role: Role) => role === "Admin" || role === "HR";
+/** Create, edit, and delete asset issuance records. */
+export const canManageAssetIssuance = (role: Role) => role === "Admin" || role === "HR";
+/** Create, edit, and delete recruitment job applications. */
+export const canManageRecruitment = (role: Role) => role === "Admin" || role === "HR";
+/** Create, edit, and delete organization events. */
+export const canManageEvents = (role: Role) => role === "Admin" || role === "HR";
 /** Archive (soft-delete) employee records. */
 export const canDeleteEmployees = (role: Role) => role === "Admin";
 export const canManageSettings = (role: Role) => role === "Admin";

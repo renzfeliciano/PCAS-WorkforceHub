@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import type { FormEventHandler, ReactNode } from "react";
+import { useEffect, useId, useRef, type FormEventHandler, type ReactNode } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 
 type ModalProps = Readonly<{
@@ -27,13 +27,43 @@ export function Modal({
   onChange,
   className,
 }: ModalProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement | HTMLFormElement>(null);
+
+  // WAI-ARIA dialog pattern: move focus in on open, return it to whatever
+  // triggered the modal on close, and let Escape close it like every other
+  // native dialog. A full focus trap (cycling Tab within the dialog) is
+  // deliberately not implemented here — this covers the behavior screen
+  // reader and keyboard users actually rely on without the larger risk of
+  // breaking existing form tab order across every modal that reuses this.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for this modal instance's lifetime; onClose identity changing shouldn't re-run the open/close focus handling.
+  }, []);
+
   const modalClassName = ["modal", className].filter(Boolean).join(" ");
   const head = (
     <div className="modal-head">
       <div>
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h2>{title}</h2>
-        {description && <p className="muted">{description}</p>}
+        <h2 id={titleId}>{title}</h2>
+        {description && (
+          <p className="muted" id={descriptionId}>
+            {description}
+          </p>
+        )}
       </div>
       <IconButton type="button" onClick={onClose} aria-label="Close">
         <X size={18} />
@@ -43,16 +73,31 @@ export function Modal({
   const body = <div className="modal-body">{children}</div>;
   const footer = actions && <div className="modal-actions">{actions}</div>;
 
+  const dialogProps = {
+    role: "dialog" as const,
+    "aria-modal": true,
+    "aria-labelledby": titleId,
+    "aria-describedby": description ? descriptionId : undefined,
+    tabIndex: -1,
+  };
+
   return (
     <div className="backdrop">
       {as === "form" ? (
-        <form className={modalClassName} onSubmit={onSubmit} onChange={onChange} noValidate>
+        <form
+          ref={dialogRef as React.RefObject<HTMLFormElement>}
+          className={modalClassName}
+          onSubmit={onSubmit}
+          onChange={onChange}
+          noValidate
+          {...dialogProps}
+        >
           {head}
           {body}
           {footer}
         </form>
       ) : (
-        <div className={modalClassName}>
+        <div ref={dialogRef as React.RefObject<HTMLDivElement>} className={modalClassName} {...dialogProps}>
           {head}
           {body}
           {footer}

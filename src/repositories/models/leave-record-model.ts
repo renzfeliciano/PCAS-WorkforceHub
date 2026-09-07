@@ -6,7 +6,7 @@ const leaveRecordSchema = new Schema(
     leaveTypeId: { type: String, required: true },
     startDate: { type: String, required: true },
     endDate: { type: String, required: true },
-    days: { type: Number, required: true, min: 1 },
+    days: { type: Number, required: true, min: 0.5 },
     reason: { type: String, trim: true },
   },
   { timestamps: true },

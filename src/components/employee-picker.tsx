@@ -5,19 +5,21 @@ import { Search, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { employeesClient } from "@/features/employees/api/employees-client";
-import type { TravelOrderEmployee } from "@/types/travel-order";
+import type { EmployeeRef } from "@/types/employee";
 
 type EmployeePickerProps = Readonly<{
-  selected: TravelOrderEmployee[];
-  onChange: (employees: TravelOrderEmployee[]) => void;
+  selected: EmployeeRef[];
+  onChange: (employees: EmployeeRef[]) => void;
+  /** Single-select mode: picking an employee replaces the current selection instead of adding to it. Defaults to multi-select. */
+  multiple?: boolean;
 }>;
 
 const PAGE_SIZE = 20;
 
-export function EmployeePicker({ selected, onChange }: EmployeePickerProps) {
+export function EmployeePicker({ selected, onChange, multiple = true }: EmployeePickerProps) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
-  const [results, setResults] = useState<TravelOrderEmployee[]>([]);
+  const [results, setResults] = useState<EmployeeRef[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -51,7 +53,11 @@ export function EmployeePicker({ selected, onChange }: EmployeePickerProps) {
 
   const selectedIds = new Set(selected.map((employee) => employee.employeeId));
 
-  function toggle(employee: TravelOrderEmployee) {
+  function toggle(employee: EmployeeRef) {
+    if (!multiple) {
+      onChange(selectedIds.has(employee.employeeId) ? [] : [employee]);
+      return;
+    }
     if (selectedIds.has(employee.employeeId)) {
       onChange(
         selected.filter((item) => item.employeeId !== employee.employeeId),
@@ -106,7 +112,8 @@ export function EmployeePicker({ selected, onChange }: EmployeePickerProps) {
         {results.map((employee) => (
           <label className="employee-picker-option" key={employee.employeeId}>
             <input
-              type="checkbox"
+              type={multiple ? "checkbox" : "radio"}
+              name={multiple ? undefined : "employee-picker-single"}
               checked={selectedIds.has(employee.employeeId)}
               onChange={() => toggle(employee)}
             />

@@ -16,6 +16,16 @@ Roles are Admin, HR, Manager, and Employee. Admin/HR manage employee records, se
 
 `GET /api/employees?page=&query=&status=` lists paginated records. `POST /api/employees` creates a record. `GET /api/employees/:id` returns the profile. `PATCH /api/employees/:id` updates a record. `DELETE /api/employees/:id` archives a record. `PATCH /api/employees/:id/leave-credits` accepts `{ sickLeave, vacationLeave }`, requires Admin/HR, validates with Zod, and writes an audit event. Settings use `/api/projects` and `/api/statuses` with the same service/repository split.
 
+## Security
+
+Zod (`src/schemas/`) validates shape at the request/form boundary; this covers what sits below and around it.
+
+- **XSS**: no `dangerouslySetInnerHTML` exists in the codebase — JSX auto-escapes all rendered text. `src/lib/sanitize.ts` (`isomorphic-dompurify`) is the required sink for any future raw-HTML rendering, client or server.
+- **NoSQL injection**: `escapeRegex()` in `employee-repository.ts` escapes regex metacharacters before any `$regex` filter is built; `authorize()` in `src/lib/auth.ts` explicitly type-checks `username`/`password` as strings before they reach a Mongo query filter (truthiness alone admits operator-injection payloads like `{ $ne: null }`).
+- **CSRF**: NextAuth's session cookie defaults to `SameSite=Lax`. `middleware.ts` additionally rejects any state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) request to `/api/*` whose `Origin` header doesn't match the app's own origin.
+- **Headers**: `next.config.ts` sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security` unconditionally, and `Content-Security-Policy` in production builds only.
+- **Accessibility**: `src/components/ui/modal.tsx` implements the WAI-ARIA dialog pattern (`role="dialog"`, `aria-modal`, labelled/described-by, Escape-to-close, focus management) once, for every modal to reuse — new dialogs should compose it rather than reimplement it.
+
 ## Delivery plan
 
 The current UI uses seed data so it can be previewed without secrets. Before deployment, implement the Mongoose adapters, Auth.js provider, session/audit collections, API handlers that call services, and replace seed data with repository calls. Testing is intentionally deferred for now; when resumed, add Vitest coverage for schemas/services/RBAC and Playwright coverage for login, CRUD, filtering, leave-credit authorization, and export csv. Vercel Hobby requires environment variables from `.env.example`, a connected MongoDB Atlas network rule, and `npm run build` passing.

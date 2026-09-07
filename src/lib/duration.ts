@@ -32,3 +32,14 @@ export function parseDurationMs(value: string | undefined, fallbackMs: number): 
   if (!Number.isFinite(amount) || amount < 0 || !multiplier) return fallbackMs;
   return amount * multiplier;
 }
+
+/**
+ * Total idle window (warning delay + the countdown after it) before a
+ * session is treated as stale. Shared by the JWT callback and the
+ * middleware's live staleness check so both use the same threshold.
+ */
+export function getInactivityMs(): number {
+  const idleWarnMs = parseDurationMs(process.env.SESSION_INACTIVITY_MINUTES, 30 * 60_000);
+  const idleTimeoutMs = parseDurationMs(process.env.SESSION_INACTIVITY_TIMEOUT, 30_000);
+  return idleWarnMs + idleTimeoutMs;
+}

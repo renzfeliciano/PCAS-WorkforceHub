@@ -7,6 +7,7 @@ export const leaveRecordSchema = z
     leaveTypeId: z.string().trim().min(1),
     startDate: isoDate,
     endDate: isoDate,
+    halfDay: z.boolean().optional(),
     reason: z.string().trim().max(255).optional(),
   })
   .superRefine((data, ctx) => {
@@ -15,6 +16,13 @@ export const leaveRecordSchema = z
         code: z.ZodIssueCode.custom,
         path: ["endDate"],
         message: "End date must be on or after the start date.",
+      });
+    }
+    if (data.halfDay && data.startDate !== data.endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["halfDay"],
+        message: "Half day only applies to a single date.",
       });
     }
   });

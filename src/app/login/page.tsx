@@ -44,15 +44,15 @@ export default function LoginPage() {
       <div className="login-form-panel">
         <section className="login-card">
           <div className="brand">
-            <Logo size={34} />
-            <span className="brand-text">
+            <Logo size={50} />
+            <span className="brand-text mt-1">
               Workforce<span className="brand-accent">Hub</span>
             </span>
           </div>
           <div className="login-copy">
-            <p className="eyebrow">Secure workspace</p>
-            <h1>Welcome back</h1>
-            <p className="muted">Sign in to manage your workforce operations.</p>
+            <p className="muted">
+              Sign in to manage your workforce operations.
+            </p>
           </div>
           <form
             onSubmit={submit}
