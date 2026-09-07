@@ -6,7 +6,7 @@ import { LeaveDetail } from "@/features/leave/components/leave-detail";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-export default async function LeaveEmployeePage({ params }: RouteParams) {
+export default async function LeaveManagementEmployeePage({ params }: RouteParams) {
   const { id } = await params;
   await connectMongoDB();
   const employee = await getEmployee(new MongoEmployeeRepository(), id);

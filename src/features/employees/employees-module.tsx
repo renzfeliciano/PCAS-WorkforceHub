@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useCurrentUser } from "@/context/current-user-context";
@@ -54,6 +55,7 @@ export function EmployeesModule({
     update,
     archive,
     restore,
+    deletePermanently,
   } = useEmployees(
     {
       page,
@@ -70,6 +72,7 @@ export function EmployeesModule({
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Employee | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -114,7 +117,7 @@ export function EmployeesModule({
     <>
       <div className="page-head">
         <div>
-          <p className="eyebrow">People directory</p>
+          <p className="eyebrow">Workforce directory</p>
           <h1>Employee roster</h1>
           <p className="muted">
             Every record, including leave balances and statutory IDs.
@@ -126,6 +129,7 @@ export function EmployeesModule({
             type="button"
             onClick={handleExportCsv}
             isLoading={isExporting}
+            loadingText="Exporting CSV"
             disabled={total === 0 || showArchived}
             title={
               total === 0
@@ -207,6 +211,7 @@ export function EmployeesModule({
           onEdit={setEditing}
           onArchive={setArchiveTarget}
           onRestore={handleRestore}
+          onDeletePermanently={setDeleteTarget}
         />
       )}
       {adding && (
@@ -237,6 +242,20 @@ export function EmployeesModule({
           onConfirm={async () => {
             await archive(archiveTarget.id);
             setArchiveTarget(null);
+          }}
+        />
+      )}
+      {deleteTarget && (
+        <ConfirmDialog
+          eyebrow="Permanent deletion"
+          title={`Permanently delete ${deleteTarget.name}?`}
+          description="This erases the employee record entirely, including attendance, leave, and travel order history. This cannot be undone."
+          confirmLabel="Delete permanently"
+          confirmLoadingLabel="Deleting permanently"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            await deletePermanently(deleteTarget.id);
+            setDeleteTarget(null);
           }}
         />
       )}

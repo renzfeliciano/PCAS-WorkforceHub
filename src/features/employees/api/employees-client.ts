@@ -47,6 +47,8 @@ export const employeesClient = {
     }),
   archive: (id: string) =>
     apiRequest<Employee>(`/api/v1/employees/${id}`, { method: "DELETE" }),
+  deletePermanently: (id: string) =>
+    apiRequest<{ id: string }>(`/api/v1/employees/${id}?permanent=true`, { method: "DELETE" }),
   restore: (id: string) =>
     apiRequest<Employee>(`/api/v1/employees/${id}`, {
       method: "PATCH",

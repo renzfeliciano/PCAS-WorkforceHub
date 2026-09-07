@@ -32,6 +32,7 @@ export function LeaveTypesSection({
   const [editing, setEditing] = useState<LeaveType | null>(null);
   const [deleting, setDeleting] = useState<LeaveType | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   async function handleSeed() {
     setIsSeeding(true);
@@ -39,6 +40,15 @@ export function LeaveTypesSection({
       await onSeed();
     } finally {
       setIsSeeding(false);
+    }
+  }
+
+  async function handleToggle(item: LeaveType) {
+    setTogglingId(item.id);
+    try {
+      await onUpdate(item.id, { active: !item.active });
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -50,7 +60,6 @@ export function LeaveTypesSection({
           <p className="muted">Offsets, maternity, paternity, and other leave categories.</p>
         </div>
         <div className="settings-card-tools">
-          <span className="settings-count">{items.length}</span>
           {seedEnabled && (
             <button
               className="seed-button"
@@ -79,9 +88,16 @@ export function LeaveTypesSection({
             <button
               type="button"
               className={`setting-state ${item.active ? "enabled" : "disabled"}`}
-              onClick={() => onUpdate(item.id, { active: !item.active })}
+              onClick={() => handleToggle(item)}
+              disabled={togglingId === item.id}
             >
-              {item.active ? "Active" : "Inactive"}
+              {togglingId === item.id ? (
+                <Spinner size={11} />
+              ) : item.active ? (
+                "Active"
+              ) : (
+                "Inactive"
+              )}
             </button>
             <button
               type="button"
@@ -131,6 +147,7 @@ export function LeaveTypesSection({
           title={`Delete ${deleting.name}?`}
           description="This permanently removes the leave type from Settings and cannot be undone. Deactivate it instead if existing employee records still reference it."
           confirmLabel="Delete permanently"
+          confirmLoadingLabel="Deleting permanently"
           onClose={() => setDeleting(null)}
           onConfirm={async () => {
             await onDelete(deleting.id);

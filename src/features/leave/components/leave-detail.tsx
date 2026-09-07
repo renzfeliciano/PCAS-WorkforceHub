@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarPlus, History, Pencil, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarPlus, History, Minus, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -23,6 +23,13 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
   const { items: leaveTypes, isLoading: typesLoading } = useLeaveTypeOptions();
   const options = eligibleLeaveTypes(leaveTypes, employee.gender);
   const eligibleIds = new Set(options.map((type) => type.id));
+  /**
+   * Emergency Leave is drawn from Vacation Leave rather than its own separate
+   * credit: crediting EL debits the same amount from VL and vice versa, so
+   * the two always move in lockstep and neither can go negative.
+   */
+  const vlType = options.find((type) => type.code.toUpperCase() === "VL");
+  const elType = options.find((type) => type.code.toUpperCase() === "EL");
   /** Balances for leave types now inactive/ineligible: shown read-only so saving never silently drops them. */
   const staleBalances = employee.leaveBalances.filter((b) => !eligibleIds.has(b.leaveTypeId));
   const leaveSummary = formatLeaveSummary(employee.leaveBalances, leaveTypes);
@@ -54,6 +61,61 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
   function valueFor(leaveTypeId: string) {
     if (edits[leaveTypeId] !== undefined) return edits[leaveTypeId];
     return employee.leaveBalances.find((b) => b.leaveTypeId === leaveTypeId)?.balance ?? 0;
+  }
+
+  function originalValueFor(leaveTypeId: string) {
+    return employee.leaveBalances.find((b) => b.leaveTypeId === leaveTypeId)?.balance ?? 0;
+  }
+
+  function setValue(leaveTypeId: string, next: number) {
+    const safe = Number.isFinite(next) ? Math.max(0, next) : 0;
+    setEdits((current) => ({ ...current, [leaveTypeId]: safe }));
+  }
+
+  /** Rounds to the nearest half-day to avoid floating-point drift (e.g. 1.2999999999999998). */
+  function roundHalf(value: number) {
+    return Math.round(value * 2) / 2;
+  }
+
+  /**
+   * Moves `amount` days from Vacation Leave into Emergency Leave (negative
+   * `amount` moves days back from EL into VL). Clamped so neither side can
+   * go negative — increasing EL is capped by the available VL balance, and
+   * decreasing EL is capped by EL's own current balance.
+   */
+  function transferToEmergencyLeave(amount: number) {
+    if (!vlType || !elType) return;
+    const vlCurrent = valueFor(vlType.id);
+    const elCurrent = valueFor(elType.id);
+    const applied =
+      amount > 0 ? Math.min(amount, vlCurrent) : -Math.min(-amount, elCurrent);
+    if (applied === 0) return;
+    setValue(elType.id, roundHalf(elCurrent + applied));
+    setValue(vlType.id, roundHalf(vlCurrent - applied));
+  }
+
+  /**
+   * Keeps the field showing a plain "0" / "1" instead of "00" / "01" as the
+   * user types. A plain `type="number"` input doesn't reliably re-sync its
+   * displayed string once the value is normalized (a known React quirk), so
+   * this is a text input with manual numeric filtering instead.
+   */
+  function handleValueInput(leaveTypeId: string, raw: string) {
+    const cleaned = raw.replace(/[^0-9.]/g, "");
+    const next = cleaned === "" ? 0 : Number(cleaned);
+    if (elType && leaveTypeId === elType.id) {
+      transferToEmergencyLeave(next - valueFor(elType.id));
+      return;
+    }
+    setValue(leaveTypeId, next);
+  }
+
+  function adjustValue(leaveTypeId: string, delta: number) {
+    if (elType && leaveTypeId === elType.id) {
+      transferToEmergencyLeave(delta);
+      return;
+    }
+    setValue(leaveTypeId, roundHalf(valueFor(leaveTypeId) + delta));
   }
 
   function staleLabel(leaveTypeId: string) {
@@ -129,7 +191,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
     <>
       <div className="page-head">
         <div>
-          <Link href="/leave" className="back-link">
+          <Link href="/employees/leave-management" className="back-link">
             <ArrowLeft size={14} /> Leave management
           </Link>
           <h1>{employee.name}</h1>
@@ -160,6 +222,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
               variant="primary"
               onClick={handleSaveBalances}
               isLoading={isSaving}
+              loadingText="Saving changes"
               disabled={options.length === 0}
             >
               <Save size={14} /> Save changes
@@ -180,20 +243,55 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
           />
         ) : (
           <div className="credit-grid">
-            {options.map((type) => (
-              <label key={type.id}>
-                {type.name} <b>{type.code}</b>
-                <input
-                  type="number"
-                  min="0"
-                  value={valueFor(type.id)}
-                  onChange={(event) =>
-                    setEdits((current) => ({ ...current, [type.id]: Number(event.target.value) }))
-                  }
-                />
-                <small>days remaining</small>
-              </label>
-            ))}
+            {options.map((type) => {
+              const current = valueFor(type.id);
+              const original = originalValueFor(type.id);
+              const changed = current !== original;
+              const isEmergencyLeave = elType?.id === type.id;
+              const vlBalance = vlType ? valueFor(vlType.id) : 0;
+              const locked = isEmergencyLeave && vlBalance <= 0;
+              return (
+                <div className={`balance-card ${locked ? "locked" : ""}`} key={type.id}>
+                  <div className="balance-card-head">
+                    {type.name} <b>{type.code}</b>
+                  </div>
+                  <div className="balance-stepper">
+                    <IconButton
+                      type="button"
+                      onClick={() => adjustValue(type.id, -0.5)}
+                      disabled={current <= 0 || locked}
+                      aria-label={`Decrease ${type.name} by half a day`}
+                    >
+                      <Minus size={14} />
+                    </IconButton>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={current}
+                      disabled={locked}
+                      onChange={(event) => handleValueInput(type.id, event.target.value)}
+                    />
+                    <IconButton
+                      type="button"
+                      onClick={() => adjustValue(type.id, 0.5)}
+                      disabled={locked}
+                      aria-label={`Increase ${type.name} by half a day`}
+                    >
+                      <Plus size={14} />
+                    </IconButton>
+                  </div>
+                  {isEmergencyLeave ? (
+                    <small className={locked ? "inline-help warning" : "inline-help"}>
+                      {locked
+                        ? "Needs a positive Vacation Leave balance"
+                        : `Drawn from Vacation Leave · ${vlBalance} available`}
+                    </small>
+                  ) : (
+                    <small>{changed ? `days remaining · was ${original}` : "days remaining"}</small>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
         {staleBalances.length > 0 && (

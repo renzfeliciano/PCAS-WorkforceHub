@@ -87,7 +87,12 @@ export function LeaveRecordFormDialog({
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={isSubmitting}
+            loadingText={mode === "create" ? "Logging leave" : "Saving changes"}
+          >
             {mode === "create" ? (
               <>
                 <CalendarPlus size={14} /> Log leave

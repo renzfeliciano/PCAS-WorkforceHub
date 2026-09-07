@@ -96,6 +96,28 @@ export async function archiveEmployee(
   return employee;
 }
 
+export async function deleteEmployeePermanently(
+  repository: EmployeeRepository,
+  audit: AuditLogger,
+  actor: Actor,
+  id: string,
+): Promise<void> {
+  if (!canDeleteEmployees(actor.role))
+    throw new ForbiddenActionError("Only Admin may permanently delete employees");
+  const employee = await repository.findById(id);
+  if (!employee) throw new NotFoundError("Employee not found");
+  if (!employee.archived)
+    throw new ForbiddenActionError("Archive the employee before deleting it permanently");
+  await repository.deletePermanently(id);
+  await audit.record({
+    action: "employee.deleted",
+    entityId: id,
+    actorRole: actor.role,
+    actorId: actor.id,
+    requestId: actor.requestId,
+  });
+}
+
 export async function updateEmployeeLeaveBalances(
   repository: EmployeeRepository,
   audit: AuditLogger,

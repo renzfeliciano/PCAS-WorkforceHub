@@ -1,7 +1,8 @@
-import { Archive, Pencil, RotateCcw } from "lucide-react";
+import { Archive, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Spinner } from "@/components/ui/spinner";
 import { SortableHeader } from "@/components/ui/sortable-header";
+import { calculateAge, formatLengthOfService } from "@/lib/employee-dates";
 import type { Employee } from "@/types/employee";
 import type { SortDir } from "@/types/list-query";
 
@@ -22,6 +23,7 @@ type EmployeeTableProps = Readonly<{
   onEdit: (employee: Employee) => void;
   onArchive: (employee: Employee) => void;
   onRestore: (employee: Employee) => void;
+  onDeletePermanently: (employee: Employee) => void;
 }>;
 
 export function EmployeeTable({
@@ -41,6 +43,7 @@ export function EmployeeTable({
   onEdit,
   onArchive,
   onRestore,
+  onDeletePermanently,
 }: EmployeeTableProps) {
   const hasActions = canEdit || canDelete;
   return (
@@ -79,6 +82,8 @@ export function EmployeeTable({
                 direction={sortDir}
                 onSort={onSort}
               />
+              <th>Age</th>
+              <th>Length of service</th>
               {hasActions && <th />}
             </tr>
           </thead>
@@ -90,6 +95,8 @@ export function EmployeeTable({
                 <td>{employee.name}</td>
                 <td>{employee.position}</td>
                 <td>{employee.projectSite}</td>
+                <td>{employee.birthDate ? calculateAge(employee.birthDate) : "—"}</td>
+                <td>{formatLengthOfService(employee.dateHired)}</td>
                 {hasActions && (
                   <td>
                     <div className="row-actions">
@@ -106,20 +113,31 @@ export function EmployeeTable({
                       )}
                       {canDelete &&
                         (employee.archived ? (
-                          <button
-                            className="edit"
-                            type="button"
-                            onClick={() => onRestore(employee)}
-                            aria-label={`Restore ${employee.name}`}
-                            title="Restore"
-                            disabled={restoringId === employee.id}
-                          >
-                            {restoringId === employee.id ? (
-                              <Spinner size={14} />
-                            ) : (
-                              <RotateCcw size={14} />
-                            )}
-                          </button>
+                          <>
+                            <button
+                              className="edit"
+                              type="button"
+                              onClick={() => onRestore(employee)}
+                              aria-label={`Restore ${employee.name}`}
+                              title="Restore"
+                              disabled={restoringId === employee.id}
+                            >
+                              {restoringId === employee.id ? (
+                                <Spinner size={14} />
+                              ) : (
+                                <RotateCcw size={14} />
+                              )}
+                            </button>
+                            <button
+                              className="delete-setting"
+                              type="button"
+                              onClick={() => onDeletePermanently(employee)}
+                              aria-label={`Permanently delete ${employee.name}`}
+                              title="Delete permanently"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
                         ) : (
                           <button
                             className="edit"

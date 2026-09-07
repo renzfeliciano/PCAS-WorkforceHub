@@ -100,6 +100,7 @@ export function AttendanceDayDialog({
               variant="danger"
               onClick={handleDelete}
               isLoading={isDeleting}
+              loadingText="Deleting"
               disabled={isSubmitting}
             >
               Delete
@@ -109,6 +110,7 @@ export function AttendanceDayDialog({
             type="submit"
             variant="primary"
             isLoading={isSubmitting}
+            loadingText="Saving"
             disabled={isDeleting}
           >
             <CalendarCheck size={14} /> Save

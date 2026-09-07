@@ -67,7 +67,12 @@ export function SettingFormDialog({
           >
             Cancel
           </Button>
-          <Button type="submit" variant="primary" isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={isSubmitting}
+            loadingText={mode === "create" ? `Adding ${label}` : "Saving changes"}
+          >
             {mode === "create" ? (
               <>
                 <Plus size={14} /> {submitLabel ?? "Add option"}

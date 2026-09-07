@@ -12,6 +12,7 @@ export function ArchiveEmployeeDialog({
       title={`Archive ${employee.name}?`}
       description="This removes the employee from the active roster. You can restore them later from the archived view."
       confirmLabel="Archive employee"
+      confirmLoadingLabel="Archiving employee"
       onClose={onClose}
       onConfirm={onConfirm}
     />

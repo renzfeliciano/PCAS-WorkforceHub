@@ -41,6 +41,7 @@ export function SettingsCatalogSection({
   const [editing, setEditing] = useState<SettingItem | null>(null);
   const [deleting, setDeleting] = useState<SettingItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const activeCount = items.filter((item) => item.active).length;
   const inactiveCount = items.length - activeCount;
@@ -60,6 +61,15 @@ export function SettingsCatalogSection({
     }
   }
 
+  async function handleToggle(item: SettingItem) {
+    setTogglingId(item.id);
+    try {
+      await onToggle(item.id, !item.active);
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   return (
     <section className="settings-card">
       <div className="settings-card-head">
@@ -70,7 +80,6 @@ export function SettingsCatalogSection({
           </p>
         </div>
         <div className="settings-card-tools">
-          <span className="settings-count">{items.length}</span>
           {seedEnabled && (
             <button
               className="seed-button"
@@ -101,9 +110,16 @@ export function SettingsCatalogSection({
             <button
               type="button"
               className={`setting-state ${item.active ? "enabled" : "disabled"}`}
-              onClick={() => onToggle(item.id, !item.active)}
+              onClick={() => handleToggle(item)}
+              disabled={togglingId === item.id}
             >
-              {item.active ? "Active" : "Inactive"}
+              {togglingId === item.id ? (
+                <Spinner size={11} />
+              ) : item.active ? (
+                "Active"
+              ) : (
+                "Inactive"
+              )}
             </button>
             <button
               type="button"

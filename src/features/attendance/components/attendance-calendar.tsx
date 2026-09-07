@@ -104,7 +104,7 @@ export function AttendanceCalendar({ employee }: Readonly<{ employee: Employee }
     <>
       <div className="page-head">
         <div>
-          <Link href="/attendance" className="back-link">
+          <Link href="/employees/attendance" className="back-link">
             <ArrowLeft size={14} /> Attendance
           </Link>
           <h1>{employee.name}</h1>

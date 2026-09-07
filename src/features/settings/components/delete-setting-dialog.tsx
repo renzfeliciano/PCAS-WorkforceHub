@@ -18,6 +18,7 @@ export function DeleteSettingDialog({
       title={`Delete ${item.name}?`}
       description={`This permanently removes the ${item.kind} from Settings and cannot be undone. Deactivate it instead if existing employee records still reference it.`}
       confirmLabel="Delete permanently"
+      confirmLoadingLabel="Deleting permanently"
       onClose={onClose}
       onConfirm={onConfirm}
       onDeactivate={item.active ? onDeactivate : undefined}

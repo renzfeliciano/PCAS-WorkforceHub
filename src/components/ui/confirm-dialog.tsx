@@ -7,9 +7,13 @@ type ConfirmDialogProps = Readonly<{
   title: string;
   description: string;
   confirmLabel: string;
+  /** Present-participle label shown while onConfirm is running, e.g. "Deleting" for confirmLabel="Delete". */
+  confirmLoadingLabel?: string;
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
   deactivateLabel?: string;
+  /** Present-participle label shown while onDeactivate is running. */
+  deactivateLoadingLabel?: string;
   onDeactivate?: () => void | Promise<void>;
 }>;
 
@@ -19,9 +23,11 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  confirmLoadingLabel,
   onClose,
   onConfirm,
   deactivateLabel = "Deactivate instead",
+  deactivateLoadingLabel = "Deactivating",
   onDeactivate,
 }: ConfirmDialogProps) {
   const [pending, setPending] = useState<"confirm" | "deactivate" | null>(null);
@@ -65,6 +71,7 @@ export function ConfirmDialog({
               variant="warning"
               onClick={() => run("deactivate", onDeactivate)}
               isLoading={pending === "deactivate"}
+              loadingText={deactivateLoadingLabel}
               disabled={pending === "confirm"}
             >
               {deactivateLabel}
@@ -75,6 +82,7 @@ export function ConfirmDialog({
             variant="danger"
             onClick={() => run("confirm", onConfirm)}
             isLoading={pending === "confirm"}
+            loadingText={confirmLoadingLabel}
             disabled={pending === "deactivate"}
           >
             {confirmLabel}

@@ -40,7 +40,7 @@ export const contactNumberSchema = z
   .regex(/^\d{4}-\d{3}-\d{4}$/, "Use format XXXX-XXX-XXXX");
 export const leaveBalanceSchema = z.object({
   leaveTypeId: z.string().trim().min(1),
-  balance: z.number().int().min(0),
+  balance: z.number().min(0).multipleOf(0.5, "Balances must be in half-day increments"),
 });
 
 const employeeObjectSchema = z.object({
@@ -50,6 +50,7 @@ const employeeObjectSchema = z.object({
   position: requiredText,
   projectSite: requiredText,
   dateHired: isoDate,
+  birthDate: isoDate.optional().nullable(),
   endOfContract: isoDate.optional().nullable(),
   lastDay: isoDate.optional().nullable(),
   employmentStatus: requiredText,

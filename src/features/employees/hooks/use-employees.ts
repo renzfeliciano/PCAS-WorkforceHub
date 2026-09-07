@@ -118,6 +118,13 @@ export function useEmployees(
     },
     [load],
   );
+  const deletePermanently = useCallback(
+    async (id: string) => {
+      await employeesClient.deletePermanently(id);
+      await load();
+    },
+    [load],
+  );
   return {
     items,
     total,
@@ -129,5 +136,6 @@ export function useEmployees(
     update,
     archive,
     restore,
+    deletePermanently,
   };
 }

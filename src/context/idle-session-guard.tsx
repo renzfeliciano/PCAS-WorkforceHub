@@ -120,6 +120,7 @@ export function IdleSessionGuard({
             variant="primary"
             type="button"
             isLoading={isExtending}
+            loadingText="Extending session"
             onClick={handleStaySignedIn}
           >
             <RefreshCw size={14} /> Stay signed in

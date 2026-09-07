@@ -1,3 +1,5 @@
+import { requestLoadingBus } from "@/lib/loading-bus";
+
 export type FieldErrors = Record<string, string[]>;
 
 export class ApiRequestError extends Error {
@@ -39,16 +41,21 @@ function humanizeErrorCode(code: string) {
 }
 
 export async function apiRequest<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    const code = body?.error ?? "REQUEST_FAILED";
-    const message =
-      typeof body?.details === "string" ? body.details : humanizeErrorCode(code);
-    throw new ApiRequestError(response.status, code, message, extractFieldErrors(body?.details));
+  requestLoadingBus.begin();
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      const code = body?.error ?? "REQUEST_FAILED";
+      const message =
+        typeof body?.details === "string" ? body.details : humanizeErrorCode(code);
+      throw new ApiRequestError(response.status, code, message, extractFieldErrors(body?.details));
+    }
+    return body as T;
+  } finally {
+    requestLoadingBus.end();
   }
-  return body as T;
 }

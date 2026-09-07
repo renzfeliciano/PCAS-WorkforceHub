@@ -66,7 +66,12 @@ export function LeaveTypeFormDialog({
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={isSubmitting}
+            loadingText={mode === "create" ? "Adding leave type" : "Saving changes"}
+          >
             {mode === "create" ? (
               <>
                 <Plus size={14} /> Add leave type

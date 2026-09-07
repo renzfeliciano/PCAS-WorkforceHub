@@ -1,3 +1,4 @@
+import { calculateAge, formatLengthOfService } from "@/lib/employee-dates";
 import type { Employee } from "@/types/employee";
 import type { LeaveType } from "@/types/leave-type";
 
@@ -8,7 +9,10 @@ const HEADERS = [
   "Gender",
   "Position",
   "Project/site",
+  "Age",
+  "Length of service",
   "Date hired",
+  "Birth date",
   "End of contract",
   "Last day",
   "Employment status",
@@ -42,7 +46,10 @@ export function exportEmployeesCsv(
     employee.gender,
     employee.position,
     employee.projectSite,
+    employee.birthDate ? calculateAge(employee.birthDate) : "",
+    formatLengthOfService(employee.dateHired),
     employee.dateHired,
+    employee.birthDate ?? "",
     employee.endOfContract ?? "",
     employee.lastDay ?? "",
     employee.employmentStatus,

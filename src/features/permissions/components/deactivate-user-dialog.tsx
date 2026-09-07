@@ -12,6 +12,7 @@ export function DeactivateUserDialog({
       title={`Deactivate ${user.name}?`}
       description="They will no longer be able to sign in. You can reactivate this account later."
       confirmLabel="Deactivate user"
+      confirmLoadingLabel="Deactivating user"
       onClose={onClose}
       onConfirm={onConfirm}
     />

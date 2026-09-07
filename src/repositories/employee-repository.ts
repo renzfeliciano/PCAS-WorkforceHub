@@ -36,6 +36,7 @@ export interface EmployeeRepository {
   create(input: EmployeeInput): Promise<Employee>;
   update(id: string, patch: EmployeeUpdateInput): Promise<Employee>;
   archive(id: string): Promise<Employee>;
+  deletePermanently(id: string): Promise<void>;
   updateLeaveBalances(id: string, balances: LeaveBalance[]): Promise<Employee>;
   deleteAll(): Promise<void>;
 }
@@ -48,6 +49,7 @@ type EmployeeDocument = {
   position: string;
   projectSite: string;
   dateHired: string;
+  birthDate?: string;
   endOfContract?: string;
   lastDay?: string;
   employmentStatus: string;
@@ -71,6 +73,7 @@ function toEmployee(doc: EmployeeDocument): Employee {
     position: doc.position,
     projectSite: doc.projectSite,
     dateHired: doc.dateHired,
+    birthDate: doc.birthDate,
     endOfContract: doc.endOfContract,
     lastDay: doc.lastDay,
     employmentStatus: doc.employmentStatus,
@@ -189,6 +192,12 @@ export class MongoEmployeeRepository implements EmployeeRepository {
 
   async archive(id: string): Promise<Employee> {
     return this.update(id, { archived: true });
+  }
+
+  async deletePermanently(id: string): Promise<void> {
+    if (!isValidObjectId(id)) throw new NotFoundError("Employee not found");
+    const result = await EmployeeModel.findByIdAndDelete(id);
+    if (!result) throw new NotFoundError("Employee not found");
   }
 
   async updateLeaveBalances(id: string, balances: LeaveBalance[]): Promise<Employee> {

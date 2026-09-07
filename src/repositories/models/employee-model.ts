@@ -16,6 +16,7 @@ const employeeSchema = new Schema(
     position: { type: String, required: true, trim: true },
     projectSite: { type: String, required: true, trim: true },
     dateHired: { type: String, required: true },
+    birthDate: { type: String },
     endOfContract: { type: String },
     lastDay: { type: String },
     employmentStatus: { type: String, required: true, index: true },

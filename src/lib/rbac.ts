@@ -29,6 +29,8 @@ export const canManageLeaveBalances = (role: Role) => role === "Admin" || role =
 export const canManageAttendance = (role: Role) => role === "Admin" || role === "HR";
 /** Create and edit employee records. */
 export const canEditEmployees = (role: Role) => role === "Admin" || role === "HR";
+/** Create, edit, and delete travel orders. */
+export const canManageTravelOrders = (role: Role) => role === "Admin" || role === "HR";
 /** Archive (soft-delete) employee records. */
 export const canDeleteEmployees = (role: Role) => role === "Admin";
 export const canManageSettings = (role: Role) => role === "Admin";

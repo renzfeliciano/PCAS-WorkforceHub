@@ -1,30 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { IconButton } from "@/components/ui/icon-button";
-import { Logo } from "@/components/ui/logo";
 import { Spinner } from "@/components/ui/spinner";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCurrentUser } from "@/context/current-user-context";
 
-const CRUMBS: Record<string, string> = {
-  "/": "Dashboard",
-  "/employees": "Employees",
-  "/attendance": "Attendance",
-  "/leave": "Leave management",
-  "/settings": "Settings",
-  "/admin/permissions": "Permissions",
+type Crumb = { parent: string; page: string };
+
+const CRUMBS: Record<string, Crumb> = {
+  "/": { parent: "Workspace", page: "Dashboard" },
+  "/employees/attendance": { parent: "Employees", page: "Attendance" },
+  "/employees/leave-management": { parent: "Employees", page: "Leave management" },
+  "/employees/travel-orders": { parent: "Employees", page: "Travel orders" },
+  "/employees/roster": { parent: "Employees", page: "Roster" },
+  "/settings/permissions": { parent: "Settings", page: "User management" },
+  "/settings/catalog-management": { parent: "Settings", page: "Catalog management" },
 };
 
-function crumbFor(pathname: string): string {
+function crumbFor(pathname: string): Crumb {
   if (CRUMBS[pathname]) return CRUMBS[pathname];
   const prefix = Object.keys(CRUMBS).find(
     (href) => href !== "/" && pathname.startsWith(`${href}/`),
   );
-  return prefix ? CRUMBS[prefix] : "Workspace";
+  return prefix ? CRUMBS[prefix] : { parent: "Workspace", page: "Workspace" };
 }
 
 export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
@@ -32,6 +35,31 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
   const user = useCurrentUser();
   const crumb = crumbFor(pathname);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setMenuOpen(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   function handleSignOut() {
     setIsSigningOut(true);
@@ -47,35 +75,51 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
       >
         <Menu size={19} />
       </IconButton>
-      <div className="header-brand">
-        <Logo size={25} />
-        <span>
-          Workforce<span className="brand-accent">Hub</span>
-        </span>
-      </div>
       <span className="crumb">
-        Workspace / <b>{crumb}</b>
+        {crumb.parent} / <b>{crumb.page}</b>
       </span>
-      <div className="profile-menu">
-        <Avatar name={user.name} tone="coral" />
-        <div className="profile-copy">
-          <b>{user.name}</b>
-          <small>{user.role}</small>
-        </div>
+      <div className="profile-menu" ref={menuRef}>
         <button
-          className="logout-button"
-          onClick={handleSignOut}
-          disabled={isSigningOut}
+          type="button"
+          className="profile-trigger"
+          onClick={() => setMenuOpen((current) => !current)}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Account menu"
         >
-          {isSigningOut ? (
-            <Spinner size={13} />
-          ) : (
-            <>
-              <LogOut size={15} />
-              <span>Log out</span>
-            </>
-          )}
+          <Avatar name={user.name} tone="coral" />
         </button>
+        {menuOpen && (
+          <div className="profile-dropdown" role="menu">
+            <div className="profile-dropdown-head">
+              <b>{user.name}</b>
+              <small>{user.role}</small>
+            </div>
+            <div className="profile-dropdown-section">
+              <span className="profile-dropdown-label">Theme</span>
+              <ThemeToggle />
+            </div>
+            <button
+              type="button"
+              role="menuitem"
+              className="profile-dropdown-logout"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? (
+                <>
+                  <Spinner size={13} />
+                  <span>Signing out</span>
+                </>
+              ) : (
+                <>
+                  <LogOut size={15} />
+                  <span>Sign out</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

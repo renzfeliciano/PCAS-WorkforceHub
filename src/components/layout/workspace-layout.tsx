@@ -7,8 +7,7 @@ import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
 export function WorkspaceLayout({
   children,
-  employeeCount,
-}: Readonly<{ children: ReactNode; employeeCount: number }>) {
+}: Readonly<{ children: ReactNode }>) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { isCollapsed, toggleCollapsed } = useSidebarCollapsed();
 
@@ -28,7 +27,6 @@ export function WorkspaceLayout({
         collapsed={isCollapsed}
         onNavigate={closeMobileNav}
         onToggleCollapse={toggleCollapsed}
-        employeeCount={employeeCount}
       />
       <section className="main-content">
         <Topbar onToggleNav={() => setMobileNavOpen((current) => !current)} />

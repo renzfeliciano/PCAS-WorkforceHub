@@ -73,7 +73,12 @@ export function UserFormDialog({
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={isSubmitting}
+            loadingText={mode === "create" ? "Creating user" : "Saving changes"}
+          >
             {mode === "create" ? (
               <>
                 <UserPlus size={14} /> Create user

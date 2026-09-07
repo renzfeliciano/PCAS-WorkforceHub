@@ -60,6 +60,7 @@ export function ResetDataDialog({ onClose, onConfirm }: ResetDataDialogProps) {
             variant="danger"
             disabled={!canConfirm}
             isLoading={isSubmitting}
+            loadingText="Resetting all data"
             onClick={handleConfirm}
           >
             Reset all data

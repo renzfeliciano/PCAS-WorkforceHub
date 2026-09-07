@@ -33,23 +33,30 @@ export function EmployeeFormDialog({
   onClose,
   onSubmit,
 }: EmployeeFormDialogProps) {
-  const { activeItems: positions, isLoading: positionsLoading } = useCatalogOptions("position");
-  const { activeItems: projects, isLoading: projectsLoading } = useCatalogOptions("project");
-  const { activeItems: statuses, isLoading: statusesLoading } = useCatalogOptions(
-    "status",
-    EMPLOYMENT_STATUS_CATEGORY,
-  );
-  const { validate, handleChange, fieldError, applyServerErrors } = useInlineFormValidation();
+  const { activeItems: positions, isLoading: positionsLoading } =
+    useCatalogOptions("position");
+  const { activeItems: projects, isLoading: projectsLoading } =
+    useCatalogOptions("project");
+  const { activeItems: statuses, isLoading: statusesLoading } =
+    useCatalogOptions("status", EMPLOYMENT_STATUS_CATEGORY);
+  const { validate, handleChange, fieldError, applyServerErrors } =
+    useInlineFormValidation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [sssNumber, setSssNumber] = useState(initialValue?.sssNumber ?? "");
   const [philHealthNumber, setPhilHealthNumber] = useState(
     initialValue?.philHealthNumber ?? "",
   );
-  const [pagIbigNumber, setPagIbigNumber] = useState(initialValue?.pagIbigNumber ?? "");
+  const [pagIbigNumber, setPagIbigNumber] = useState(
+    initialValue?.pagIbigNumber ?? "",
+  );
   const [tinNumber, setTinNumber] = useState(initialValue?.tinNumber ?? "");
-  const [contactNumber, setContactNumber] = useState(initialValue?.contactNumber ?? "");
-  const [employmentStatus, setEmploymentStatus] = useState(initialValue?.employmentStatus ?? "");
+  const [contactNumber, setContactNumber] = useState(
+    initialValue?.contactNumber ?? "",
+  );
+  const [employmentStatus, setEmploymentStatus] = useState(
+    initialValue?.employmentStatus ?? "",
+  );
 
   const showEndOfContract = needsEndOfContract(employmentStatus);
   const showLastDay = needsLastDay(employmentStatus);
@@ -69,7 +76,10 @@ export function EmployeeFormDialog({
     statuses.map((item) => item.name),
   );
 
-  async function handleSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
+  async function handleSubmit(event: {
+    preventDefault(): void;
+    currentTarget: HTMLFormElement;
+  }) {
     event.preventDefault();
     if (!validate(event.currentTarget)) return;
     const data = new FormData(event.currentTarget);
@@ -82,6 +92,7 @@ export function EmployeeFormDialog({
       projectSite: value("projectSite"),
       employmentStatus: value("employmentStatus"),
       dateHired: value("dateHired"),
+      birthDate: value("birthDate") || null,
       endOfContract: showEndOfContract ? value("endOfContract") : null,
       lastDay: showLastDay ? value("lastDay") : null,
       contactNumber: contactNumber || null,
@@ -114,7 +125,11 @@ export function EmployeeFormDialog({
       onSubmit={handleSubmit}
       onChange={handleChange}
       eyebrow={mode === "create" ? "New record" : "Edit record"}
-      title={mode === "create" ? "Add employee" : `Edit ${initialValue?.name ?? "employee"}`}
+      title={
+        mode === "create"
+          ? "Add employee"
+          : `Edit ${initialValue?.name ?? "employee"}`
+      }
       description={
         initialValue
           ? `${initialValue.employeeNumber} · ${initialValue.position}`
@@ -123,10 +138,22 @@ export function EmployeeFormDialog({
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="submit" variant="primary" isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={isSubmitting}
+            loadingText={
+              mode === "create" ? "Creating employee" : "Saving changes"
+            }
+          >
             {mode === "create" ? (
               <>
                 <UserPlus size={14} /> Create employee
@@ -155,10 +182,19 @@ export function EmployeeFormDialog({
           />
         </FormField>
         <FormField label="Employee name" name="name" error={fieldError("name")}>
-          <input name="name" required maxLength={30} defaultValue={initialValue?.name} />
+          <input
+            name="name"
+            required
+            maxLength={30}
+            defaultValue={initialValue?.name}
+          />
         </FormField>
         <FormField label="Gender" name="gender" error={fieldError("gender")}>
-          <select name="gender" required defaultValue={initialValue?.gender ?? ""}>
+          <select
+            name="gender"
+            required
+            defaultValue={initialValue?.gender ?? ""}
+          >
             <option value="" disabled>
               Select gender
             </option>
@@ -166,7 +202,11 @@ export function EmployeeFormDialog({
             <option value="Female">Female</option>
           </select>
         </FormField>
-        <FormField label="Position" name="position" error={fieldError("position")}>
+        <FormField
+          label="Position"
+          name="position"
+          error={fieldError("position")}
+        >
           <select
             key={positionsLoading ? "loading" : "loaded"}
             name="position"
@@ -186,7 +226,11 @@ export function EmployeeFormDialog({
             ))}
           </select>
         </FormField>
-        <FormField label="Project / site" name="projectSite" error={fieldError("projectSite")}>
+        <FormField
+          label="Project / site"
+          name="projectSite"
+          error={fieldError("projectSite")}
+        >
           <select
             key={projectsLoading ? "loading" : "loaded"}
             name="projectSite"
@@ -196,7 +240,9 @@ export function EmployeeFormDialog({
             <option value="" disabled>
               Select a project/site
             </option>
-            {staleProject && <option value={staleProject}>{staleProject} (inactive)</option>}
+            {staleProject && (
+              <option value={staleProject}>{staleProject} (inactive)</option>
+            )}
             {projects.map((item) => (
               <option key={item.id} value={item.name}>
                 {item.name}
@@ -218,7 +264,9 @@ export function EmployeeFormDialog({
             <option value="" disabled>
               Select a status
             </option>
-            {staleStatus && <option value={staleStatus}>{staleStatus} (inactive)</option>}
+            {staleStatus && (
+              <option value={staleStatus}>{staleStatus} (inactive)</option>
+            )}
             {statusesLoading && employmentStatus && (
               <option value={employmentStatus}>{employmentStatus}</option>
             )}
@@ -229,8 +277,47 @@ export function EmployeeFormDialog({
             ))}
           </select>
         </FormField>
-        <FormField label="Date hired" name="dateHired" error={fieldError("dateHired")}>
-          <input type="date" name="dateHired" required defaultValue={initialValue?.dateHired} />
+        <FormField
+          label="Birth date"
+          name="birthDate"
+          error={fieldError("birthDate")}
+        >
+          <input
+            type="date"
+            name="birthDate"
+            placeholder="Optional"
+            defaultValue={initialValue?.birthDate}
+          />
+        </FormField>
+        <FormField
+          label="Contact number"
+          name="contactNumber"
+          error={fieldError("contactNumber")}
+        >
+          <input
+            name="contactNumber"
+            inputMode="numeric"
+            placeholder="09XX-XXX-XXXX"
+            title="Format: 09XX-XXX-XXXX"
+            pattern="\d{4}-\d{3}-\d{4}"
+            maxLength={13}
+            value={contactNumber}
+            onChange={(event) =>
+              setContactNumber(formatContactNumber(event.target.value))
+            }
+          />
+        </FormField>
+        <FormField
+          label="Date hired"
+          name="dateHired"
+          error={fieldError("dateHired")}
+        >
+          <input
+            type="date"
+            name="dateHired"
+            required
+            defaultValue={initialValue?.dateHired}
+          />
         </FormField>
         {showEndOfContract && (
           <FormField
@@ -247,7 +334,11 @@ export function EmployeeFormDialog({
           </FormField>
         )}
         {showLastDay && (
-          <FormField label="Last day" name="lastDay" error={fieldError("lastDay")}>
+          <FormField
+            label="Last day"
+            name="lastDay"
+            error={fieldError("lastDay")}
+          >
             <input
               type="date"
               name="lastDay"
@@ -257,22 +348,11 @@ export function EmployeeFormDialog({
           </FormField>
         )}
         <FormField
-          label="Contact number"
-          name="contactNumber"
-          error={fieldError("contactNumber")}
+          label="Address"
+          name="address"
+          error={fieldError("address")}
+          fullWidth
         >
-          <input
-            name="contactNumber"
-            inputMode="numeric"
-            placeholder="09XX-XXX-XXXX"
-            title="Format: 09XX-XXX-XXXX"
-            pattern="\d{4}-\d{3}-\d{4}"
-            maxLength={13}
-            value={contactNumber}
-            onChange={(event) => setContactNumber(formatContactNumber(event.target.value))}
-          />
-        </FormField>
-        <FormField label="Address" name="address" error={fieldError("address")} fullWidth>
           <textarea
             name="address"
             rows={4}
@@ -280,7 +360,11 @@ export function EmployeeFormDialog({
             defaultValue={initialValue?.address}
           />
         </FormField>
-        <FormField label="SSS no." name="sssNumber" error={fieldError("sssNumber")}>
+        <FormField
+          label="SSS no."
+          name="sssNumber"
+          error={fieldError("sssNumber")}
+        >
           <input
             name="sssNumber"
             inputMode="numeric"
@@ -289,7 +373,9 @@ export function EmployeeFormDialog({
             pattern="\d{2}-\d{7}-\d{1}"
             maxLength={12}
             value={sssNumber}
-            onChange={(event) => setSssNumber(formatSssNumber(event.target.value))}
+            onChange={(event) =>
+              setSssNumber(formatSssNumber(event.target.value))
+            }
           />
         </FormField>
         <FormField
@@ -305,10 +391,16 @@ export function EmployeeFormDialog({
             pattern="\d{2}-\d{9}-\d{1}"
             maxLength={14}
             value={philHealthNumber}
-            onChange={(event) => setPhilHealthNumber(formatPhilHealthNumber(event.target.value))}
+            onChange={(event) =>
+              setPhilHealthNumber(formatPhilHealthNumber(event.target.value))
+            }
           />
         </FormField>
-        <FormField label="Pag-ibig no." name="pagIbigNumber" error={fieldError("pagIbigNumber")}>
+        <FormField
+          label="Pag-ibig no."
+          name="pagIbigNumber"
+          error={fieldError("pagIbigNumber")}
+        >
           <input
             name="pagIbigNumber"
             inputMode="numeric"
@@ -317,10 +409,16 @@ export function EmployeeFormDialog({
             pattern="\d{4}-\d{4}-\d{4}"
             maxLength={14}
             value={pagIbigNumber}
-            onChange={(event) => setPagIbigNumber(formatPagIbigNumber(event.target.value))}
+            onChange={(event) =>
+              setPagIbigNumber(formatPagIbigNumber(event.target.value))
+            }
           />
         </FormField>
-        <FormField label="TIN no." name="tinNumber" error={fieldError("tinNumber")}>
+        <FormField
+          label="TIN no."
+          name="tinNumber"
+          error={fieldError("tinNumber")}
+        >
           <input
             name="tinNumber"
             inputMode="numeric"
@@ -329,7 +427,9 @@ export function EmployeeFormDialog({
             pattern="\d{3}-\d{3}-\d{3}(-\d{3})?"
             maxLength={15}
             value={tinNumber}
-            onChange={(event) => setTinNumber(formatTinNumber(event.target.value))}
+            onChange={(event) =>
+              setTinNumber(formatTinNumber(event.target.value))
+            }
           />
         </FormField>
       </div>

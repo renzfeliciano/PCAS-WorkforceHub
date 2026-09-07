@@ -49,7 +49,7 @@ export function PermissionsModule({
       <div className="page-head">
         <div>
           <p className="eyebrow">Access control</p>
-          <h1>Permissions</h1>
+          <h1>User management</h1>
           <p className="muted">
             Create and manage user accounts and role assignments.
           </p>
