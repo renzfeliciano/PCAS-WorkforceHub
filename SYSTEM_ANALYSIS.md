@@ -106,15 +106,17 @@ The application is built mobile-first-aware across breakpoints, not just "shrunk
 
 ## 8. Testing & Quality Assurance
 
-An automated regression suite (Vitest, kept in its own `tests/` directory mirroring `src/`) covers business logic that would otherwise only be caught by manual testing:
+An automated regression suite (Vitest, kept in its own `tests/` directory mirroring `src/`, 120 tests across 15 files as of this writing) covers business logic that would otherwise only be caught by manual testing — every feature service has its own test file:
 
-- Leave-balance calculation, including the Vacation/Emergency Leave interaction described in §4.2.
-- Role-based access control rules.
+- **Employees**: RBAC gating (who can edit/archive/permanently delete), the archive-before-permanent-delete rule, and leave-balance-history entries only being written for balances that actually changed.
+- **Leave**: balance calculation, including the Vacation/Emergency Leave interaction described in §4.2.
+- **Attendance, Travel Orders, Asset Issuance, Recruitment, Events, Catalog Settings, User Management**: RBAC gating and module-specific business rules — e.g. a travel order referencing a nonexistent employee is rejected, an Admin can't change their own role or deactivate their own account, catalog "status" entries require a category.
+- Role-based access control rules (`rbac.ts`) directly.
 - Date-range and duration-parsing utilities.
 - The API retry/resilience mechanism.
-- Authentication session callbacks (idle timeout vs. concurrent-session detection) and the login rate limiter (including that it's checked *before* any credential/database work, and that it's keyed correctly by client IP).
+- Authentication session callbacks (idle timeout vs. concurrent-session detection), the login rate limiter (checked *before* any credential/database work, keyed by client IP), and the login timing side-channel fix (bcrypt comparison runs at constant time whether or not the username exists).
 
-The suite runs before every commit as a standing practice, alongside TypeScript strict-mode compilation and ESLint. This is intentionally scoped to start with service-layer business logic and authentication — the highest-value, fastest-to-run, most regression-prone code — with room to extend module-by-module as the system grows (attendance, travel orders, asset issuance, recruitment, and events services don't have dedicated test files yet; see [STANDARDS.md](STANDARDS.md) for the honest, current gap list).
+The suite runs before every commit as a standing practice, alongside TypeScript strict-mode compilation and ESLint, and new logic is written test-first (TDD) rather than tested after the fact. Coverage is intentionally service-layer-first — repositories (the actual MongoDB queries), API routes, and UI components aren't covered yet; see [STANDARDS.md](STANDARDS.md) for the honest, current gap list.
 
 ## 9. Engineering Approach
 
