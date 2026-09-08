@@ -50,7 +50,7 @@ export default function LoginPage() {
       redirect: false,
     });
     if (result?.error) {
-      setError("Invalid credentials. Check your email and password.");
+      setError("Invalid credentials. Check your email or username and password.");
       setIsSubmitting(false);
     } else router.push("/");
   }
