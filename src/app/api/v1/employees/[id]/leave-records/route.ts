@@ -4,10 +4,12 @@ import { apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
 import { MongoLeaveRecordRepository } from "@/repositories/leave-record-repository";
+import { MongoLeaveTypeRepository } from "@/repositories/leave-type-repository";
 import { createLeaveRecord, listLeaveRecords } from "@/services/leave-record-service";
 
 const repository = new MongoLeaveRecordRepository();
 const employeeRepository = new MongoEmployeeRepository();
+const leaveTypeRepository = new MongoLeaveTypeRepository();
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -36,6 +38,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const record = await createLeaveRecord(
       repository,
       employeeRepository,
+      leaveTypeRepository,
       auditLogger,
       { role: session.user.role, id: session.user.id, requestId },
       id,

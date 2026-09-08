@@ -1622,6 +1622,12 @@ thead .col-sticky-2 {
   padding: 20px;
   background: #18302d66;
 }
+/* The idle-session warning must stay visible even when a create/edit modal
+   is already open — same .backdrop, same z-index would otherwise resolve by
+   DOM order and put it behind ordinary modals. */
+.backdrop-priority {
+  z-index: 500;
+}
 .global-loader {
   position: fixed;
   inset: 0;
@@ -2362,8 +2368,7 @@ input[type="checkbox"].toggle-input:disabled {
     grid-template-columns: 1fr;
   }
   .modal {
-    height: 75vh;
-    max-height: 75vh;
+    max-height: min(75vh, calc(100dvh - 24px));
     padding: 20px;
   }
   .modal-actions .button {
@@ -2543,6 +2548,9 @@ input[type="checkbox"].toggle-input:disabled {
 .login-form {
   display: grid;
   gap: 15px;
+}
+.login-card .notice {
+  margin-bottom: 18px;
 }
 .login-form label {
   color: var(--muted);

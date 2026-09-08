@@ -115,7 +115,7 @@ export function EmployeeLookup({
       {showPrompt && (
         <EmptyState
           title="Search for an employee"
-          description="Start typing a name, or employee number to look someone up."
+          description="Start typing a name, employee number or position to look someone up."
         />
       )}
     </>

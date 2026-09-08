@@ -5,6 +5,7 @@ import { canManageLeaveBalances } from "@/lib/rbac";
 import { createLeaveRecordSchema, updateLeaveRecordSchema } from "@/schemas/leave-record";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { LeaveRecordRepository } from "@/repositories/leave-record-repository";
+import type { LeaveTypeRepository } from "@/repositories/leave-type-repository";
 import type { LeaveRecord } from "@/types/leave-record";
 import type { Role } from "@/types/user";
 
@@ -15,21 +16,47 @@ type Actor = { role: Role; id: string; requestId: string };
  * system) but still need to keep the employee's running leave balance in
  * sync, so every create/update/delete adjusts it. `delta` is positive to
  * restore days (edit/delete) and negative to deduct them (create/edit).
+ *
+ * Emergency Leave has no standing credit of its own — it draws from Vacation
+ * Leave, mirroring the transfer rule in the balance editor
+ * (leave-detail.tsx's transferToEmergencyLeave). So a deduction that would
+ * take EL negative (including a half-day 0.5 deduction against an unfunded
+ * EL balance) pulls the shortfall from VL instead of blocking the request.
  */
 async function adjustBalance(
   employeeRepository: EmployeeRepository,
+  leaveTypeRepository: LeaveTypeRepository,
   employeeId: string,
   leaveTypeId: string,
   delta: number,
 ) {
   const employee = await employeeRepository.findById(employeeId);
   if (!employee) throw new NotFoundError("Employee not found");
-  const current = employee.leaveBalances.find((b) => b.leaveTypeId === leaveTypeId)?.balance ?? 0;
-  const next = current + delta;
-  if (next < 0) throw new ConflictError("Not enough leave balance for this request.");
+  const balanceOf = (id: string) =>
+    employee.leaveBalances.find((b) => b.leaveTypeId === id)?.balance ?? 0;
+
+  const updates = new Map<string, number>([[leaveTypeId, balanceOf(leaveTypeId) + delta]]);
+
+  if (delta < 0 && updates.get(leaveTypeId)! < 0) {
+    const leaveTypes = await leaveTypeRepository.findAll();
+    const elType = leaveTypes.find((type) => type.code.toUpperCase() === "EL");
+    const vlType = leaveTypes.find((type) => type.code.toUpperCase() === "VL");
+    if (elType?.id === leaveTypeId && vlType) {
+      const shortfall = -updates.get(leaveTypeId)!;
+      const vlBalance = balanceOf(vlType.id);
+      const fromVl = Math.min(shortfall, vlBalance);
+      updates.set(leaveTypeId, updates.get(leaveTypeId)! + fromVl);
+      updates.set(vlType.id, vlBalance - fromVl);
+    }
+  }
+
+  for (const next of updates.values()) {
+    if (next < 0) throw new ConflictError("Not enough leave balance for this request.");
+  }
+
   const balances = [
-    ...employee.leaveBalances.filter((b) => b.leaveTypeId !== leaveTypeId),
-    { leaveTypeId, balance: next },
+    ...employee.leaveBalances.filter((b) => !updates.has(b.leaveTypeId)),
+    ...[...updates.entries()].map(([id, balance]) => ({ leaveTypeId: id, balance })),
   ];
   await employeeRepository.updateLeaveBalances(employeeId, balances);
 }
@@ -44,6 +71,7 @@ export async function listLeaveRecords(
 export async function createLeaveRecord(
   repository: LeaveRecordRepository,
   employeeRepository: EmployeeRepository,
+  leaveTypeRepository: LeaveTypeRepository,
   audit: AuditLogger,
   actor: Actor,
   employeeId: string,
@@ -53,7 +81,7 @@ export async function createLeaveRecord(
     throw new ForbiddenActionError("Only Admin and HR may log leave records");
   const { halfDay, ...valid } = createLeaveRecordSchema.parse(input);
   const days = halfDay ? 0.5 : inclusiveDayCount(valid.startDate, valid.endDate);
-  await adjustBalance(employeeRepository, employeeId, valid.leaveTypeId, -days);
+  await adjustBalance(employeeRepository, leaveTypeRepository, employeeId, valid.leaveTypeId, -days);
   const record = await repository.create(employeeId, { ...valid, days });
   await audit.record({
     action: "leave_record.created",
@@ -68,6 +96,7 @@ export async function createLeaveRecord(
 export async function updateLeaveRecord(
   repository: LeaveRecordRepository,
   employeeRepository: EmployeeRepository,
+  leaveTypeRepository: LeaveTypeRepository,
   audit: AuditLogger,
   actor: Actor,
   id: string,
@@ -83,12 +112,12 @@ export async function updateLeaveRecord(
   // Restore the old amount first, then deduct the new one, so switching leave
   // types (or lengthening the range) is validated against the true available
   // balance rather than the stale pre-edit figure.
-  await adjustBalance(employeeRepository, existing.employeeId, existing.leaveTypeId, existing.days);
+  await adjustBalance(employeeRepository, leaveTypeRepository, existing.employeeId, existing.leaveTypeId, existing.days);
   try {
-    await adjustBalance(employeeRepository, existing.employeeId, valid.leaveTypeId, -days);
+    await adjustBalance(employeeRepository, leaveTypeRepository, existing.employeeId, valid.leaveTypeId, -days);
   } catch (error) {
     // Roll back the restore so a rejected edit doesn't leave a phantom credit.
-    await adjustBalance(employeeRepository, existing.employeeId, existing.leaveTypeId, -existing.days);
+    await adjustBalance(employeeRepository, leaveTypeRepository, existing.employeeId, existing.leaveTypeId, -existing.days);
     throw error;
   }
 
@@ -106,6 +135,7 @@ export async function updateLeaveRecord(
 export async function deleteLeaveRecord(
   repository: LeaveRecordRepository,
   employeeRepository: EmployeeRepository,
+  leaveTypeRepository: LeaveTypeRepository,
   audit: AuditLogger,
   actor: Actor,
   id: string,
@@ -114,7 +144,7 @@ export async function deleteLeaveRecord(
     throw new ForbiddenActionError("Only Admin and HR may log leave records");
   const existing = await repository.findById(id);
   if (!existing) throw new NotFoundError("Leave record not found");
-  await adjustBalance(employeeRepository, existing.employeeId, existing.leaveTypeId, existing.days);
+  await adjustBalance(employeeRepository, leaveTypeRepository, existing.employeeId, existing.leaveTypeId, existing.days);
   await repository.delete(id);
   await audit.record({
     action: "leave_record.deleted",

@@ -4,10 +4,12 @@ import { apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
 import { MongoLeaveRecordRepository } from "@/repositories/leave-record-repository";
+import { MongoLeaveTypeRepository } from "@/repositories/leave-type-repository";
 import { deleteLeaveRecord, updateLeaveRecord } from "@/services/leave-record-service";
 
 const repository = new MongoLeaveRecordRepository();
 const employeeRepository = new MongoEmployeeRepository();
+const leaveTypeRepository = new MongoLeaveTypeRepository();
 
 type RouteParams = { params: Promise<{ id: string; recordId: string }> };
 
@@ -22,6 +24,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const record = await updateLeaveRecord(
       repository,
       employeeRepository,
+      leaveTypeRepository,
       auditLogger,
       { role: session.user.role, id: session.user.id, requestId },
       recordId,
@@ -43,6 +46,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     await deleteLeaveRecord(
       repository,
       employeeRepository,
+      leaveTypeRepository,
       auditLogger,
       { role: session.user.role, id: session.user.id, requestId },
       recordId,

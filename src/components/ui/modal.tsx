@@ -13,6 +13,8 @@ type ModalProps = Readonly<{
   onSubmit?: FormEventHandler<HTMLFormElement>;
   onChange?: FormEventHandler<HTMLFormElement>;
   className?: string;
+  /** Raises this modal's backdrop above ordinary modals (e.g. the idle-session warning, which must stay visible over any modal already open). */
+  backdropClassName?: string;
 }>;
 
 export function Modal({
@@ -26,6 +28,7 @@ export function Modal({
   onSubmit,
   onChange,
   className,
+  backdropClassName,
 }: ModalProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -82,7 +85,7 @@ export function Modal({
   };
 
   return (
-    <div className="backdrop">
+    <div className={["backdrop", backdropClassName].filter(Boolean).join(" ")}>
       {as === "form" ? (
         <form
           ref={dialogRef as React.RefObject<HTMLFormElement>}
