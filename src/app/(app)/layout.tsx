@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { canAccessWorkspace } from "@/lib/rbac";
 import { CurrentUserProvider } from "@/context/current-user-context";
+import { ConcurrentSessionGuard } from "@/context/concurrent-session-guard";
 import { IdleSessionGuard } from "@/context/idle-session-guard";
 import { WorkspaceLayout } from "@/components/layout/workspace-layout";
 import { parseDurationMs } from "@/lib/duration";
@@ -27,6 +28,7 @@ export default async function AppLayout({
       }}
     >
       <IdleSessionGuard idleMs={idleMs} warningMs={warningMs} />
+      <ConcurrentSessionGuard />
       <WorkspaceLayout>{children}</WorkspaceLayout>
     </CurrentUserProvider>
   );

@@ -1,15 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { ShieldCheck, LogIn } from "lucide-react";
+import { ShieldCheck, LogIn, ShieldAlert } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LoginBackgroundCarousel } from "@/components/login-background-carousel";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
+
+const SIGN_OUT_REASON_COPY: Record<string, string> = {
+  "concurrent-session":
+    "You were signed out because your account was used to sign in on another device or browser.",
+  "idle-timeout": "You were signed out after a period of inactivity.",
+};
+
+/** Reads the ?reason= query param — isolated so only this sliver needs a Suspense boundary. */
+function SignOutReasonNotice() {
+  const reason = useSearchParams().get("reason");
+  const message = reason ? SIGN_OUT_REASON_COPY[reason] : undefined;
+  if (!message) return null;
+  return (
+    <div className="notice" role="status">
+      <ShieldAlert size={15} />
+      <span>{message}</span>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -54,6 +73,9 @@ export default function LoginPage() {
               Sign in to manage your workforce operations.
             </p>
           </div>
+          <Suspense fallback={null}>
+            <SignOutReasonNotice />
+          </Suspense>
           <form
             onSubmit={submit}
             onChange={handleChange}

@@ -5,6 +5,7 @@ import { compare } from "bcryptjs";
 import { connectMongoDB } from "@/lib/mongodb";
 import { UserModel } from "@/repositories/models/user-model";
 import { getInactivityMs } from "@/lib/duration";
+import { checkApiRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const inactivityMs = getInactivityMs();
 
@@ -36,7 +37,17 @@ export const authOptions: NextAuthOptions = {
         },
       },
 
-      async authorize(credentials) {
+      async authorize(credentials, req) {
+        // Brute-force resistance: this is the actual login attempt, so it
+        // gets the strict "auth" tier (5/min per IP — see rate-limit.ts),
+        // checked before any credential/DB work. Rejecting here returns
+        // null, same as a wrong password, rather than a distinguishable
+        // error — an attacker doesn't get to tell "rate limited" apart from
+        // "wrong password" from the response alone.
+        const ip = getClientIp(req?.headers);
+        const rate = await checkApiRateLimit(`login:${ip}`, "auth");
+        if (!rate.success) return null;
+
         // Explicit typeof checks, not just truthiness — credentials come
         // straight off the request body, and a crafted payload like
         // { username: { $ne: null } } is truthy but would otherwise reach
@@ -106,6 +117,7 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           expired: true,
+          expiredReason: "idle_timeout",
         };
       }
 
@@ -119,10 +131,15 @@ export const authOptions: NextAuthOptions = {
           .select("+activeSessionId +lastActivityAt")
           .lean();
 
+        // A mismatch means a later sign-in (this account, another tab/device)
+        // overwrote activeSessionId — this token is for a now-superseded
+        // session, distinct from a plain idle timeout so the client can show
+        // "signed in elsewhere" instead of a generic session-expired message.
         if (!currentUser || currentUser.activeSessionId !== token.sessionId) {
           return {
             ...token,
             expired: true,
+            expiredReason: currentUser ? "concurrent_session" : "idle_timeout",
           };
         }
       }
@@ -134,6 +151,16 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (!token.userId || !token.role || !token.sessionId) {
+        return session;
+      }
+
+      // An invalidated token must not still hand back a session that looks
+      // usable — client code (ConcurrentSessionGuard) checks `session.error`
+      // to show an immediate "signed in elsewhere" takeover instead of
+      // waiting for the user's next navigation to hit middleware.
+      if (token.expired) {
+        session.error =
+          token.expiredReason === "concurrent_session" ? "ConcurrentSessionError" : "SessionExpired";
         return session;
       }
 

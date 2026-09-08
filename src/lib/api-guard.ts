@@ -18,7 +18,10 @@ export async function requireApiSession(
   const requestId = crypto.randomUUID();
   const session = await getServerSession(authOptions);
   const identifier = getClientIdentifier(request, session?.user?.id);
-  const rate = await checkApiRateLimit(identifier);
+  // GET/HEAD get the generous "read" budget; every mutating verb shares the
+  // tighter "write" budget — see rate-limit.ts for why they're split.
+  const kind = request.method === "GET" || request.method === "HEAD" ? "read" : "write";
+  const rate = await checkApiRateLimit(identifier, kind);
   const headers = {
     "X-RateLimit-Limit": String(rate.limit),
     "X-RateLimit-Remaining": String(rate.remaining),
