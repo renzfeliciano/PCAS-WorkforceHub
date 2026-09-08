@@ -68,6 +68,7 @@ export function DashboardModule({
           label="Contracts ending soon"
           value={data.upcomingContractEndings.length}
           hint="Within 30 days"
+          warning={data.upcomingContractEndings.length > 0}
         />
       </div>
       <div className="panels">

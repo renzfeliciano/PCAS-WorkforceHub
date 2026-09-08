@@ -733,6 +733,19 @@ nav button:disabled {
   background: #263c3d;
   border-color: #263c3d;
 }
+/* Calls out a metric that needs attention (e.g. contracts ending soon) —
+   uses the same --danger token as the rest of the app's warning states. */
+.metric.warning {
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border-color: var(--danger);
+}
+.metric.warning .metric-icon {
+  color: #fff;
+  background: var(--danger);
+}
+.metric.warning small {
+  color: var(--danger);
+}
 .metric-icon {
   position: absolute;
   top: 18px;

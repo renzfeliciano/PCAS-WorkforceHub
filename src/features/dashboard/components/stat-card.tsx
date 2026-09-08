@@ -6,11 +6,13 @@ type StatCardProps = Readonly<{
   value: number | string;
   hint?: string;
   dark?: boolean;
+  /** Calls out a metric that needs attention, e.g. contracts ending soon. */
+  warning?: boolean;
 }>;
 
-export function StatCard({ icon: Icon, label, value, hint, dark }: StatCardProps) {
+export function StatCard({ icon: Icon, label, value, hint, dark, warning }: StatCardProps) {
   return (
-    <div className={`metric ${dark ? "dark" : ""}`}>
+    <div className={`metric ${dark ? "dark" : ""} ${warning ? "warning" : ""}`}>
       <span className="metric-icon">
         <Icon size={16} />
       </span>
