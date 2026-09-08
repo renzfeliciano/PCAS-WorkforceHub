@@ -49,11 +49,10 @@ function validEmployeeInput(overrides: Record<string, unknown> = {}) {
 }
 
 beforeAll(async () => {
+  // connectMongoDB() now guarantees every model's indexes (including the
+  // unique employeeNumber one the duplicate-key test below depends on) are
+  // built before it resolves — see src/lib/mongodb.ts.
   await connectMongoDB();
-  // See tests/repositories/employee-repository.test.ts — each Vitest worker
-  // is a separate process, so the unique employeeNumber index's async
-  // background build needs to be awaited again in this file too.
-  await EmployeeModel.init();
 });
 
 beforeEach(async () => {

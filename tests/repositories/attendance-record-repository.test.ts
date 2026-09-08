@@ -8,10 +8,10 @@ const repository = new MongoAttendanceRecordRepository();
 const EMPLOYEE_ID = "507f1f77bcf86cd799439011";
 
 beforeAll(async () => {
+  // connectMongoDB() now guarantees every model's indexes (including the
+  // unique {employeeId,date} one the test below depends on) are built
+  // before it resolves — see src/lib/mongodb.ts.
   await connectMongoDB();
-  // See tests/repositories/setting-repository.test.ts — the unique
-  // {employeeId, date} index builds asynchronously in the background.
-  await AttendanceRecordModel.init();
 });
 
 beforeEach(async () => {

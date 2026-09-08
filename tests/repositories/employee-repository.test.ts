@@ -2,17 +2,15 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectMongoDB } from "@/lib/mongodb";
 import { ConflictError } from "@/lib/app-errors";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
-import { EmployeeModel } from "@/repositories/models/employee-model";
 import type { EmployeeInput } from "@/schemas/employee";
 
 const repository = new MongoEmployeeRepository();
 
 beforeAll(async () => {
+  // connectMongoDB() itself now guarantees every model's indexes (including
+  // the unique employeeNumber one the duplicate-key test below depends on)
+  // are built before it resolves — see src/lib/mongodb.ts.
   await connectMongoDB();
-  // See tests/repositories/setting-repository.test.ts — the unique
-  // employeeNumber index builds asynchronously in the background, so the
-  // duplicate-key test below needs to wait for it explicitly.
-  await EmployeeModel.init();
 });
 
 function makeInput(overrides: Partial<EmployeeInput> = {}): EmployeeInput {

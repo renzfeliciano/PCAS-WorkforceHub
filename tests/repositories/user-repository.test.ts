@@ -18,10 +18,10 @@ function makeInput(overrides: Partial<CreateUserInput> = {}): CreateUserInput {
 }
 
 beforeAll(async () => {
+  // connectMongoDB() now guarantees every model's indexes (including the
+  // unique username one the duplicate-key tests below depend on) are built
+  // before it resolves — see src/lib/mongodb.ts.
   await connectMongoDB();
-  // See tests/repositories/setting-repository.test.ts — the unique
-  // username index builds asynchronously in the background.
-  await UserModel.init();
 });
 
 beforeEach(async () => {

@@ -2,20 +2,15 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectMongoDB } from "@/lib/mongodb";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
 import { MongoSettingRepository } from "@/repositories/setting-repository";
-import { SettingModel } from "@/repositories/models/setting-model";
 import type { CreateSettingInput } from "@/schemas/settings";
 
 const repository = new MongoSettingRepository();
 
 beforeAll(async () => {
+  // connectMongoDB() now guarantees every model's indexes (including the
+  // unique {kind,category,name} one the test below depends on) are built
+  // before it resolves — see src/lib/mongodb.ts.
   await connectMongoDB();
-  // Mongoose builds schema-declared indexes asynchronously in the
-  // background after model compilation — without this, the uniqueness
-  // test below can run before the {kind,category,name} unique index has
-  // actually finished building, and the duplicate write would wrongly
-  // succeed. See spawned follow-up task re: whether connectMongoDB()
-  // itself should guarantee this app-wide.
-  await SettingModel.init();
 });
 
 function makeInput(overrides: Partial<CreateSettingInput> = {}): CreateSettingInput {
