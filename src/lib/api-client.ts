@@ -40,21 +40,54 @@ function humanizeErrorCode(code: string) {
   }
 }
 
+// Transient failures (dropped connections, a free-tier host waking from cold
+// start, a momentary 5xx) are retried with backoff; anything with an actual
+// response in the 4xx range is a deterministic rejection and is never
+// retried, since resending it can't change the outcome.
+const MAX_RETRIES = (() => {
+  const parsed = Number(process.env.NEXT_PUBLIC_API_MAX_RETRIES);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 3;
+})();
+const RETRY_BASE_DELAY_MS = 300;
+const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function apiRequest<T>(url: string, init?: RequestInit): Promise<T> {
   requestLoadingBus.begin();
   try {
-    const response = await fetch(url, {
-      ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
-    });
-    const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      const code = body?.error ?? "REQUEST_FAILED";
-      const message =
-        typeof body?.details === "string" ? body.details : humanizeErrorCode(code);
-      throw new ApiRequestError(response.status, code, message, extractFieldErrors(body?.details));
+    let attempt = 0;
+    for (;;) {
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          ...init,
+          headers: { "Content-Type": "application/json", ...init?.headers },
+        });
+      } catch (networkError) {
+        if (attempt >= MAX_RETRIES) throw networkError;
+        await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt);
+        attempt += 1;
+        continue;
+      }
+
+      if (!response.ok && RETRYABLE_STATUS.has(response.status) && attempt < MAX_RETRIES) {
+        await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt);
+        attempt += 1;
+        continue;
+      }
+
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        const code = body?.error ?? "REQUEST_FAILED";
+        const message =
+          typeof body?.details === "string" ? body.details : humanizeErrorCode(code);
+        throw new ApiRequestError(response.status, code, message, extractFieldErrors(body?.details));
+      }
+      return body as T;
     }
-    return body as T;
   } finally {
     requestLoadingBus.end();
   }
