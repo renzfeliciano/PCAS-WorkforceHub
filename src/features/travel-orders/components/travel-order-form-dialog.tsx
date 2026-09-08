@@ -5,6 +5,8 @@ import { Plane, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { DateField } from "@/components/ui/date-field";
+import { RemarksField } from "@/components/ui/remarks-field";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
 import { EmployeePicker } from "@/components/employee-picker";
@@ -73,7 +75,13 @@ export function TravelOrderFormDialog({
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+            data-testid="cancel-travel-order-form"
+          >
             Cancel
           </Button>
           <Button
@@ -81,6 +89,7 @@ export function TravelOrderFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? "Creating travel order" : "Saving changes"}
+            data-testid="submit-travel-order-form"
           >
             {mode === "create" ? (
               <>
@@ -99,33 +108,28 @@ export function TravelOrderFormDialog({
         <EmployeePicker selected={employees} onChange={setEmployees} />
       </FormField>
       <div className="form-grid">
-        <FormField label="Start date" name="startDate" error={fieldError("startDate")}>
-          <input
-            type="date"
-            name="startDate"
-            required
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-          />
-        </FormField>
-        <FormField label="End date" name="endDate" error={fieldError("endDate")}>
-          <input
-            type="date"
-            name="endDate"
-            required
-            min={startDate || undefined}
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-          />
-        </FormField>
-        <FormField label="Remarks" name="remarks" fullWidth>
-          <input
-            name="remarks"
-            maxLength={255}
-            defaultValue={initialValue?.remarks}
-            placeholder="Optional"
-          />
-        </FormField>
+        <DateField
+          name="startDate"
+          label="Start date"
+          required
+          value={startDate}
+          onChange={(event) => setStartDate(event.target.value)}
+          error={fieldError("startDate")}
+        />
+        <DateField
+          name="endDate"
+          label="End date"
+          required
+          min={startDate || undefined}
+          value={endDate}
+          onChange={(event) => setEndDate(event.target.value)}
+          error={fieldError("endDate")}
+        />
+        <RemarksField
+          defaultValue={initialValue?.remarks}
+          maxLength={255}
+          placeholder="Optional"
+        />
       </div>
       {error && (
         <p className="inline-error" role="alert">

@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Save, UserPlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
+import { DateField } from "@/components/ui/date-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
+import { ContactNumberField } from "@/components/ui/contact-number-field";
+import { RemarksField } from "@/components/ui/remarks-field";
+import { MaskedInputField } from "@/components/ui/masked-input-field";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
@@ -27,6 +32,11 @@ type EmployeeFormDialogProps = Readonly<{
   onSubmit: (input: EmployeeInput) => Promise<void>;
 }>;
 
+const GENDER_OPTIONS: SelectOption[] = [
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+];
+
 export function EmployeeFormDialog({
   mode,
   initialValue,
@@ -43,16 +53,20 @@ export function EmployeeFormDialog({
     useInlineFormValidation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [sssNumber, setSssNumber] = useState(initialValue?.sssNumber ?? "");
+  const [sssNumber, setSssNumber] = useState(
+    formatSssNumber(initialValue?.sssNumber ?? ""),
+  );
   const [philHealthNumber, setPhilHealthNumber] = useState(
-    initialValue?.philHealthNumber ?? "",
+    formatPhilHealthNumber(initialValue?.philHealthNumber ?? ""),
   );
   const [pagIbigNumber, setPagIbigNumber] = useState(
-    initialValue?.pagIbigNumber ?? "",
+    formatPagIbigNumber(initialValue?.pagIbigNumber ?? ""),
   );
-  const [tinNumber, setTinNumber] = useState(initialValue?.tinNumber ?? "");
+  const [tinNumber, setTinNumber] = useState(
+    formatTinNumber(initialValue?.tinNumber ?? ""),
+  );
   const [contactNumber, setContactNumber] = useState(
-    initialValue?.contactNumber ?? "",
+    formatContactNumber(initialValue?.contactNumber ?? ""),
   );
   const [employmentStatus, setEmploymentStatus] = useState(
     initialValue?.employmentStatus ?? "",
@@ -61,20 +75,54 @@ export function EmployeeFormDialog({
   const showEndOfContract = needsEndOfContract(employmentStatus);
   const showLastDay = needsLastDay(employmentStatus);
 
-  const staleValue = (current: string | undefined, activeNames: string[]) =>
-    current && !activeNames.includes(current) ? current : undefined;
+  // Guarded by `!isLoading`: before a catalog has loaded, its active-names
+  // list is still empty, which would otherwise flag the current value as
+  // "stale" for one render just because nothing has arrived yet — for
+  // employmentStatus specifically, that transient false positive collided
+  // with the "keep the current value selectable while loading" option
+  // below (both resolved to the same value), producing a duplicate <option>
+  // key.
+  const staleValue = (
+    current: string | undefined,
+    activeNames: string[],
+    isLoading: boolean,
+  ) => (current && !isLoading && !activeNames.includes(current) ? current : undefined);
   const stalePosition = staleValue(
     initialValue?.position,
     positions.map((item) => item.name),
+    positionsLoading,
   );
   const staleProject = staleValue(
     initialValue?.projectSite,
     projects.map((item) => item.name),
+    projectsLoading,
   );
   const staleStatus = staleValue(
     initialValue?.employmentStatus,
     statuses.map((item) => item.name),
+    statusesLoading,
   );
+
+  const positionOptions: SelectOption[] = positions.map((item) => ({
+    value: item.name,
+    label: item.name,
+  }));
+  const projectOptions: SelectOption[] = projects.map((item) => ({
+    value: item.name,
+    label: item.name,
+  }));
+  const statusOptions: SelectOption[] = statuses.map((item) => ({
+    value: item.name,
+    label: item.name,
+  }));
+  // useCatalogOptions' `items` and `isLoading` land in separate renders
+  // (its fetch resolves items first, isLoading second), so checking
+  // "already covered by a real option" directly — rather than trusting
+  // isLoading's exact timing — is what actually prevents the transient
+  // duplicate <option value="Contractual"> this guards against.
+  const employmentStatusAlreadyListed =
+    staleStatus === employmentStatus ||
+    statusOptions.some((option) => option.value === employmentStatus);
 
   async function handleSubmit(event: {
     preventDefault(): void;
@@ -143,6 +191,7 @@ export function EmployeeFormDialog({
             variant="secondary"
             onClick={onClose}
             disabled={isSubmitting}
+            data-testid="cancel-employee-form"
           >
             Cancel
           </Button>
@@ -153,6 +202,7 @@ export function EmployeeFormDialog({
             loadingText={
               mode === "create" ? "Creating employee" : "Saving changes"
             }
+            data-testid="submit-employee-form"
           >
             {mode === "create" ? (
               <>
@@ -168,270 +218,169 @@ export function EmployeeFormDialog({
       }
     >
       <div className="form-grid">
-        <FormField
-          label="Employee number"
+        <TextField
           name="employeeNumber"
+          label="Employee number"
+          required
+          maxLength={20}
+          placeholder="e.g. WH-2026-001"
+          defaultValue={initialValue?.employeeNumber}
           error={fieldError("employeeNumber")}
-        >
-          <input
-            name="employeeNumber"
-            required
-            maxLength={20}
-            placeholder="e.g. WH-2026-001"
-            defaultValue={initialValue?.employeeNumber}
-          />
-        </FormField>
-        <FormField label="Employee name" name="name" error={fieldError("name")}>
-          <input
-            name="name"
-            required
-            maxLength={30}
-            defaultValue={initialValue?.name}
-          />
-        </FormField>
-        <FormField label="Gender" name="gender" error={fieldError("gender")}>
-          <select
-            name="gender"
-            required
-            defaultValue={initialValue?.gender ?? ""}
-          >
-            <option value="" disabled>
-              Select gender
-            </option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </FormField>
-        <FormField
-          label="Position"
+        />
+        <TextField
+          name="name"
+          label="Employee name"
+          required
+          maxLength={30}
+          defaultValue={initialValue?.name}
+          error={fieldError("name")}
+        />
+        <SelectField
+          name="gender"
+          label="Gender"
+          options={GENDER_OPTIONS}
+          placeholder="Select gender"
+          defaultValue={initialValue?.gender ?? ""}
+          required
+          error={fieldError("gender")}
+        />
+        <SelectField
           name="position"
+          label="Position"
+          options={positionOptions}
+          placeholder="Select a position"
+          extraOptions={
+            stalePosition
+              ? [{ value: stalePosition, label: `${stalePosition} (inactive)` }]
+              : undefined
+          }
+          defaultValue={initialValue?.position ?? ""}
+          required
+          remountKey={positionsLoading ? "loading" : "loaded"}
           error={fieldError("position")}
-        >
-          <select
-            key={positionsLoading ? "loading" : "loaded"}
-            name="position"
-            required
-            defaultValue={initialValue?.position ?? ""}
-          >
-            <option value="" disabled>
-              Select a position
-            </option>
-            {stalePosition && (
-              <option value={stalePosition}>{stalePosition} (inactive)</option>
-            )}
-            {positions.map((item) => (
-              <option key={item.id} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField
-          label="Project / site"
+        />
+        <SelectField
           name="projectSite"
+          label="Project / site"
+          options={projectOptions}
+          placeholder="Select a project/site"
+          extraOptions={
+            staleProject
+              ? [{ value: staleProject, label: `${staleProject} (inactive)` }]
+              : undefined
+          }
+          defaultValue={initialValue?.projectSite ?? ""}
+          required
+          remountKey={projectsLoading ? "loading" : "loaded"}
           error={fieldError("projectSite")}
-        >
-          <select
-            key={projectsLoading ? "loading" : "loaded"}
-            name="projectSite"
-            required
-            defaultValue={initialValue?.projectSite ?? ""}
-          >
-            <option value="" disabled>
-              Select a project/site
-            </option>
-            {staleProject && (
-              <option value={staleProject}>{staleProject} (inactive)</option>
-            )}
-            {projects.map((item) => (
-              <option key={item.id} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField
-          label="Employment status"
+        />
+        <SelectField
           name="employmentStatus"
+          label="Employment status"
+          options={statusOptions}
+          placeholder="Select a status"
+          extraOptions={[
+            ...(staleStatus
+              ? [{ value: staleStatus, label: `${staleStatus} (inactive)` }]
+              : []),
+            ...(employmentStatus && !employmentStatusAlreadyListed
+              ? [{ value: employmentStatus, label: employmentStatus }]
+              : []),
+          ]}
+          value={employmentStatus}
+          onChange={(event) => setEmploymentStatus(event.target.value)}
+          required
           error={fieldError("employmentStatus")}
-        >
-          <select
-            name="employmentStatus"
-            required
-            value={employmentStatus}
-            onChange={(event) => setEmploymentStatus(event.target.value)}
-          >
-            <option value="" disabled>
-              Select a status
-            </option>
-            {staleStatus && (
-              <option value={staleStatus}>{staleStatus} (inactive)</option>
-            )}
-            {statusesLoading && employmentStatus && (
-              <option value={employmentStatus}>{employmentStatus}</option>
-            )}
-            {statuses.map((item) => (
-              <option key={item.id} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField
-          label="Birth date"
+        />
+        <DateField
           name="birthDate"
+          label="Birth date"
+          placeholder="Optional"
+          defaultValue={initialValue?.birthDate ?? undefined}
           error={fieldError("birthDate")}
-        >
-          <input
-            type="date"
-            name="birthDate"
-            placeholder="Optional"
-            defaultValue={initialValue?.birthDate}
-          />
-        </FormField>
-        <FormField
-          label="Contact number"
-          name="contactNumber"
+        />
+        <ContactNumberField
+          value={contactNumber}
+          onChange={setContactNumber}
           error={fieldError("contactNumber")}
-        >
-          <input
-            name="contactNumber"
-            inputMode="numeric"
-            placeholder="09XX-XXX-XXXX"
-            title="Format: 09XX-XXX-XXXX"
-            pattern="\d{4}-\d{3}-\d{4}"
-            maxLength={13}
-            value={contactNumber}
-            onChange={(event) =>
-              setContactNumber(formatContactNumber(event.target.value))
-            }
-          />
-        </FormField>
-        <FormField
-          label="Date hired"
+        />
+        <DateField
           name="dateHired"
+          label="Date hired"
+          required
+          defaultValue={initialValue?.dateHired}
           error={fieldError("dateHired")}
-        >
-          <input
-            type="date"
-            name="dateHired"
-            required
-            defaultValue={initialValue?.dateHired}
-          />
-        </FormField>
+        />
         {showEndOfContract && (
-          <FormField
-            label="End of contract"
+          <DateField
             name="endOfContract"
+            label="End of contract"
+            required
+            defaultValue={initialValue?.endOfContract ?? undefined}
             error={fieldError("endOfContract")}
-          >
-            <input
-              type="date"
-              name="endOfContract"
-              required
-              defaultValue={initialValue?.endOfContract}
-            />
-          </FormField>
+          />
         )}
         {showLastDay && (
-          <FormField
-            label="Last day"
+          <DateField
             name="lastDay"
+            label="Last day"
+            required
+            defaultValue={initialValue?.lastDay ?? undefined}
             error={fieldError("lastDay")}
-          >
-            <input
-              type="date"
-              name="lastDay"
-              required
-              defaultValue={initialValue?.lastDay}
-            />
-          </FormField>
+          />
         )}
-        <FormField
-          label="Address"
+        <RemarksField
           name="address"
+          label="Address"
+          maxLength={255}
+          defaultValue={initialValue?.address ?? undefined}
           error={fieldError("address")}
-          fullWidth
-        >
-          <textarea
-            name="address"
-            rows={4}
-            maxLength={255}
-            defaultValue={initialValue?.address}
-          />
-        </FormField>
-        <FormField
-          label="SSS no."
+        />
+        <MaskedInputField
           name="sssNumber"
+          label="SSS no."
+          value={sssNumber}
+          onChange={(next) => setSssNumber(formatSssNumber(next))}
+          format={formatSssNumber}
+          placeholder="XX-XXXXXXX-X"
+          pattern="\d{2}-\d{7}-\d{1}"
+          maxLength={12}
           error={fieldError("sssNumber")}
-        >
-          <input
-            name="sssNumber"
-            inputMode="numeric"
-            placeholder="XX-XXXXXXX-X"
-            title="Format: XX-XXXXXXX-X"
-            pattern="\d{2}-\d{7}-\d{1}"
-            maxLength={12}
-            value={sssNumber}
-            onChange={(event) =>
-              setSssNumber(formatSssNumber(event.target.value))
-            }
-          />
-        </FormField>
-        <FormField
-          label="PhilHealth no."
+        />
+        <MaskedInputField
           name="philHealthNumber"
+          label="PhilHealth no."
+          value={philHealthNumber}
+          onChange={(next) => setPhilHealthNumber(formatPhilHealthNumber(next))}
+          format={formatPhilHealthNumber}
+          placeholder="XX-XXXXXXXXX-X"
+          pattern="\d{2}-\d{9}-\d{1}"
+          maxLength={14}
           error={fieldError("philHealthNumber")}
-        >
-          <input
-            name="philHealthNumber"
-            inputMode="numeric"
-            placeholder="XX-XXXXXXXXX-X"
-            title="Format: XX-XXXXXXXXX-X"
-            pattern="\d{2}-\d{9}-\d{1}"
-            maxLength={14}
-            value={philHealthNumber}
-            onChange={(event) =>
-              setPhilHealthNumber(formatPhilHealthNumber(event.target.value))
-            }
-          />
-        </FormField>
-        <FormField
-          label="Pag-ibig no."
+        />
+        <MaskedInputField
           name="pagIbigNumber"
+          label="Pag-ibig no."
+          value={pagIbigNumber}
+          onChange={(next) => setPagIbigNumber(formatPagIbigNumber(next))}
+          format={formatPagIbigNumber}
+          placeholder="XXXX-XXXX-XXXX"
+          pattern="\d{4}-\d{4}-\d{4}"
+          maxLength={14}
           error={fieldError("pagIbigNumber")}
-        >
-          <input
-            name="pagIbigNumber"
-            inputMode="numeric"
-            placeholder="XXXX-XXXX-XXXX"
-            title="Format: XXXX-XXXX-XXXX"
-            pattern="\d{4}-\d{4}-\d{4}"
-            maxLength={14}
-            value={pagIbigNumber}
-            onChange={(event) =>
-              setPagIbigNumber(formatPagIbigNumber(event.target.value))
-            }
-          />
-        </FormField>
-        <FormField
-          label="TIN no."
+        />
+        <MaskedInputField
           name="tinNumber"
+          label="TIN no."
+          value={tinNumber}
+          onChange={(next) => setTinNumber(formatTinNumber(next))}
+          format={formatTinNumber}
+          placeholder="XXX-XXX-XXX"
+          title="Format: XXX-XXX-XXX or XXX-XXX-XXX-XXX"
+          pattern="\d{3}-\d{3}-\d{3}(-\d{3})?"
+          maxLength={15}
           error={fieldError("tinNumber")}
-        >
-          <input
-            name="tinNumber"
-            inputMode="numeric"
-            placeholder="XXX-XXX-XXX"
-            title="Format: XXX-XXX-XXX or XXX-XXX-XXX-XXX"
-            pattern="\d{3}-\d{3}-\d{3}(-\d{3})?"
-            maxLength={15}
-            value={tinNumber}
-            onChange={(event) =>
-              setTinNumber(formatTinNumber(event.target.value))
-            }
-          />
-        </FormField>
+        />
       </div>
       {error && (
         <p className="inline-error" role="alert">

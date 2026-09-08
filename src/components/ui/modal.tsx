@@ -68,7 +68,7 @@ export function Modal({
           </p>
         )}
       </div>
-      <IconButton type="button" onClick={onClose} aria-label="Close">
+      <IconButton type="button" onClick={onClose} aria-label="Close" data-testid="modal-close">
         <X size={18} />
       </IconButton>
     </div>
@@ -93,6 +93,7 @@ export function Modal({
           onSubmit={onSubmit}
           onChange={onChange}
           noValidate
+          data-testid="modal"
           {...dialogProps}
         >
           {head}
@@ -100,7 +101,12 @@ export function Modal({
           {footer}
         </form>
       ) : (
-        <div ref={dialogRef as React.RefObject<HTMLDivElement>} className={modalClassName} {...dialogProps}>
+        <div
+          ref={dialogRef as React.RefObject<HTMLDivElement>}
+          className={modalClassName}
+          data-testid="modal"
+          {...dialogProps}
+        >
           {head}
           {body}
           {footer}

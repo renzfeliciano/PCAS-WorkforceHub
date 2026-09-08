@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
@@ -16,7 +16,10 @@ export function WorkspaceLayout({
   }
 
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      style={{ "--sidebar-width": isCollapsed ? "80px" : "258px" } as CSSProperties}
+    >
       <div
         className={`sidebar-backdrop ${mobileNavOpen ? "open" : ""}`}
         onClick={closeMobileNav}

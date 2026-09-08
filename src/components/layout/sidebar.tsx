@@ -186,6 +186,7 @@ export function Sidebar({
           aria-current={active ? "page" : undefined}
           onClick={onNavigate}
           title={item.label}
+          data-testid={`nav-link-${item.href}`}
         >
           <Icon size={17} />
           <span>{item.label}</span>
@@ -210,6 +211,7 @@ export function Sidebar({
             onClick={() => toggleGroup(group.key)}
             aria-expanded={isOpen}
             title={group.label}
+            data-testid={`nav-group-${group.key}`}
           >
             <GroupIcon size={17} />
             <span>{group.label}</span>
@@ -244,6 +246,7 @@ export function Sidebar({
         className="sidebar-collapse-toggle"
         onClick={onToggleCollapse}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        data-testid="sidebar-collapse-toggle"
       >
         {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>
@@ -261,6 +264,7 @@ export function Sidebar({
             aria-current={pathname === "/" ? "page" : undefined}
             onClick={onNavigate}
             title="Dashboard"
+            data-testid="nav-link-/"
           >
             <LayoutDashboard size={17} />
             <span>Dashboard</span>
@@ -273,6 +277,7 @@ export function Sidebar({
             aria-current={pathname.startsWith("/events") ? "page" : undefined}
             onClick={onNavigate}
             title="Events"
+            data-testid="nav-link-/events"
           >
             <CalendarClock size={17} />
             <span>Events</span>

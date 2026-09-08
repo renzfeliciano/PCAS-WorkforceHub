@@ -1373,6 +1373,9 @@ thead .col-sticky-2 {
   flex-direction: column;
   max-height: 490px;
   overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 /* Generic padded wrapper for a loading spinner standing in for list/table
    data — keeps it from sitting cramped against the card edges. */
@@ -1628,7 +1631,11 @@ thead .col-sticky-2 {
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  /* Above the desktop sticky sidebar and the mobile nav drawer (both
+     z-index: 11) — without this, either one renders in front of an open
+     modal instead of being covered by its dimming layer like the rest of
+     the app. */
+  z-index: 12;
   display: grid;
   place-items: center;
   overflow-y: auto;
@@ -2758,6 +2765,15 @@ input[type="checkbox"].toggle-input:disabled {
   display: none;
 }
 @media (min-width: 901px) {
+  /* The sidebar is a permanent flex column here (not an overlay), so a
+     modal centered across the full viewport would sit partly behind it.
+     Centering within the remaining content area instead keeps the modal
+     visually centered on what the user can actually see, and tracks the
+     collapsed/expanded width live via --sidebar-width (set in
+     WorkspaceLayout). */
+  .backdrop {
+    left: var(--sidebar-width, 258px);
+  }
   .sidebar {
     position: sticky;
     top: 0;

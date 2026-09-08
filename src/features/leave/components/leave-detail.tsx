@@ -251,7 +251,11 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
               const vlBalance = vlType ? valueFor(vlType.id) : 0;
               const locked = isEmergencyLeave && vlBalance <= 0;
               return (
-                <div className={`balance-card ${locked ? "locked" : ""}`} key={type.id}>
+                <div
+                  className={`balance-card ${locked ? "locked" : ""}`}
+                  key={type.id}
+                  data-testid={`leave-balance-card-${type.id}`}
+                >
                   <div className="balance-card-head">
                     {type.name} <b>{type.code}</b>
                   </div>
@@ -261,6 +265,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
                       onClick={() => adjustValue(type.id, -0.5)}
                       disabled={current <= 0 || locked}
                       aria-label={`Decrease ${type.name} by half a day`}
+                      data-testid={`decrease-leave-balance-${type.id}`}
                     >
                       <Minus size={14} />
                     </IconButton>
@@ -270,12 +275,15 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
                       value={current}
                       disabled={locked}
                       onChange={(event) => handleValueInput(type.id, event.target.value)}
+                      aria-label={`${type.name} balance`}
+                      data-testid={`leave-balance-input-${type.id}`}
                     />
                     <IconButton
                       type="button"
                       onClick={() => adjustValue(type.id, 0.5)}
                       disabled={locked}
                       aria-label={`Increase ${type.name} by half a day`}
+                      data-testid={`increase-leave-balance-${type.id}`}
                     >
                       <Plus size={14} />
                     </IconButton>
@@ -323,6 +331,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
             variant="primary"
             onClick={() => setEditing("new")}
             disabled={typesLoading || options.length === 0}
+            data-testid="log-leave"
           >
             <CalendarPlus size={14} /> Log leave
           </Button>
@@ -337,9 +346,9 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
             description="Log a leave record to keep balances and history in sync."
           />
         ) : (
-          <div className="setting-list">
+          <ul className="setting-list">
             {records.map((record) => (
-              <div className="setting-row" key={record.id}>
+              <li className="setting-row" key={record.id} data-testid={`leave-record-row-${record.id}`}>
                 <span className="setting-dot" />
                 <div>
                   <b>{typeLabel(record.leaveTypeId)}</b>
@@ -355,6 +364,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
                   onClick={() => setEditing(record)}
                   aria-label={`Edit leave record from ${record.startDate}`}
                   title="Edit"
+                  data-testid={`edit-leave-record-${record.id}`}
                 >
                   <Pencil size={13} />
                 </button>
@@ -364,12 +374,13 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
                   onClick={() => setDeleting(record)}
                   aria-label={`Delete leave record from ${record.startDate}`}
                   title="Delete"
+                  data-testid={`delete-leave-record-${record.id}`}
                 >
                   <Trash2 size={13} />
                 </button>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
         {!typesLoading && options.length === 0 && (
           <p className="muted">No eligible leave types configured for this employee yet.</p>

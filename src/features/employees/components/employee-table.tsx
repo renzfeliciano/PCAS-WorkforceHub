@@ -89,7 +89,7 @@ export function EmployeeTable({
           </thead>
           <tbody>
             {employees.map((employee, index) => (
-              <tr key={employee.id}>
+              <tr key={employee.id} data-testid={`employee-row-${employee.id}`}>
                 <td className="col-index">{startIndex + index + 1}</td>
                 <td className="col-sticky-2">{employee.employeeNumber}</td>
                 <td>{employee.name}</td>
@@ -107,6 +107,7 @@ export function EmployeeTable({
                           onClick={() => onEdit(employee)}
                           aria-label={`Edit ${employee.name}`}
                           title="Edit"
+                          data-testid={`edit-employee-${employee.id}`}
                         >
                           <Pencil size={14} />
                         </button>
@@ -121,6 +122,7 @@ export function EmployeeTable({
                               aria-label={`Restore ${employee.name}`}
                               title="Restore"
                               disabled={restoringId === employee.id}
+                              data-testid={`restore-employee-${employee.id}`}
                             >
                               {restoringId === employee.id ? (
                                 <Spinner size={14} />
@@ -134,6 +136,7 @@ export function EmployeeTable({
                               onClick={() => onDeletePermanently(employee)}
                               aria-label={`Permanently delete ${employee.name}`}
                               title="Delete permanently"
+                              data-testid={`delete-employee-${employee.id}`}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -145,6 +148,7 @@ export function EmployeeTable({
                             onClick={() => onArchive(employee)}
                             aria-label={`Archive ${employee.name}`}
                             title="Archive"
+                            data-testid={`archive-employee-${employee.id}`}
                           >
                             <Archive size={14} />
                           </button>

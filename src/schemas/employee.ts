@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { paginationQuerySchema, sortQuerySchema } from "@/schemas/list-query";
+import { contactNumberSchema } from "@/schemas/shared";
 import { needsEndOfContract, needsLastDay } from "@/lib/employment-status";
 
 const requiredText = z.string().trim().min(1);
@@ -33,11 +34,6 @@ export const tinNumberSchema = z
   .string()
   .trim()
   .regex(/^\d{3}-\d{3}-\d{3}(-\d{3})?$/, "Use format XXX-XXX-XXX or XXX-XXX-XXX-XXX");
-/** PH mobile number: XXXX-XXX-XXXX (11 digits) */
-export const contactNumberSchema = z
-  .string()
-  .trim()
-  .regex(/^\d{4}-\d{3}-\d{4}$/, "Use format XXXX-XXX-XXXX");
 export const leaveBalanceSchema = z.object({
   leaveTypeId: z.string().trim().min(1),
   balance: z.number().min(0).multipleOf(0.5, "Balances must be in half-day increments"),

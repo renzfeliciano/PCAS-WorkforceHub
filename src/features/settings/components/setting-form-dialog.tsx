@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
 import type { SettingItem } from "@/types/settings";
 
 type SettingFormDialogProps = Readonly<{
@@ -64,6 +64,7 @@ export function SettingFormDialog({
             variant="secondary"
             onClick={onClose}
             disabled={isSubmitting}
+            data-testid="cancel-setting-form"
           >
             Cancel
           </Button>
@@ -72,6 +73,7 @@ export function SettingFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? `Adding ${label}` : "Saving changes"}
+            data-testid="submit-setting-form"
           >
             {mode === "create" ? (
               <>
@@ -86,18 +88,19 @@ export function SettingFormDialog({
         </>
       }
     >
-      <FormField label="Name" name="name" error={error} standalone>
-        <input
-          name="name"
-          required
-          value={name}
-          onChange={(event) => {
-            setName(event.target.value);
-            if (event.target.value.trim()) setError("");
-          }}
-          autoFocus
-        />
-      </FormField>
+      <TextField
+        name="name"
+        label="Name"
+        required
+        value={name}
+        onChange={(event) => {
+          setName(event.target.value);
+          if (event.target.value.trim()) setError("");
+        }}
+        autoFocus
+        standalone
+        error={error}
+      />
     </Modal>
   );
 }

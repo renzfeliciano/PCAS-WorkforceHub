@@ -7,6 +7,6 @@ export type JobApplication = {
   /** Catalog-driven (see RECRUITMENT_STAGE_CATEGORY) — a free string matching a "recruitment" status catalog entry, not a fixed union. */
   stage: string;
   appliedDate: string;
-  notes?: string;
+  remarks?: string;
   createdAt: string;
 };

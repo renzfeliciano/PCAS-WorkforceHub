@@ -4,11 +4,14 @@ import { useState } from "react";
 import { Save, UserPlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
+import { EmailField } from "@/components/ui/email-field";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import type { AppUser, Role } from "@/types/user";
 
 const ROLES: Role[] = ["Admin", "HR", "Manager", "Employee"];
+const ROLE_OPTIONS: SelectOption[] = ROLES.map((role) => ({ value: role, label: role }));
 
 export type UserFormValues = {
   username?: string;
@@ -70,7 +73,13 @@ export function UserFormDialog({
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+            data-testid="cancel-user-form"
+          >
             Cancel
           </Button>
           <Button
@@ -78,6 +87,7 @@ export function UserFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? "Creating user" : "Saving changes"}
+            data-testid="submit-user-form"
           >
             {mode === "create" ? (
               <>
@@ -93,44 +103,46 @@ export function UserFormDialog({
       }
     >
       <div className="form-grid">
-        <FormField label="Full name" name="name" error={fieldError("name")}>
-          <input name="name" required autoComplete="off" defaultValue={initialValue?.name} />
-        </FormField>
-        <FormField label="Username" name="username" error={fieldError("username")}>
-          <input
-            name="username"
-            required
-            minLength={3}
-            autoComplete="off"
-            defaultValue={initialValue?.username}
-          />
-        </FormField>
-        <FormField label="Email (optional)" name="email" error={fieldError("email")}>
-          <input name="email" type="email" autoComplete="off" defaultValue={initialValue?.email} />
-        </FormField>
-        <FormField label="Role" name="role" error={fieldError("role")}>
-          <select name="role" defaultValue={initialValue?.role ?? "HR"} disabled={disableRole}>
-            {ROLES.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField
-          label={mode === "create" ? "Password" : "New password (optional)"}
+        <TextField
+          name="name"
+          label="Full name"
+          required
+          autoComplete="off"
+          defaultValue={initialValue?.name}
+          error={fieldError("name")}
+        />
+        <TextField
+          name="username"
+          label="Username"
+          required
+          minLength={3}
+          autoComplete="off"
+          defaultValue={initialValue?.username}
+          error={fieldError("username")}
+        />
+        <EmailField
+          defaultValue={initialValue?.email}
+          error={fieldError("email")}
+          autoComplete="off"
+        />
+        <SelectField
+          name="role"
+          label="Role"
+          options={ROLE_OPTIONS}
+          defaultValue={initialValue?.role ?? "HR"}
+          disabled={disableRole}
+          error={fieldError("role")}
+        />
+        <TextField
           name="password"
+          label={mode === "create" ? "Password" : "New password (optional)"}
+          type="password"
+          minLength={8}
+          required={mode === "create"}
+          autoComplete="new-password"
+          placeholder={mode === "edit" ? "Leave blank to keep current" : undefined}
           error={fieldError("password")}
-        >
-          <input
-            name="password"
-            type="password"
-            minLength={8}
-            required={mode === "create"}
-            autoComplete="new-password"
-            placeholder={mode === "edit" ? "Leave blank to keep current" : undefined}
-          />
-        </FormField>
+        />
       </div>
       {disableRole && <p className="muted">You cannot change your own role.</p>}
       {error && (

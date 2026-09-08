@@ -76,7 +76,7 @@ export function AssetIssuanceDetail({ employee }: Readonly<{ employee: Employee 
             <p className="muted">Company assets currently or previously issued to this employee.</p>
           </div>
           {canManage && (
-            <Button type="button" variant="primary" onClick={() => setEditing("new")}>
+            <Button type="button" variant="primary" onClick={() => setEditing("new")} data-testid="add-asset-issuance">
               <Package size={14} /> Log issuance
             </Button>
           )}
@@ -91,11 +91,11 @@ export function AssetIssuanceDetail({ employee }: Readonly<{ employee: Employee 
             description="Log an asset to start tracking what this employee has."
           />
         ) : (
-          <div className="setting-list">
+          <ul className="setting-list">
             {records.map((record) => {
               const isReturned = Boolean(record.returnedDate);
               return (
-                <div className="setting-row" key={record.id}>
+                <li className="setting-row" key={record.id} data-testid={`asset-issuance-row-${record.id}`}>
                   <span className="setting-dot" />
                   <div>
                     <b>{record.assetName}</b>
@@ -116,6 +116,7 @@ export function AssetIssuanceDetail({ employee }: Readonly<{ employee: Employee 
                         onClick={() => setEditing(record)}
                         aria-label={`Edit ${record.assetName} issuance`}
                         title="Edit"
+                        data-testid={`edit-asset-issuance-${record.id}`}
                       >
                         <Pencil size={13} />
                       </button>
@@ -125,15 +126,16 @@ export function AssetIssuanceDetail({ employee }: Readonly<{ employee: Employee 
                         onClick={() => setDeleting(record)}
                         aria-label={`Delete ${record.assetName} issuance`}
                         title="Delete"
+                        data-testid={`delete-asset-issuance-${record.id}`}
                       >
                         <Trash2 size={13} />
                       </button>
                     </>
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
         {error && (
           <p className="inline-error" role="alert">

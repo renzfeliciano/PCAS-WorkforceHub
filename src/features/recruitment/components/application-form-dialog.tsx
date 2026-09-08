@@ -4,10 +4,16 @@ import { useState } from "react";
 import { Save, UserPlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
+import { DateField } from "@/components/ui/date-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
+import { ContactNumberField } from "@/components/ui/contact-number-field";
+import { EmailField } from "@/components/ui/email-field";
+import { RemarksField } from "@/components/ui/remarks-field";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
+import { formatContactNumber } from "@/lib/input-mask";
 import type { JobApplicationInput } from "@/schemas/job-application";
 import type { JobApplication } from "@/types/job-application";
 
@@ -28,18 +34,22 @@ export function ApplicationFormDialog({
   const { activeItems: positions, isLoading: positionsLoading } = useCatalogOptions("position");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [phone, setPhone] = useState(formatContactNumber(initialValue?.phone ?? ""));
   const stalePosition =
     initialValue?.position && !positions.some((item) => item.name === initialValue.position)
       ? initialValue.position
       : undefined;
+  const positionOptions: SelectOption[] = positions.map((item) => ({
+    value: item.name,
+    label: item.name,
+  }));
 
   async function handleSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     event.preventDefault();
     if (!validate(event.currentTarget)) return;
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
-    const phone = String(data.get("phone") ?? "").trim();
-    const notes = String(data.get("notes") ?? "").trim();
+    const remarks = String(data.get("remarks") ?? "").trim();
     setIsSubmitting(true);
     setError("");
     try {
@@ -49,7 +59,7 @@ export function ApplicationFormDialog({
         email: email || undefined,
         phone: phone || undefined,
         appliedDate: String(data.get("appliedDate") ?? ""),
-        notes: notes || undefined,
+        remarks: remarks || undefined,
       });
     } catch (err) {
       if (err instanceof ApiRequestError && err.fieldErrors) {
@@ -73,7 +83,13 @@ export function ApplicationFormDialog({
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+            data-testid="cancel-application-form"
+          >
             Cancel
           </Button>
           <Button
@@ -81,6 +97,7 @@ export function ApplicationFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? "Adding applicant" : "Saving changes"}
+            data-testid="submit-application-form"
           >
             {mode === "create" ? (
               <>
@@ -96,63 +113,40 @@ export function ApplicationFormDialog({
       }
     >
       <div className="form-grid">
-        <FormField label="Applicant name" name="applicantName" error={fieldError("applicantName")}>
-          <input
-            name="applicantName"
-            required
-            maxLength={120}
-            defaultValue={initialValue?.applicantName}
-            placeholder="e.g. Maria Santos"
-          />
-        </FormField>
-        <FormField label="Position" name="position" error={fieldError("position")}>
-          <select
-            key={positionsLoading ? "loading" : "loaded"}
-            name="position"
-            required
-            defaultValue={initialValue?.position ?? ""}
-          >
-            <option value="" disabled>
-              Select a position
-            </option>
-            {stalePosition && (
-              <option value={stalePosition}>{stalePosition} (inactive)</option>
-            )}
-            {positions.map((item) => (
-              <option key={item.id} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Email" name="email" error={fieldError("email")}>
-          <input
-            type="email"
-            name="email"
-            maxLength={150}
-            defaultValue={initialValue?.email}
-            placeholder="Optional"
-          />
-        </FormField>
-        <FormField label="Phone" name="phone">
-          <input name="phone" maxLength={30} defaultValue={initialValue?.phone} placeholder="Optional" />
-        </FormField>
-        <FormField label="Applied date" name="appliedDate" error={fieldError("appliedDate")}>
-          <input
-            type="date"
-            name="appliedDate"
-            required
-            defaultValue={initialValue?.appliedDate ?? new Date().toISOString().slice(0, 10)}
-          />
-        </FormField>
-        <FormField label="Notes" name="notes" fullWidth>
-          <input
-            name="notes"
-            maxLength={500}
-            defaultValue={initialValue?.notes}
-            placeholder="Optional"
-          />
-        </FormField>
+        <TextField
+          name="applicantName"
+          label="Applicant name"
+          required
+          maxLength={120}
+          defaultValue={initialValue?.applicantName}
+          placeholder="e.g. Maria Santos"
+          error={fieldError("applicantName")}
+        />
+        <SelectField
+          name="position"
+          label="Position"
+          options={positionOptions}
+          placeholder="Select a position"
+          extraOptions={
+            stalePosition
+              ? [{ value: stalePosition, label: `${stalePosition} (inactive)` }]
+              : undefined
+          }
+          defaultValue={initialValue?.position ?? ""}
+          required
+          remountKey={positionsLoading ? "loading" : "loaded"}
+          error={fieldError("position")}
+        />
+        <EmailField defaultValue={initialValue?.email} error={fieldError("email")} />
+        <ContactNumberField name="phone" value={phone} onChange={setPhone} error={fieldError("phone")} />
+        <DateField
+          name="appliedDate"
+          label="Applied date"
+          required
+          defaultValue={initialValue?.appliedDate ?? new Date().toISOString().slice(0, 10)}
+          error={fieldError("appliedDate")}
+        />
+        <RemarksField defaultValue={initialValue?.remarks} error={fieldError("remarks")} />
       </div>
       {error && (
         <p className="inline-error" role="alert">

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { CalendarPlus, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
@@ -12,6 +13,11 @@ import { eventCategoryTone } from "@/lib/event-category-tone";
 import { EVENT_CATEGORIES } from "@/schemas/event";
 import type { EventInput } from "@/schemas/event";
 import type { WorkforceEvent } from "@/types/event";
+
+const CATEGORY_OPTIONS: SelectOption[] = EVENT_CATEGORIES.map((category) => ({
+  value: category,
+  label: category,
+}));
 
 type View = { mode: "list" } | { mode: "create" } | { mode: "edit"; event: WorkforceEvent };
 
@@ -71,7 +77,12 @@ export function EventDayDialog({
               Close
             </Button>
             {canManage && (
-              <Button type="button" variant="primary" onClick={() => setView({ mode: "create" })}>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => setView({ mode: "create" })}
+                data-testid="add-event"
+              >
                 <Plus size={14} /> Add event
               </Button>
             )}
@@ -81,9 +92,9 @@ export function EventDayDialog({
         {events.length === 0 ? (
           <EmptyState title="No events yet" description="Add one to mark it on the calendar." />
         ) : (
-          <div className="setting-list">
+          <ul className="setting-list">
             {events.map((event) => (
-              <div className="setting-row" key={event.id}>
+              <li className="setting-row" key={event.id} data-testid={`event-row-${event.id}`}>
                 <span className={`setting-dot tone-${eventCategoryTone(event.category)}`} />
                 <div>
                   <b>{event.title}</b>
@@ -99,8 +110,9 @@ export function EventDayDialog({
                       type="button"
                       className="edit-setting"
                       onClick={() => setView({ mode: "edit", event })}
-                      aria-label={`Edit ${event.title}`}
+                      aria-label={`Edit ${event.time ? `${event.time} ` : ""}${event.title}`}
                       title="Edit"
+                      data-testid={`edit-event-${event.id}`}
                     >
                       <Pencil size={13} />
                     </button>
@@ -108,17 +120,18 @@ export function EventDayDialog({
                       type="button"
                       className="delete-setting"
                       onClick={() => handleDelete(event)}
-                      aria-label={`Delete ${event.title}`}
+                      aria-label={`Delete ${event.time ? `${event.time} ` : ""}${event.title}`}
                       title="Delete"
                       disabled={deletingId === event.id}
+                      data-testid={`delete-event-${event.id}`}
                     >
                       <Trash2 size={13} />
                     </button>
                   </>
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
         {listError && (
           <p className="inline-error" role="alert">
@@ -197,7 +210,13 @@ function EventForm({ date, initialValue, onBack, onClose, onSubmit }: EventFormP
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onBack} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onBack}
+            disabled={isSubmitting}
+            data-testid="back-event-form"
+          >
             Back
           </Button>
           <Button
@@ -205,6 +224,7 @@ function EventForm({ date, initialValue, onBack, onClose, onSubmit }: EventFormP
             variant="primary"
             isLoading={isSubmitting}
             loadingText={initialValue ? "Saving changes" : "Adding event"}
+            data-testid="submit-event-form"
           >
             {initialValue ? (
               <>
@@ -220,35 +240,33 @@ function EventForm({ date, initialValue, onBack, onClose, onSubmit }: EventFormP
       }
     >
       <div className="form-grid">
-        <FormField label="Title" name="title" fullWidth error={fieldError("title")}>
-          <input
-            name="title"
-            required
-            maxLength={120}
-            defaultValue={initialValue?.title}
-            placeholder="e.g. Town hall meeting"
-          />
-        </FormField>
-        <FormField label="Time" name="time">
-          <input type="time" name="time" defaultValue={initialValue?.time} />
-        </FormField>
-        <FormField label="Category" name="category" error={fieldError("category")}>
-          <select name="category" required defaultValue={initialValue?.category ?? EVENT_CATEGORIES[0]}>
-            {EVENT_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Description" name="description" fullWidth>
-          <input
-            name="description"
-            maxLength={500}
-            defaultValue={initialValue?.description}
-            placeholder="Optional"
-          />
-        </FormField>
+        <TextField
+          name="title"
+          label="Title"
+          fullWidth
+          required
+          maxLength={120}
+          defaultValue={initialValue?.title}
+          placeholder="e.g. Town hall meeting"
+          error={fieldError("title")}
+        />
+        <TextField name="time" label="Time" type="time" defaultValue={initialValue?.time} />
+        <SelectField
+          name="category"
+          label="Category"
+          options={CATEGORY_OPTIONS}
+          required
+          defaultValue={initialValue?.category ?? EVENT_CATEGORIES[0]}
+          error={fieldError("category")}
+        />
+        <TextField
+          name="description"
+          label="Description"
+          fullWidth
+          maxLength={500}
+          defaultValue={initialValue?.description}
+          placeholder="Optional"
+        />
       </div>
       {error && (
         <p className="inline-error" role="alert">

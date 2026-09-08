@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { paginationQuerySchema, sortQuerySchema } from "@/schemas/list-query";
+import { emailSchema } from "@/schemas/shared";
 
 export const roleSchema = z.enum(["Admin", "HR", "Manager", "Employee"]);
 
@@ -11,7 +12,7 @@ export const userListQuerySchema = paginationQuerySchema(20).extend(
 
 export const createUserSchema = z.object({
   username: z.string().trim().min(3).max(40),
-  email: z.string().trim().email().optional(),
+  email: emailSchema.optional(),
   name: z.string().trim().min(1).max(120),
   password: z.string().min(8).max(128),
   role: roleSchema,
@@ -20,7 +21,7 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z
   .object({
     username: z.string().trim().min(3).max(40).optional(),
-    email: z.string().trim().email().optional(),
+    email: emailSchema.optional(),
     name: z.string().trim().min(1).max(120).optional(),
     role: roleSchema.optional(),
     active: z.boolean().optional(),

@@ -146,6 +146,7 @@ export function EmployeesModule({
               variant="primary"
               type="button"
               onClick={() => setAdding(true)}
+              data-testid="add-employee"
             >
               <UserPlus size={14} /> Add employee
             </Button>

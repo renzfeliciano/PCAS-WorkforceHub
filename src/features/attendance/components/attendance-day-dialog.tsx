@@ -4,7 +4,8 @@ import { useState } from "react";
 import { CalendarCheck } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
+import { RemarksField } from "@/components/ui/remarks-field";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import type { SettingItem } from "@/types/settings";
 import type { AttendanceRecord } from "@/types/attendance";
@@ -32,6 +33,10 @@ export function AttendanceDayDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
+  const statusOptions: SelectOption[] = statuses.map((item) => ({
+    value: item.name,
+    label: item.name,
+  }));
 
   const formattedDate = new Date(`${date}T00:00:00Z`).toLocaleDateString(
     "en-US",
@@ -91,6 +96,7 @@ export function AttendanceDayDialog({
             variant="secondary"
             onClick={onClose}
             disabled={isSubmitting || isDeleting}
+            data-testid="cancel-attendance-form"
           >
             Cancel
           </Button>
@@ -102,6 +108,7 @@ export function AttendanceDayDialog({
               isLoading={isDeleting}
               loadingText="Deleting"
               disabled={isSubmitting}
+              data-testid="delete-attendance-form"
             >
               Delete
             </Button>
@@ -112,6 +119,7 @@ export function AttendanceDayDialog({
             isLoading={isSubmitting}
             loadingText="Saving"
             disabled={isDeleting}
+            data-testid="submit-attendance-form"
           >
             <CalendarCheck size={14} /> Save
           </Button>
@@ -119,31 +127,21 @@ export function AttendanceDayDialog({
       }
     >
       <div className="form-grid">
-        <FormField
-          label="Status"
+        <SelectField
           name="status"
-          error={fieldError("status")}
+          label="Status"
+          options={statusOptions}
+          placeholder="Select a status"
+          defaultValue={existing?.status ?? ""}
+          required
           fullWidth
-        >
-          <select name="status" required defaultValue={existing?.status ?? ""}>
-            <option value="" disabled>
-              Select a status
-            </option>
-            {statuses.map((item) => (
-              <option key={item.id} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Remarks" name="remarks" fullWidth>
-          <input
-            name="remarks"
-            maxLength={255}
-            defaultValue={existing?.remarks}
-            placeholder="Optional"
-          />
-        </FormField>
+          error={fieldError("status")}
+        />
+        <RemarksField
+          defaultValue={existing?.remarks}
+          maxLength={255}
+          placeholder="Optional"
+        />
       </div>
       {error && (
         <p className="inline-error" role="alert">

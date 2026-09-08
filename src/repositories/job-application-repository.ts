@@ -12,7 +12,7 @@ export type JobApplicationPatch = {
   email?: string;
   phone?: string;
   appliedDate: string;
-  notes?: string;
+  remarks?: string;
 };
 
 export interface JobApplicationRepository {
@@ -32,7 +32,7 @@ type JobApplicationDocument = {
   phone?: string;
   stage: string;
   appliedDate: string;
-  notes?: string;
+  remarks?: string;
   createdAt: Date;
 };
 
@@ -45,7 +45,7 @@ function toJobApplication(doc: JobApplicationDocument): JobApplication {
     phone: doc.phone,
     stage: doc.stage,
     appliedDate: doc.appliedDate,
-    notes: doc.notes,
+    remarks: doc.remarks,
     createdAt: doc.createdAt.toISOString(),
   };
 }

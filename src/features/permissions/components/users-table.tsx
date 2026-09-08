@@ -77,7 +77,7 @@ export function UsersTable({
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id}>
+              <tr key={user.id} data-testid={`user-row-${user.id}`}>
                 <td>{user.name}</td>
                 <td>{user.username}</td>
                 <td>{user.role}</td>
@@ -94,6 +94,7 @@ export function UsersTable({
                       onClick={() => onEdit(user)}
                       aria-label={`Edit ${user.name}`}
                       title="Edit"
+                      data-testid={`edit-user-${user.id}`}
                     >
                       <Pencil size={14} />
                     </button>
@@ -103,6 +104,8 @@ export function UsersTable({
                           type="button"
                           className="deactivate-setting"
                           onClick={() => onDeactivate(user)}
+                          aria-label={`Deactivate ${user.name}`}
+                          data-testid={`deactivate-user-${user.id}`}
                         >
                           Deactivate
                         </button>
@@ -112,6 +115,8 @@ export function UsersTable({
                           className="edit-setting"
                           onClick={() => onActivate(user)}
                           disabled={activatingId === user.id}
+                          aria-label={`Activate ${user.name}`}
+                          data-testid={`activate-user-${user.id}`}
                         >
                           {activatingId === user.id ? <Spinner size={11} /> : "Activate"}
                         </button>

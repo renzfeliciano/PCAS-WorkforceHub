@@ -4,7 +4,9 @@ import { useState } from "react";
 import { CalendarPlus, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
+import { DateField } from "@/components/ui/date-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
 import { Toggle } from "@/components/ui/toggle";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
@@ -51,6 +53,10 @@ export function LeaveRecordFormDialog({
     !options.some((type) => type.id === initialValue.leaveTypeId)
       ? leaveTypes.find((type) => type.id === initialValue.leaveTypeId)
       : undefined;
+  const leaveTypeOptions: SelectOption[] = options.map((type) => ({
+    value: type.id,
+    label: `${type.name} (${type.code})`,
+  }));
 
   // Half day only makes sense for a single date — if the range widens past
   // one day, a stale checked state is ignored rather than submitted (the
@@ -117,6 +123,7 @@ export function LeaveRecordFormDialog({
             variant="secondary"
             onClick={onClose}
             disabled={isSubmitting}
+            data-testid="cancel-leave-record-form"
           >
             Cancel
           </Button>
@@ -125,6 +132,7 @@ export function LeaveRecordFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? "Logging leave" : "Saving changes"}
+            data-testid="submit-leave-record-form"
           >
             {mode === "create" ? (
               <>
@@ -140,33 +148,23 @@ export function LeaveRecordFormDialog({
       }
     >
       <div className="form-grid">
-        <FormField
-          label="Start date"
+        <DateField
           name="startDate"
+          label="Start date"
+          required
+          value={startDate}
+          onChange={(event) => setStartDate(event.target.value)}
           error={fieldError("startDate")}
-        >
-          <input
-            type="date"
-            name="startDate"
-            required
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-          />
-        </FormField>
-        <FormField
-          label="End date"
+        />
+        <DateField
           name="endDate"
+          label="End date"
+          required
+          min={startDate || undefined}
+          value={endDate}
+          onChange={(event) => setEndDate(event.target.value)}
           error={fieldError("endDate")}
-        >
-          <input
-            type="date"
-            name="endDate"
-            required
-            min={startDate || undefined}
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-          />
-        </FormField>
+        />
         {isSingleDay && (
           <Toggle
             checked={halfDay}
@@ -176,40 +174,29 @@ export function LeaveRecordFormDialog({
             fullWidth
           />
         )}
-        <FormField
-          label="Leave type"
+        <SelectField
           name="leaveTypeId"
+          label="Leave type"
+          options={leaveTypeOptions}
+          placeholder="Select a leave type"
+          extraOptions={
+            staleType
+              ? [{ value: staleType.id, label: `${staleType.name} (${staleType.code}) (inactive)` }]
+              : undefined
+          }
+          value={leaveTypeId}
+          onChange={(event) => setLeaveTypeId(event.target.value)}
+          required
           error={fieldError("leaveTypeId")}
-        >
-          <select
-            name="leaveTypeId"
-            required
-            value={leaveTypeId}
-            onChange={(event) => setLeaveTypeId(event.target.value)}
-          >
-            <option value="" disabled>
-              Select a leave type
-            </option>
-            {staleType && (
-              <option value={staleType.id}>
-                {staleType.name} ({staleType.code}) (inactive)
-              </option>
-            )}
-            {options.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name} ({type.code})
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Reason" name="reason" fullWidth>
-          <input
-            name="reason"
-            maxLength={255}
-            defaultValue={initialValue?.reason}
-            placeholder="Optional"
-          />
-        </FormField>
+        />
+        <TextField
+          name="reason"
+          label="Reason"
+          maxLength={255}
+          defaultValue={initialValue?.reason}
+          placeholder="Optional"
+          fullWidth
+        />
       </div>
       {leaveTypeId && days > 0 && (
         <p className="muted">

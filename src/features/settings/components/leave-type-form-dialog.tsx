@@ -4,9 +4,16 @@ import { useState } from "react";
 import { Plus, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import type { LeaveEligibility, LeaveType } from "@/types/leave-type";
+
+const ELIGIBILITY_OPTIONS: SelectOption[] = [
+  { value: "Any", label: "Any" },
+  { value: "Female", label: "Female" },
+  { value: "Male", label: "Male" },
+];
 
 export type LeaveTypeFormValues = {
   name: string;
@@ -63,7 +70,13 @@ export function LeaveTypeFormDialog({
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+            data-testid="cancel-leave-type-form"
+          >
             Cancel
           </Button>
           <Button
@@ -71,6 +84,7 @@ export function LeaveTypeFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? "Adding leave type" : "Saving changes"}
+            data-testid="submit-leave-type-form"
           >
             {mode === "create" ? (
               <>
@@ -86,32 +100,35 @@ export function LeaveTypeFormDialog({
       }
     >
       <div className="form-grid">
-        <FormField label="Name" name="name" error={fieldError("name")}>
-          <input name="name" required defaultValue={initialValue?.name} />
-        </FormField>
-        <FormField label="Code" name="code" error={fieldError("code")}>
-          <input
-            name="code"
-            required
-            maxLength={12}
-            defaultValue={initialValue?.code}
-            placeholder="e.g. ML"
-          />
-        </FormField>
-        <FormField label="Eligibility" name="eligibility" error={fieldError("eligibility")}>
-          <select name="eligibility" defaultValue={initialValue?.eligibility ?? "Any"}>
-            <option value="Any">Any</option>
-            <option value="Female">Female</option>
-            <option value="Male">Male</option>
-          </select>
-        </FormField>
-        <FormField
-          label="Description (optional)"
+        <TextField
+          name="name"
+          label="Name"
+          required
+          defaultValue={initialValue?.name}
+          error={fieldError("name")}
+        />
+        <TextField
+          name="code"
+          label="Code"
+          required
+          maxLength={12}
+          defaultValue={initialValue?.code}
+          placeholder="e.g. ML"
+          error={fieldError("code")}
+        />
+        <SelectField
+          name="eligibility"
+          label="Eligibility"
+          options={ELIGIBILITY_OPTIONS}
+          defaultValue={initialValue?.eligibility ?? "Any"}
+          error={fieldError("eligibility")}
+        />
+        <TextField
           name="description"
+          label="Description (optional)"
+          defaultValue={initialValue?.description}
           error={fieldError("description")}
-        >
-          <input name="description" defaultValue={initialValue?.description} />
-        </FormField>
+        />
       </div>
       {error && (
         <p className="inline-error" role="alert">

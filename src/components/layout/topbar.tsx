@@ -75,6 +75,7 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
         className="menu"
         onClick={onToggleNav}
         aria-label="Open navigation"
+        data-testid="toggle-mobile-nav"
       >
         <Menu size={19} />
       </IconButton>
@@ -89,11 +90,12 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-label="Account menu"
+          data-testid="account-menu-trigger"
         >
           <Avatar name={user.name} tone="coral" />
         </button>
         {menuOpen && (
-          <div className="profile-dropdown" role="menu">
+          <div className="profile-dropdown" role="menu" data-testid="account-menu">
             <div className="profile-dropdown-head">
               <b>{user.name}</b>
               <small>{user.role}</small>
@@ -108,6 +110,7 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
               className="profile-dropdown-logout"
               onClick={handleSignOut}
               disabled={isSigningOut}
+              data-testid="sign-out"
             >
               {isSigningOut ? (
                 <>

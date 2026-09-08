@@ -46,6 +46,7 @@ export function Pagination({
             <select
               value={pageSize}
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
+              data-testid="pagination-page-size"
             >
               {pageSizeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -66,6 +67,7 @@ export function Pagination({
                 disabled={page <= 1}
                 onClick={() => onPageChange(page - 1)}
                 aria-label="Previous page"
+                data-testid="pagination-prev"
               >
                 <ChevronLeft size={15} />
               </IconButton>
@@ -74,6 +76,7 @@ export function Pagination({
                 disabled={page >= totalPages}
                 onClick={() => onPageChange(page + 1)}
                 aria-label="Next page"
+                data-testid="pagination-next"
               >
                 <ChevronRight size={15} />
               </IconButton>

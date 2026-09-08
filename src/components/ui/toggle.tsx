@@ -6,6 +6,7 @@ type ToggleProps = Readonly<{
   disabled?: boolean;
   name?: string;
   fullWidth?: boolean;
+  testId?: string;
 }>;
 
 export function Toggle({
@@ -16,6 +17,7 @@ export function Toggle({
   disabled,
   name,
   fullWidth,
+  testId,
 }: ToggleProps) {
   return (
     <div className="toggle-field" style={fullWidth ? { gridColumn: "1 / -1" } : undefined}>
@@ -27,6 +29,7 @@ export function Toggle({
           checked={checked}
           disabled={disabled}
           onChange={(event) => onChange(event.target.checked)}
+          data-testid={testId ?? (name ? `toggle-${name}` : undefined)}
         />
         {label}
       </label>

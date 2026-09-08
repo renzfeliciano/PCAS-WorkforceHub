@@ -46,7 +46,7 @@ export function ConfirmDialog({
 
   return (
     <div className="backdrop">
-      <div className="modal warning-modal">
+      <div className="modal warning-modal" data-testid="confirm-dialog">
         <div className="warning-icon">{icon}</div>
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
@@ -62,6 +62,7 @@ export function ConfirmDialog({
             variant="secondary"
             onClick={onClose}
             disabled={pending !== null}
+            data-testid="confirm-dialog-cancel"
           >
             Cancel
           </Button>
@@ -73,6 +74,7 @@ export function ConfirmDialog({
               isLoading={pending === "deactivate"}
               loadingText={deactivateLoadingLabel}
               disabled={pending === "confirm"}
+              data-testid="confirm-dialog-deactivate"
             >
               {deactivateLabel}
             </Button>
@@ -84,6 +86,7 @@ export function ConfirmDialog({
             isLoading={pending === "confirm"}
             loadingText={confirmLoadingLabel}
             disabled={pending === "deactivate"}
+            data-testid="confirm-dialog-confirm"
           >
             {confirmLabel}
           </Button>

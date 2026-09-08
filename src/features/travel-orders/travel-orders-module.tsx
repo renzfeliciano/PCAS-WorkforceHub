@@ -60,6 +60,7 @@ export function TravelOrdersModule({
               type="button"
               variant="primary"
               onClick={() => setEditing("new")}
+              data-testid="add-travel-order"
             >
               <Plus size={14} /> New travel order
             </Button>
@@ -81,51 +82,59 @@ export function TravelOrdersModule({
           description="Create one to dispatch employees for a date range."
         />
       ) : (
-        <div className="setting-list">
-          {items.map((order) => (
-            <div className="setting-row travel-order-row" key={order.id}>
-              <span className="setting-dot" />
-              <div>
-                <b>
-                  {order.employees.length > 3
-                    ? `${order.employees
-                        .slice(0, 3)
-                        .map((employee) => employee.name)
-                        .join("; ")} and others...`
-                    : order.employees
-                        .map((employee) => employee.name)
-                        .join("; ")}
-                </b>
-                <small>
-                  {order.startDate} to {order.endDate}
-                  {order.remarks ? ` · ${order.remarks}` : ""}
-                </small>
-              </div>
-              {canManage && (
-                <>
-                  <button
-                    type="button"
-                    className="edit-setting"
-                    onClick={() => setEditing(order)}
-                    aria-label="Edit travel order"
-                    title="Edit"
-                  >
-                    <Pencil size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    className="delete-setting"
-                    onClick={() => setDeleting(order)}
-                    aria-label="Delete travel order"
-                    title="Delete"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
+        <ul className="setting-list">
+          {items.map((order) => {
+            const employeeNames = order.employees.map((employee) => employee.name).join("; ");
+            const summary =
+              order.employees.length > 3
+                ? `${order.employees
+                    .slice(0, 3)
+                    .map((employee) => employee.name)
+                    .join("; ")} and others...`
+                : employeeNames;
+            const rowLabel = `${employeeNames}, ${order.startDate} to ${order.endDate}`;
+            return (
+              <li
+                className="setting-row travel-order-row"
+                key={order.id}
+                data-testid={`travel-order-row-${order.id}`}
+              >
+                <span className="setting-dot" />
+                <div>
+                  <b>{summary}</b>
+                  <small>
+                    {order.startDate} to {order.endDate}
+                    {order.remarks ? ` · ${order.remarks}` : ""}
+                  </small>
+                </div>
+                {canManage && (
+                  <>
+                    <button
+                      type="button"
+                      className="edit-setting"
+                      onClick={() => setEditing(order)}
+                      aria-label={`Edit travel order for ${rowLabel}`}
+                      title="Edit"
+                      data-testid={`edit-travel-order-${order.id}`}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="delete-setting"
+                      onClick={() => setDeleting(order)}
+                      aria-label={`Delete travel order for ${rowLabel}`}
+                      title="Delete"
+                      data-testid={`delete-travel-order-${order.id}`}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
       {editing && (
         <TravelOrderFormDialog

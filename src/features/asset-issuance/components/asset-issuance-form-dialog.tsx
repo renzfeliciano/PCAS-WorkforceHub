@@ -4,12 +4,20 @@ import { useState } from "react";
 import { Package, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { TextField } from "@/components/ui/text-field";
+import { DateField } from "@/components/ui/date-field";
+import { SelectField, type SelectOption } from "@/components/ui/select-field";
+import { RemarksField } from "@/components/ui/remarks-field";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
 import { ASSET_CONDITIONS } from "@/schemas/asset-issuance";
 import type { AssetIssuanceInput } from "@/schemas/asset-issuance";
 import type { AssetIssuance } from "@/types/asset-issuance";
+
+const CONDITION_OPTIONS: SelectOption[] = ASSET_CONDITIONS.map((condition) => ({
+  value: condition,
+  label: condition,
+}));
 
 type AssetIssuanceFormDialogProps = Readonly<{
   mode: "create" | "edit";
@@ -73,7 +81,13 @@ export function AssetIssuanceFormDialog({
       onClose={onClose}
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+            data-testid="cancel-asset-issuance-form"
+          >
             Cancel
           </Button>
           <Button
@@ -81,6 +95,7 @@ export function AssetIssuanceFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? "Logging issuance" : "Saving changes"}
+            data-testid="submit-asset-issuance-form"
           >
             {mode === "create" ? (
               <>
@@ -96,66 +111,58 @@ export function AssetIssuanceFormDialog({
       }
     >
       <div className="form-grid">
-        <FormField label="Asset name" name="assetName" error={fieldError("assetName")}>
-          <input
-            name="assetName"
-            required
-            maxLength={120}
-            defaultValue={initialValue?.assetName}
-            placeholder="e.g. Dell Latitude 5420"
-          />
-        </FormField>
-        <FormField label="Asset type" name="assetType">
-          <input
-            name="assetType"
-            maxLength={60}
-            defaultValue={initialValue?.assetType}
-            placeholder="e.g. Laptop (optional)"
-          />
-        </FormField>
-        <FormField label="Serial number" name="serialNumber">
-          <input
-            name="serialNumber"
-            maxLength={80}
-            defaultValue={initialValue?.serialNumber}
-            placeholder="Optional"
-          />
-        </FormField>
-        <FormField label="Condition" name="condition" error={fieldError("condition")}>
-          <select name="condition" required defaultValue={initialValue?.condition ?? ASSET_CONDITIONS[0]}>
-            {ASSET_CONDITIONS.map((condition) => (
-              <option key={condition} value={condition}>
-                {condition}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Issued date" name="issuedDate" error={fieldError("issuedDate")}>
-          <input
-            type="date"
-            name="issuedDate"
-            required
-            value={issuedDate}
-            onChange={(event) => setIssuedDate(event.target.value)}
-          />
-        </FormField>
-        <FormField label="Returned date" name="returnedDate" error={fieldError("returnedDate")}>
-          <input
-            type="date"
-            name="returnedDate"
-            min={issuedDate || undefined}
-            value={returnedDate}
-            onChange={(event) => setReturnedDate(event.target.value)}
-          />
-        </FormField>
-        <FormField label="Remarks" name="remarks" fullWidth>
-          <input
-            name="remarks"
-            maxLength={255}
-            defaultValue={initialValue?.remarks}
-            placeholder="Optional"
-          />
-        </FormField>
+        <TextField
+          name="assetName"
+          label="Asset name"
+          required
+          maxLength={120}
+          defaultValue={initialValue?.assetName}
+          placeholder="e.g. Dell Latitude 5420"
+          error={fieldError("assetName")}
+        />
+        <TextField
+          name="assetType"
+          label="Asset type"
+          maxLength={60}
+          defaultValue={initialValue?.assetType}
+          placeholder="e.g. Laptop (optional)"
+        />
+        <TextField
+          name="serialNumber"
+          label="Serial number"
+          maxLength={80}
+          defaultValue={initialValue?.serialNumber}
+          placeholder="Optional"
+        />
+        <SelectField
+          name="condition"
+          label="Condition"
+          options={CONDITION_OPTIONS}
+          required
+          defaultValue={initialValue?.condition ?? ASSET_CONDITIONS[0]}
+          error={fieldError("condition")}
+        />
+        <DateField
+          name="issuedDate"
+          label="Issued date"
+          required
+          value={issuedDate}
+          onChange={(event) => setIssuedDate(event.target.value)}
+          error={fieldError("issuedDate")}
+        />
+        <DateField
+          name="returnedDate"
+          label="Returned date"
+          min={issuedDate || undefined}
+          value={returnedDate}
+          onChange={(event) => setReturnedDate(event.target.value)}
+          error={fieldError("returnedDate")}
+        />
+        <RemarksField
+          defaultValue={initialValue?.remarks}
+          maxLength={255}
+          placeholder="Optional"
+        />
       </div>
       {error && (
         <p className="inline-error" role="alert">

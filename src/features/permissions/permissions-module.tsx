@@ -64,7 +64,7 @@ export function PermissionsModule({
         </p>
       )}
       <div className="actions section-toolbar">
-        <Button variant="primary" type="button" onClick={() => setAdding(true)}>
+        <Button variant="primary" type="button" onClick={() => setAdding(true)} data-testid="add-user">
           <UserPlus size={14} /> Add user
         </Button>
       </div>

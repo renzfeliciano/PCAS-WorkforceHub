@@ -31,6 +31,7 @@ export function ApplicationCard({
     <div
       ref={setNodeRef}
       className={`kanban-card${isDragging ? " dragging" : ""}`}
+      data-testid={`application-card-${application.id}`}
     >
       <div className="kanban-card-head">
         {canManage && (
@@ -38,6 +39,7 @@ export function ApplicationCard({
             type="button"
             className="kanban-card-handle"
             aria-label={`Drag ${application.applicantName}'s card to another stage`}
+            data-testid={`drag-application-${application.id}`}
             {...attributes}
             {...listeners}
           >
@@ -57,6 +59,7 @@ export function ApplicationCard({
             <select
               value={application.stage}
               onChange={(event) => onMoveStage(event.target.value)}
+              data-testid={`move-application-${application.id}`}
             >
               {!stages.includes(application.stage) && (
                 <option value={application.stage}>{application.stage} (inactive)</option>
@@ -74,6 +77,7 @@ export function ApplicationCard({
             onClick={onEdit}
             aria-label={`Edit ${application.applicantName}`}
             title="Edit"
+            data-testid={`edit-application-${application.id}`}
           >
             <Pencil size={13} />
           </button>
@@ -83,6 +87,7 @@ export function ApplicationCard({
             onClick={onDelete}
             aria-label={`Delete ${application.applicantName}`}
             title="Delete"
+            data-testid={`delete-application-${application.id}`}
           >
             <Trash2 size={13} />
           </button>

@@ -11,7 +11,7 @@ const jobApplicationSchema = new Schema(
     // can rename/add pipeline stages in Settings without a schema change.
     stage: { type: String, required: true, default: DEFAULT_APPLICATION_STAGE, index: true },
     appliedDate: { type: String, required: true },
-    notes: { type: String, trim: true },
+    remarks: { type: String, trim: true },
   },
   { timestamps: true },
 );

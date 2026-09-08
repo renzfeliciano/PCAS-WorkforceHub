@@ -36,6 +36,7 @@ export function ThemeToggle() {
           aria-pressed={mounted && theme === value}
           aria-label={label}
           title={label}
+          data-testid={`theme-${value}`}
         >
           <Icon size={14} />
         </button>

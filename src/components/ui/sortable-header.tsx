@@ -14,7 +14,12 @@ function SortButton({ field, label, activeField, direction, onSort }: SortButton
   const isActive = activeField === field;
   const Icon = isActive ? (direction === "desc" ? ArrowDown : ArrowUp) : ChevronsUpDown;
   return (
-    <button type="button" className="sortable-header" onClick={() => onSort(field)}>
+    <button
+      type="button"
+      className="sortable-header"
+      onClick={() => onSort(field)}
+      data-testid={`sort-${field}`}
+    >
       {label}
       <Icon size={12} aria-hidden />
     </button>

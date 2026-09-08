@@ -94,14 +94,15 @@ export function SettingsCatalogSection({
             type="button"
             variant="primary"
             onClick={() => setAdding(true)}
+            data-testid={`add-catalog-${kind}${category ? `-${category}` : ""}`}
           >
             <Plus size={14} /> Add
           </Button>
         </div>
       </div>
-      <div className="setting-list">
+      <ul className="setting-list">
         {items.map((item) => (
-          <div className="setting-row" key={item.id}>
+          <li className="setting-row" key={item.id} data-testid={`catalog-${kind}-row-${item.id}`}>
             <div className="setting-row-name">
               <span className="setting-dot" />
               <div>
@@ -115,6 +116,8 @@ export function SettingsCatalogSection({
                 className={`setting-state ${item.active ? "enabled" : "disabled"}`}
                 onClick={() => handleToggle(item)}
                 disabled={togglingId === item.id}
+                aria-label={`Mark ${item.name} ${item.active ? "inactive" : "active"}`}
+                data-testid={`toggle-catalog-${kind}-${item.id}`}
               >
                 {togglingId === item.id ? (
                   <Spinner size={11} />
@@ -130,6 +133,7 @@ export function SettingsCatalogSection({
                 onClick={() => setEditing(item)}
                 aria-label={`Edit ${item.name}`}
                 title="Edit"
+                data-testid={`edit-catalog-${kind}-${item.id}`}
               >
                 <Pencil size={13} />
               </button>
@@ -139,13 +143,14 @@ export function SettingsCatalogSection({
                 onClick={() => setDeleting(item)}
                 aria-label={`Delete ${item.name}`}
                 title="Delete"
+                data-testid={`delete-catalog-${kind}-${item.id}`}
               >
                 ×
               </button>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
       {adding && (
         <SettingFormDialog
           mode="create"
