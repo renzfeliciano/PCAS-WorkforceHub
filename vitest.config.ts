@@ -5,7 +5,12 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
+    // jest-dom matchers (toBeInTheDocument, etc.) for component tests, which
+    // opt into a DOM environment per-file via a `// @vitest-environment
+    // jsdom` pragma at the top of the file — everything else stays on the
+    // faster default "node" environment set above.
+    setupFiles: ["./tests/setup.ts"],
     // Starts one shared in-memory MongoDB for the whole run (see
     // tests/global-setup.ts) so repository tests can exercise real Mongoose
     // queries instead of fakes — this is what actually proves escapeRegex(),
