@@ -17,6 +17,10 @@ vi.mock("@/repositories/models/user-model", () => ({
 const compareMock = vi.fn(async () => true);
 vi.mock("bcryptjs", () => ({
   compare: compareMock,
+  // auth.ts calls this once at module load to precompute a dummy hash for
+  // timing-safety (see the "still runs a password comparison..." test) —
+  // the mock doesn't need a real bcrypt hash, just something to return.
+  hashSync: () => "dummy-hash",
 }));
 
 const checkApiRateLimitMock = vi.fn(async () => ({
@@ -183,6 +187,20 @@ describe("auth.ts authorize (login)", () => {
 
     expect(result).toBeNull();
     expect(findOneMock).not.toHaveBeenCalled();
+  });
+
+  // Timing side-channel: if compare() only ever runs for a username that
+  // exists, a request for a real account takes measurably longer than one
+  // for a made-up account (bcrypt is deliberately slow), letting an
+  // attacker enumerate valid usernames purely from response time even
+  // though the error message itself never says which field was wrong.
+  it("still runs a password comparison when the username doesn't exist, so timing doesn't reveal which usernames are real", async () => {
+    mockCurrentUser(null);
+
+    const result = await authorize({ username: "no-such-user", password: "whatever" }, { headers: {} });
+
+    expect(result).toBeNull();
+    expect(compareMock).toHaveBeenCalled();
   });
 });
 

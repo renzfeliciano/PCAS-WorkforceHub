@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
+import { compare, hashSync } from "bcryptjs";
 
 import { connectMongoDB } from "@/lib/mongodb";
 import { UserModel } from "@/repositories/models/user-model";
@@ -8,6 +8,12 @@ import { getInactivityMs } from "@/lib/duration";
 import { checkApiRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const inactivityMs = getInactivityMs();
+
+// Computed once per process (not per request): compare() must run with the
+// same cost regardless of whether the username exists, or response timing
+// leaks which usernames are real accounts (bcrypt is deliberately slow, and
+// was previously only invoked when a matching user was found).
+const DUMMY_PASSWORD_HASH = hashSync("not-a-real-password", 10);
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET,
@@ -73,10 +79,13 @@ export const authOptions: NextAuthOptions = {
           .select("+passwordHash +activeSessionId")
           .lean();
 
-        if (
-          !user ||
-          !(await compare(credentials.password, user.passwordHash))
-        ) {
+        // Always compare, even against a dummy hash when no user was found,
+        // so this branch takes the same time either way.
+        const passwordMatches = await compare(
+          credentials.password,
+          user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+        );
+        if (!user || !passwordMatches) {
           return null;
         }
 

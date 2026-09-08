@@ -17,6 +17,7 @@ Each row is a claim → the file/line that implements it → a command or manual
 | Only one active session per account — a new sign-in invalidates every other open session | [src/lib/auth.ts:78](src/lib/auth.ts) sets `activeSessionId`; [src/lib/auth.ts:127](src/lib/auth.ts) checks it on every token refresh | See §9 "Live re-verification" below for a real end-to-end check |
 | Inactivity timeout is checked live on the server on every request, not just trusted from the client's clock | [middleware.ts:17-18](middleware.ts) (`authorized` callback checks `token.expired`) | `grep -n "authorized:" middleware.ts` |
 | A session invalidated by a concurrent login shows an explicit "signed in elsewhere" notice, not a silent bounce | [src/context/concurrent-session-guard.tsx](src/context/concurrent-session-guard.tsx) (whole file) | Open the app in a session, then sign in again elsewhere with the same account; the open tab should show the modal within ~30s |
+| Login response timing doesn't reveal whether a username exists — `compare()` always runs, against a dummy hash when no user was found, so a real vs. made-up account takes the same time | [src/lib/auth.ts](src/lib/auth.ts) (`DUMMY_PASSWORD_HASH`, and `user?.passwordHash ?? DUMMY_PASSWORD_HASH` in `authorize()`) | `npm test -- auth` — see the "still runs a password comparison when the username doesn't exist" test |
 
 ## 2. Authorization (RBAC)
 
@@ -103,7 +104,6 @@ Each row is a claim → the file/line that implements it → a command or manual
 
 Things claimed nowhere as "done" but worth being explicit about, so this document doesn't overstate what exists:
 
-- **Login timing side-channel**: [src/lib/auth.ts](src/lib/auth.ts)'s `authorize()` short-circuits on `!user || !(await compare(...))` — `compare()` (deliberately slow, bcrypt) never runs when the username doesn't exist, so a request for a real account measurably takes longer than one for a fake account. This lets an attacker enumerate valid usernames by response timing even though the error message itself is generic. Identified but **not yet fixed** — the fix is straightforward (always run a comparison, against a dummy hash when the user doesn't exist) but is deliberately called out here rather than silently left off the list.
 - **No git pre-commit hook** enforces `npm test`/`npm run lint`/`tsc --noEmit` automatically — it's currently a manual discipline, not a technical guarantee. Worth adding a Husky/lint-staged hook if this needs to be enforced rather than just practiced.
 - **Test coverage is service-layer-first**, not exhaustive. Attendance, travel orders, asset issuance, recruitment, and events services don't yet have dedicated test files — the suite currently proves out the pattern (leave/RBAC/auth) rather than covering every module.
 - **CSP is production-only by design** (see §6) — anyone checking security headers against `npm run dev` will not see it and should not conclude it's missing.
