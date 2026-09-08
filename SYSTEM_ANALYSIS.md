@@ -106,7 +106,11 @@ The application is built mobile-first-aware across breakpoints, not just "shrunk
 
 ## 8. Testing & Quality Assurance
 
-An automated regression suite (Vitest, kept in its own `tests/` directory mirroring `src/`, 120 tests across 15 files as of this writing) covers business logic that would otherwise only be caught by manual testing — every feature service has its own test file:
+An automated regression suite (Vitest, kept in its own `tests/` directory mirroring `src/`, 182 tests across 25 files as of this writing) covers all four layers of the stack, not just business logic — every feature service has its own test file, and the layers under and around it are represented too:
+
+- **Repository layer**: integration tests against a real MongoDB (in-memory, `mongodb-memory-server` — no external service needed), proving actual Mongoose query behavior rather than assumptions about it: regex-escaped search, duplicate-key handling, compound-unique catalog entries, password hashing, one-attendance-record-per-employee-per-day.
+- **API route layer**: the Next.js route handlers themselves, with only the session lookup mocked — real database, real rate limiter, real service calls — proving the HTTP wiring (auth guard, validation, response shape) works, including an end-to-end proof that the EL/VL half-day fix (below) works through the actual route, not just the service function.
+- **UI component layer**: React Testing Library tests against the shared primitives every dialog in the app is built on — the WAI-ARIA `Modal` contract (role, focus management, Escape-to-close) and the `ConfirmDialog` delete-confirmation pattern used across every feature.
 
 - **Employees**: RBAC gating (who can edit/archive/permanently delete), the archive-before-permanent-delete rule, and leave-balance-history entries only being written for balances that actually changed.
 - **Leave**: balance calculation, including the Vacation/Emergency Leave interaction described in §4.2.
@@ -116,7 +120,7 @@ An automated regression suite (Vitest, kept in its own `tests/` directory mirror
 - The API retry/resilience mechanism.
 - Authentication session callbacks (idle timeout vs. concurrent-session detection), the login rate limiter (checked *before* any credential/database work, keyed by client IP), and the login timing side-channel fix (bcrypt comparison runs at constant time whether or not the username exists).
 
-The suite runs before every commit as a standing practice, alongside TypeScript strict-mode compilation and ESLint, and new logic is written test-first (TDD) rather than tested after the fact. Coverage is intentionally service-layer-first — repositories (the actual MongoDB queries), API routes, and UI components aren't covered yet; see [STANDARDS.md](STANDARDS.md) for the honest, current gap list.
+The suite runs before every commit as a standing practice, alongside TypeScript strict-mode compilation and ESLint, and new logic is written test-first (TDD) rather than tested after the fact. Coverage across all four layers is representative rather than exhaustive — the modules/routes/components covered were chosen for having the most distinguishing behavior, not because every sibling module was tested too; see [STANDARDS.md](STANDARDS.md) for the honest, current gap list.
 
 ## 9. Engineering Approach
 
