@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start -p 4000",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
@@ -39,6 +41,8 @@
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^3.2.7"
   }
 }
