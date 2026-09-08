@@ -8,7 +8,7 @@ import { ContactNumberField } from "@/components/ui/contact-number-field";
 describe("ContactNumberField", () => {
   it("renders with the shared placeholder and format hint", () => {
     render(<ContactNumberField value="" onChange={vi.fn()} />);
-    const input = screen.getByPlaceholderText("09XX-XXX-XXXX");
+    const input = screen.getByPlaceholderText("e.g. 0917-123-4567");
     expect(input).toBeInTheDocument();
     expect(input).toHaveAttribute("title", "Format: 09XX-XXX-XXXX");
     expect(input).toHaveAttribute("pattern", "\\d{4}-\\d{3}-\\d{4}");
@@ -27,14 +27,14 @@ describe("ContactNumberField", () => {
       return <ContactNumberField value={value} onChange={setValue} />;
     }
     render(<Wrapper />);
-    const input = screen.getByPlaceholderText("09XX-XXX-XXXX") as HTMLInputElement;
+    const input = screen.getByPlaceholderText("e.g. 0917-123-4567") as HTMLInputElement;
     await user.type(input, "9171234567");
     expect(input.value).toBe("0917-123-4567");
   });
 
   it("shows an inline error and wires aria-invalid/aria-describedby", () => {
     render(<ContactNumberField value="" onChange={vi.fn()} error="Use format XXXX-XXX-XXXX" />);
-    const input = screen.getByPlaceholderText("09XX-XXX-XXXX");
+    const input = screen.getByPlaceholderText("e.g. 0917-123-4567");
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByRole("alert")).toHaveTextContent("Use format XXXX-XXX-XXXX");
   });
@@ -48,13 +48,13 @@ describe("ContactNumberField", () => {
         onChange={vi.fn()}
       />,
     );
-    const input = screen.getByPlaceholderText("09XX-XXX-XXXX");
+    const input = screen.getByPlaceholderText("e.g. 0917-123-4567");
     expect(input).toHaveAttribute("name", "phone");
     expect((input as HTMLInputElement).value).toBe("0917-123-4567");
   });
 
   it("supports a custom placeholder override", () => {
-    render(<ContactNumberField value="" onChange={vi.fn()} placeholder="e.g. 0917-123-4567" />);
-    expect(screen.getByPlaceholderText("e.g. 0917-123-4567")).toBeInTheDocument();
+    render(<ContactNumberField value="" onChange={vi.fn()} placeholder="e.g. 0928-555-1234" />);
+    expect(screen.getByPlaceholderText("e.g. 0928-555-1234")).toBeInTheDocument();
   });
 });

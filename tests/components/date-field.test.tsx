@@ -13,7 +13,7 @@ describe("DateField", () => {
 
   it("supports required and a min bound for date-range pairs", () => {
     render(<DateField name="endDate" label="End date" required min="2026-01-01" />);
-    const input = screen.getByLabelText("End date");
+    const input = screen.getByLabelText(/End date/);
     expect(input).toHaveAttribute("required");
     expect(input).toHaveAttribute("min", "2026-01-01");
   });

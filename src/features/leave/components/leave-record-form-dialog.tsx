@@ -194,7 +194,7 @@ export function LeaveRecordFormDialog({
           label="Reason"
           maxLength={255}
           defaultValue={initialValue?.reason}
-          placeholder="Optional"
+          placeholder="e.g. Attending a family emergency"
           fullWidth
         />
       </div>

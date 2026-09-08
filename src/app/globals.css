@@ -1997,6 +1997,20 @@ input[type="checkbox"].toggle-input:disabled {
     10px Arial,
     sans-serif;
 }
+.required-asterisk {
+  color: var(--danger);
+  font-weight: 700;
+}
+.required-fields-hint {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font:
+    11px Arial,
+    sans-serif;
+}
+.required-fields-hint .required-asterisk {
+  font-size: 12px;
+}
 .form-grid input {
   display: block;
   width: 100%;

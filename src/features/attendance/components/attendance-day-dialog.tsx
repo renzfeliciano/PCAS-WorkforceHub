@@ -140,7 +140,7 @@ export function AttendanceDayDialog({
         <RemarksField
           defaultValue={existing?.remarks}
           maxLength={255}
-          placeholder="Optional"
+          placeholder="e.g. Arrived late due to heavy traffic"
         />
       </div>
       {error && (

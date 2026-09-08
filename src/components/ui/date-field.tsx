@@ -36,7 +36,7 @@ export function DateField({
 }: DateFieldProps) {
   const valueProps = value !== undefined ? { value, onChange } : { defaultValue };
   return (
-    <FormField label={label} name={name} error={error} fullWidth={fullWidth}>
+    <FormField label={label} name={name} error={error} fullWidth={fullWidth} required={required}>
       <input
         type="date"
         name={name}

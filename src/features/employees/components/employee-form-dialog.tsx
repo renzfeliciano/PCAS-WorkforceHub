@@ -232,6 +232,7 @@ export function EmployeeFormDialog({
           label="Employee name"
           required
           maxLength={30}
+          placeholder="e.g. Juan Dela Cruz"
           defaultValue={initialValue?.name}
           error={fieldError("name")}
         />
@@ -295,7 +296,6 @@ export function EmployeeFormDialog({
         <DateField
           name="birthDate"
           label="Birth date"
-          placeholder="Optional"
           defaultValue={initialValue?.birthDate ?? undefined}
           error={fieldError("birthDate")}
         />
@@ -333,6 +333,7 @@ export function EmployeeFormDialog({
           name="address"
           label="Address"
           maxLength={255}
+          placeholder="e.g. 123 Rizal Street, Brgy. San Isidro, Quezon City"
           defaultValue={initialValue?.address ?? undefined}
           error={fieldError("address")}
         />
@@ -342,7 +343,8 @@ export function EmployeeFormDialog({
           value={sssNumber}
           onChange={(next) => setSssNumber(formatSssNumber(next))}
           format={formatSssNumber}
-          placeholder="XX-XXXXXXX-X"
+          placeholder="e.g. 34-1234567-8"
+          title="Format: XX-XXXXXXX-X"
           pattern="\d{2}-\d{7}-\d{1}"
           maxLength={12}
           error={fieldError("sssNumber")}
@@ -353,7 +355,8 @@ export function EmployeeFormDialog({
           value={philHealthNumber}
           onChange={(next) => setPhilHealthNumber(formatPhilHealthNumber(next))}
           format={formatPhilHealthNumber}
-          placeholder="XX-XXXXXXXXX-X"
+          placeholder="e.g. 12-345678901-2"
+          title="Format: XX-XXXXXXXXX-X"
           pattern="\d{2}-\d{9}-\d{1}"
           maxLength={14}
           error={fieldError("philHealthNumber")}
@@ -364,7 +367,8 @@ export function EmployeeFormDialog({
           value={pagIbigNumber}
           onChange={(next) => setPagIbigNumber(formatPagIbigNumber(next))}
           format={formatPagIbigNumber}
-          placeholder="XXXX-XXXX-XXXX"
+          placeholder="e.g. 1234-5678-9012"
+          title="Format: XXXX-XXXX-XXXX"
           pattern="\d{4}-\d{4}-\d{4}"
           maxLength={14}
           error={fieldError("pagIbigNumber")}
@@ -375,7 +379,7 @@ export function EmployeeFormDialog({
           value={tinNumber}
           onChange={(next) => setTinNumber(formatTinNumber(next))}
           format={formatTinNumber}
-          placeholder="XXX-XXX-XXX"
+          placeholder="e.g. 123-456-789"
           title="Format: XXX-XXX-XXX or XXX-XXX-XXX-XXX"
           pattern="\d{3}-\d{3}-\d{3}(-\d{3})?"
           maxLength={15}

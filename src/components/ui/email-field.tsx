@@ -21,18 +21,18 @@ export function EmailField({
   defaultValue,
   error,
   required,
-  placeholder = "Optional",
+  placeholder = "e.g. juandelacruz@gmail.com",
   autoComplete,
 }: EmailFieldProps) {
   return (
-    <FormField label={label} name={name} error={error}>
+    <FormField label={label} name={name} error={error} required={required}>
       <input
         type="email"
         name={name}
         maxLength={150}
         required={required}
         defaultValue={defaultValue}
-        placeholder={required ? undefined : placeholder}
+        placeholder={placeholder}
         autoComplete={autoComplete}
         data-testid={`field-${name}`}
       />

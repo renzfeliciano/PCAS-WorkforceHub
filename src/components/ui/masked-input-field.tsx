@@ -37,7 +37,7 @@ export function MaskedInputField({
   required,
 }: MaskedInputFieldProps) {
   return (
-    <FormField label={label} name={name} error={error}>
+    <FormField label={label} name={name} error={error} required={required}>
       <input
         name={name}
         inputMode="numeric"

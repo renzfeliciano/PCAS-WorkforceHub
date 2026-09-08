@@ -15,6 +15,8 @@ type ModalProps = Readonly<{
   className?: string;
   /** Raises this modal's backdrop above ordinary modals (e.g. the idle-session warning, which must stay visible over any modal already open). */
   backdropClassName?: string;
+  /** Shows "Fields marked with * are required." above the form fields. Defaults to true whenever as="form" — virtually every form dialog in this app has at least one required field — pass false to opt an all-optional form out. */
+  showRequiredHint?: boolean;
 }>;
 
 export function Modal({
@@ -29,6 +31,7 @@ export function Modal({
   onChange,
   className,
   backdropClassName,
+  showRequiredHint,
 }: ModalProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -73,7 +76,21 @@ export function Modal({
       </IconButton>
     </div>
   );
-  const body = <div className="modal-body">{children}</div>;
+  const shouldShowRequiredHint = showRequiredHint ?? as === "form";
+  const body = (
+    <div className="modal-body">
+      {shouldShowRequiredHint && (
+        <p className="required-fields-hint">
+          Fields marked with an asterisk (
+          <span className="required-asterisk" aria-hidden="true">
+            *
+          </span>
+          ) are required.
+        </p>
+      )}
+      {children}
+    </div>
+  );
   const footer = actions && <div className="modal-actions">{actions}</div>;
 
   const dialogProps = {

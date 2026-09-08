@@ -68,6 +68,21 @@ describe("Modal", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("shows the required-fields hint for a form modal by default", () => {
+    render(<Modal as="form" title="Add employee" onClose={vi.fn()} />);
+    expect(screen.getByText(/Fields marked with an asterisk/)).toBeInTheDocument();
+  });
+
+  it("does not show the required-fields hint for a non-form modal", () => {
+    render(<Modal title="Delete this record?" onClose={vi.fn()} />);
+    expect(screen.queryByText(/Fields marked with an asterisk/)).not.toBeInTheDocument();
+  });
+
+  it("lets a form modal opt out of the required-fields hint when nothing is required", () => {
+    render(<Modal as="form" title="Add note" onClose={vi.fn()} showRequiredHint={false} />);
+    expect(screen.queryByText(/Fields marked with an asterisk/)).not.toBeInTheDocument();
+  });
+
   it("renders the actions slot", () => {
     render(
       <Modal title="Delete this record?" onClose={vi.fn()} actions={<button type="button">Confirm</button>} />,

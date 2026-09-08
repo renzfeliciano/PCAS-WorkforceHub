@@ -125,14 +125,14 @@ export function AssetIssuanceFormDialog({
           label="Asset type"
           maxLength={60}
           defaultValue={initialValue?.assetType}
-          placeholder="e.g. Laptop (optional)"
+          placeholder="e.g. Laptop"
         />
         <TextField
           name="serialNumber"
           label="Serial number"
           maxLength={80}
           defaultValue={initialValue?.serialNumber}
-          placeholder="Optional"
+          placeholder="e.g. SN-2024-00123"
         />
         <SelectField
           name="condition"
@@ -161,7 +161,7 @@ export function AssetIssuanceFormDialog({
         <RemarksField
           defaultValue={initialValue?.remarks}
           maxLength={255}
-          placeholder="Optional"
+          placeholder="e.g. Minor scratch on the lid cover"
         />
       </div>
       {error && (

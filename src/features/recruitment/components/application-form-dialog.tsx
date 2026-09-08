@@ -146,7 +146,11 @@ export function ApplicationFormDialog({
           defaultValue={initialValue?.appliedDate ?? new Date().toISOString().slice(0, 10)}
           error={fieldError("appliedDate")}
         />
-        <RemarksField defaultValue={initialValue?.remarks} error={fieldError("remarks")} />
+        <RemarksField
+          defaultValue={initialValue?.remarks}
+          placeholder="e.g. Strong technical background, available to start immediately"
+          error={fieldError("remarks")}
+        />
       </div>
       {error && (
         <p className="inline-error" role="alert">

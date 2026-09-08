@@ -44,7 +44,7 @@ export function SelectField({
 }: SelectFieldProps) {
   const valueProps = value !== undefined ? { value, onChange } : { defaultValue };
   return (
-    <FormField label={label} name={name} error={error} fullWidth={fullWidth}>
+    <FormField label={label} name={name} error={error} fullWidth={fullWidth} required={required}>
       <select
         key={remountKey}
         name={name}

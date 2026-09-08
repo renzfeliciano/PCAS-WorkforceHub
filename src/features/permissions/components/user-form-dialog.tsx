@@ -107,6 +107,7 @@ export function UserFormDialog({
           name="name"
           label="Full name"
           required
+          placeholder="e.g. Juan Dela Cruz"
           autoComplete="off"
           defaultValue={initialValue?.name}
           error={fieldError("name")}
@@ -116,6 +117,7 @@ export function UserFormDialog({
           label="Username"
           required
           minLength={3}
+          placeholder="e.g. juan.delacruz"
           autoComplete="off"
           defaultValue={initialValue?.username}
           error={fieldError("username")}
@@ -135,7 +137,7 @@ export function UserFormDialog({
         />
         <TextField
           name="password"
-          label={mode === "create" ? "Password" : "New password (optional)"}
+          label={mode === "create" ? "Password" : "New password"}
           type="password"
           minLength={8}
           required={mode === "create"}

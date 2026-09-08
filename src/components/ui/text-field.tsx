@@ -45,7 +45,14 @@ export function TextField({
 }: TextFieldProps) {
   const valueProps = value !== undefined ? { value, onChange } : { defaultValue };
   return (
-    <FormField label={label} name={name} error={error} fullWidth={fullWidth} standalone={standalone}>
+    <FormField
+      label={label}
+      name={name}
+      error={error}
+      fullWidth={fullWidth}
+      standalone={standalone}
+      required={required}
+    >
       <input
         type={type}
         name={name}

@@ -4,20 +4,30 @@ import { render, screen } from "@testing-library/react";
 import { EmailField } from "@/components/ui/email-field";
 
 describe("EmailField", () => {
-  it("renders an email input with the shared defaults", () => {
+  it("renders an email input with a production-grade example placeholder", () => {
     render(<EmailField />);
     const input = screen.getByLabelText("Email") as HTMLInputElement;
     expect(input).toHaveAttribute("type", "email");
     expect(input).toHaveAttribute("name", "email");
     expect(input).toHaveAttribute("maxLength", "150");
-    expect(input).toHaveAttribute("placeholder", "Optional");
+    expect(input).toHaveAttribute("placeholder", "e.g. juandelacruz@gmail.com");
   });
 
-  it("does not render the Optional placeholder when required", () => {
+  it("still shows the example placeholder when required — the asterisk carries the required signal, not the placeholder", () => {
     render(<EmailField required />);
-    const input = screen.getByLabelText("Email");
+    const input = screen.getByLabelText(/Email/);
     expect(input).toHaveAttribute("required");
-    expect(input).not.toHaveAttribute("placeholder");
+    expect(input).toHaveAttribute("placeholder", "e.g. juandelacruz@gmail.com");
+  });
+
+  it("renders a required asterisk next to the label when required", () => {
+    const { container } = render(<EmailField required />);
+    expect(container.querySelector(".required-asterisk")).toBeInTheDocument();
+  });
+
+  it("renders no asterisk when not required", () => {
+    const { container } = render(<EmailField />);
+    expect(container.querySelector(".required-asterisk")).not.toBeInTheDocument();
   });
 
   it("supports a custom label and default value for reuse outside one form", () => {

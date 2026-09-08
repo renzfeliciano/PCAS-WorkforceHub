@@ -11,7 +11,7 @@ const GENDERS = [
 describe("SelectField", () => {
   it("renders a labeled select with a disabled placeholder option and the given options", () => {
     render(<SelectField name="gender" label="Gender" options={GENDERS} placeholder="Select gender" required />);
-    const select = screen.getByLabelText("Gender") as HTMLSelectElement;
+    const select = screen.getByLabelText(/Gender/) as HTMLSelectElement;
     expect(select).toHaveAttribute("required");
     const placeholderOption = within(select).getByText("Select gender");
     expect(placeholderOption).toBeDisabled();

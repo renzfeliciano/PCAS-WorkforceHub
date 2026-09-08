@@ -5,6 +5,7 @@ type RemarksFieldProps = Readonly<{
   label?: string;
   defaultValue?: string;
   error?: string;
+  required?: boolean;
   maxLength?: number;
   fullWidth?: boolean;
   placeholder?: string;
@@ -20,16 +21,18 @@ export function RemarksField({
   label = "Remarks",
   defaultValue,
   error,
+  required,
   maxLength = 500,
   fullWidth = true,
   placeholder,
 }: RemarksFieldProps) {
   return (
-    <FormField label={label} name={name} error={error} fullWidth={fullWidth}>
+    <FormField label={label} name={name} error={error} fullWidth={fullWidth} required={required}>
       <textarea
         name={name}
         rows={4}
         maxLength={maxLength}
+        required={required}
         defaultValue={defaultValue}
         placeholder={placeholder}
         data-testid={`field-${name}`}

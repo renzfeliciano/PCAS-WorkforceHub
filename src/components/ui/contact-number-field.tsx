@@ -26,7 +26,7 @@ export function ContactNumberField({
   onChange,
   error,
   required,
-  placeholder = "09XX-XXX-XXXX",
+  placeholder = "e.g. 0917-123-4567",
 }: ContactNumberFieldProps) {
   return (
     <MaskedInputField
@@ -38,6 +38,7 @@ export function ContactNumberField({
       required={required}
       format={formatContactNumber}
       placeholder={placeholder}
+      title="Format: 09XX-XXX-XXXX"
       pattern="\d{4}-\d{3}-\d{4}"
       maxLength={13}
     />

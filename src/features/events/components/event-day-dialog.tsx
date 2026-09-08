@@ -265,7 +265,7 @@ function EventForm({ date, initialValue, onBack, onClose, onSubmit }: EventFormP
           fullWidth
           maxLength={500}
           defaultValue={initialValue?.description}
-          placeholder="Optional"
+          placeholder="e.g. Bring your own laptop for the workshop"
         />
       </div>
       {error && (

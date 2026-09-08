@@ -51,6 +51,18 @@ export function SettingsCatalogSection({
   const singularLabel = label.toLowerCase().endsWith("uses")
     ? label.toLowerCase().replace(/uses$/, "us")
     : label.toLowerCase().replace(/s$/, "");
+  // A realistic example per catalog kind/category, rather than one generic
+  // "e.g. ..." for every "Name" field regardless of what it's naming.
+  const namePlaceholder =
+    kind === "position"
+      ? "e.g. Site Engineer"
+      : kind === "project"
+        ? "e.g. EGI Rufino"
+        : category === "attendance"
+          ? "e.g. Half-day"
+          : category === "recruitment"
+            ? "e.g. Screening"
+            : "e.g. Regular";
 
   async function handleSeed() {
     setIsSeeding(true);
@@ -155,6 +167,7 @@ export function SettingsCatalogSection({
         <SettingFormDialog
           mode="create"
           label={singularLabel}
+          placeholder={namePlaceholder}
           onClose={() => setAdding(false)}
           onSubmit={async ({ name }) => {
             if (
@@ -173,6 +186,7 @@ export function SettingsCatalogSection({
         <SettingFormDialog
           mode="edit"
           label={singularLabel}
+          placeholder={namePlaceholder}
           initialValue={editing}
           onClose={() => setEditing(null)}
           onSubmit={async (input) => {

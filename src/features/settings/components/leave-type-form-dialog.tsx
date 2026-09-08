@@ -104,6 +104,7 @@ export function LeaveTypeFormDialog({
           name="name"
           label="Name"
           required
+          placeholder="e.g. Maternity Leave"
           defaultValue={initialValue?.name}
           error={fieldError("name")}
         />
@@ -125,7 +126,8 @@ export function LeaveTypeFormDialog({
         />
         <TextField
           name="description"
-          label="Description (optional)"
+          label="Description"
+          placeholder="e.g. For expecting mothers, per RA 11210"
           defaultValue={initialValue?.description}
           error={fieldError("description")}
         />

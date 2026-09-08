@@ -11,6 +11,7 @@ type SettingFormDialogProps = Readonly<{
   mode: "create" | "edit";
   label: string;
   submitLabel?: string;
+  placeholder?: string;
   initialValue?: SettingItem;
   onClose: () => void;
   onSubmit: (input: { name: string }) => Promise<void>;
@@ -20,6 +21,7 @@ export function SettingFormDialog({
   mode,
   label,
   submitLabel,
+  placeholder,
   initialValue,
   onClose,
   onSubmit,
@@ -92,6 +94,7 @@ export function SettingFormDialog({
         name="name"
         label="Name"
         required
+        placeholder={placeholder}
         value={name}
         onChange={(event) => {
           setName(event.target.value);

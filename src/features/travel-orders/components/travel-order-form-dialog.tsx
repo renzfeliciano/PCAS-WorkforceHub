@@ -128,7 +128,7 @@ export function TravelOrderFormDialog({
         <RemarksField
           defaultValue={initialValue?.remarks}
           maxLength={255}
-          placeholder="Optional"
+          placeholder="e.g. Year-end audit — Cebu branch"
         />
       </div>
       {error && (

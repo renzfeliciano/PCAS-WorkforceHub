@@ -23,7 +23,7 @@ describe("TextField", () => {
         placeholder="e.g. WH-2026-001"
       />,
     );
-    const input = screen.getByLabelText("Employee number");
+    const input = screen.getByLabelText(/Employee number/);
     expect(input).toHaveAttribute("required");
     expect(input).toHaveAttribute("maxLength", "20");
     expect(input).toHaveAttribute("placeholder", "e.g. WH-2026-001");
