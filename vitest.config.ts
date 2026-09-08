@@ -12,6 +12,14 @@ export default defineConfig({
     // duplicate-key handling, sorting, etc. work against real MongoDB
     // semantics, not just our assumptions about them.
     globalSetup: "./tests/global-setup.ts",
+    // Repository/API tests share ONE in-memory MongoDB across the whole
+    // run (see globalSetup above). Running test files in parallel (the
+    // default) means several worker processes hit that single mongod
+    // concurrently, which caused genuinely non-deterministic failures —
+    // not just the same flaky test each time, different unrelated ones
+    // depending on scheduling. Serializing file execution trades some
+    // wall-clock time for the suite actually being trustworthy.
+    fileParallelism: false,
     // Without this, a vi.fn()'s call history/queued mockResolvedValueOnce
     // values survive between `it()` blocks in the same file, so an
     // assertion like `expect(fn).not.toHaveBeenCalled()` can pass or fail

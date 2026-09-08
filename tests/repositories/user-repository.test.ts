@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectMongoDB } from "@/lib/mongodb";
 import { ConflictError } from "@/lib/app-errors";
 import { MongoUserRepository } from "@/repositories/user-repository";
@@ -17,8 +17,14 @@ function makeInput(overrides: Partial<CreateUserInput> = {}): CreateUserInput {
   };
 }
 
-beforeEach(async () => {
+beforeAll(async () => {
   await connectMongoDB();
+  // See tests/repositories/setting-repository.test.ts — the unique
+  // username index builds asynchronously in the background.
+  await UserModel.init();
+});
+
+beforeEach(async () => {
   await UserModel.deleteMany({});
 });
 
