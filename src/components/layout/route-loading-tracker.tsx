@@ -1,18 +1,34 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { navigationLoadingBus } from "@/lib/loading-bus";
 
 /** Safety net: if a click never actually navigates (e.g. blocked, failed), don't leave the loader stuck. */
 const MAX_PENDING_MS = 4000;
 
 export function RouteLoadingTracker() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const pendingRef = useRef(false);
   const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currentKeyRef = useRef(`${pathname}?${searchParams.toString()}`);
+
+  // isPending stays true until the destination route's Server Component data
+  // has actually streamed in and React has committed the new tree — unlike
+  // usePathname()/useSearchParams(), which update as soon as the router's URL
+  // state changes, well before the new page is ready. Ending the loader off
+  // pathname caused it to vanish while the old page was still on screen,
+  // leaving a blank/stale gap until the real content finally painted.
+  useEffect(() => {
+    if (!isPending && pendingRef.current) {
+      pendingRef.current = false;
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = null;
+      }
+      navigationLoadingBus.end();
+    }
+  }, [isPending]);
 
   useEffect(() => {
     function clearPending() {
@@ -27,9 +43,6 @@ export function RouteLoadingTracker() {
     }
 
     function handleClick(event: MouseEvent) {
-      // Note: don't bail on event.defaultPrevented — next/link's own click
-      // handler calls preventDefault() as a normal part of client-side
-      // routing, so that would skip every legitimate navigation.
       if (event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = (event.target as HTMLElement)?.closest("a");
@@ -41,9 +54,16 @@ export function RouteLoadingTracker() {
       if (anchor.origin !== window.location.origin) return;
       if (anchor.pathname + anchor.search === window.location.pathname + window.location.search) return;
 
+      // Take over the navigation ourselves (instead of letting next/link's
+      // own handler run it) so it happens inside our own startTransition —
+      // that's what makes isPending above track the real thing.
+      event.preventDefault();
       pendingRef.current = true;
       navigationLoadingBus.begin();
       safetyTimerRef.current = setTimeout(clearPending, MAX_PENDING_MS);
+      startTransition(() => {
+        router.push(href);
+      });
     }
 
     document.addEventListener("click", handleClick);
@@ -51,21 +71,7 @@ export function RouteLoadingTracker() {
       document.removeEventListener("click", handleClick);
       clearPending();
     };
-  }, []);
-
-  useEffect(() => {
-    const key = `${pathname}?${searchParams.toString()}`;
-    if (key === currentKeyRef.current) return;
-    currentKeyRef.current = key;
-    if (pendingRef.current) {
-      pendingRef.current = false;
-      if (safetyTimerRef.current) {
-        clearTimeout(safetyTimerRef.current);
-        safetyTimerRef.current = null;
-      }
-      navigationLoadingBus.end();
-    }
-  }, [pathname, searchParams]);
+  }, [router, startTransition]);
 
   return null;
 }
