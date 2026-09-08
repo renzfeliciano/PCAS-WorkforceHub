@@ -106,7 +106,7 @@ The application is built mobile-first-aware across breakpoints, not just "shrunk
 
 ## 8. Testing & Quality Assurance
 
-An automated regression suite (Vitest, kept in its own `tests/` directory mirroring `src/`, 182 tests across 25 files as of this writing) covers all four layers of the stack, not just business logic — every feature service has its own test file, and the layers under and around it are represented too:
+An automated regression suite (Vitest, kept in its own `tests/` directory mirroring `src/`, 183 tests across 26 files as of this writing) covers all four layers of the stack, not just business logic — every feature service has its own test file, and the layers under and around it are represented too:
 
 - **Repository layer**: integration tests against a real MongoDB (in-memory, `mongodb-memory-server` — no external service needed), proving actual Mongoose query behavior rather than assumptions about it: regex-escaped search, duplicate-key handling, compound-unique catalog entries, password hashing, one-attendance-record-per-employee-per-day.
 - **API route layer**: the Next.js route handlers themselves, with only the session lookup mocked — real database, real rate limiter, real service calls — proving the HTTP wiring (auth guard, validation, response shape) works, including an end-to-end proof that the EL/VL half-day fix (below) works through the actual route, not just the service function.
