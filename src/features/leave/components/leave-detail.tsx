@@ -14,6 +14,7 @@ import { leaveRecordsClient } from "@/features/leave/api/leave-records-client";
 import { LeaveBalanceHistoryPanel } from "@/features/leave/components/leave-balance-history-panel";
 import { LeaveRecordFormDialog } from "@/features/leave/components/leave-record-form-dialog";
 import { eligibleLeaveTypes } from "@/lib/leave-eligibility";
+import { formatBalanceInput, round2 } from "@/lib/leave-balance-input";
 import { formatLeaveSummary } from "@/lib/leave-summary";
 import type { Employee, LeaveBalance } from "@/types/employee";
 import type { LeaveRecord } from "@/types/leave-record";
@@ -39,7 +40,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
     setEmployee(fresh);
   }
 
-  const [edits, setEdits] = useState<Record<string, number>>({});
+  const [edits, setEdits] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [balancesError, setBalancesError] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -58,23 +59,35 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
     };
   }, [showHistory]);
 
-  function valueFor(leaveTypeId: string) {
-    if (edits[leaveTypeId] !== undefined) return edits[leaveTypeId];
-    return employee.leaveBalances.find((b) => b.leaveTypeId === leaveTypeId)?.balance ?? 0;
-  }
-
   function originalValueFor(leaveTypeId: string) {
     return employee.leaveBalances.find((b) => b.leaveTypeId === leaveTypeId)?.balance ?? 0;
   }
 
-  function setValue(leaveTypeId: string, next: number) {
-    const safe = Number.isFinite(next) ? Math.max(0, next) : 0;
-    setEdits((current) => ({ ...current, [leaveTypeId]: safe }));
+  /**
+   * The exact text shown in the field. Kept separate from the numeric value
+   * (below) because storing edits as a `number` and feeding it straight
+   * back into the input's `value` silently ate anything typed after a
+   * decimal point — "1." round-trips through `Number` to `1`, so the input
+   * snaps back to "1" before the next keystroke can land, making it
+   * impossible to ever type e.g. "1.73".
+   */
+  function textFor(leaveTypeId: string) {
+    if (edits[leaveTypeId] !== undefined) return edits[leaveTypeId];
+    return String(originalValueFor(leaveTypeId));
   }
 
-  /** Rounds to the nearest half-day to avoid floating-point drift (e.g. 1.2999999999999998). */
-  function roundHalf(value: number) {
-    return Math.round(value * 2) / 2;
+  function valueFor(leaveTypeId: string) {
+    const n = Number(textFor(leaveTypeId));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function setText(leaveTypeId: string, text: string) {
+    setEdits((current) => ({ ...current, [leaveTypeId]: text }));
+  }
+
+  function setValue(leaveTypeId: string, next: number) {
+    const safe = Number.isFinite(next) ? Math.max(0, next) : 0;
+    setText(leaveTypeId, String(safe));
   }
 
   /**
@@ -90,24 +103,27 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
     const applied =
       amount > 0 ? Math.min(amount, vlCurrent) : -Math.min(-amount, elCurrent);
     if (applied === 0) return;
-    setValue(elType.id, roundHalf(elCurrent + applied));
-    setValue(vlType.id, roundHalf(vlCurrent - applied));
+    setValue(elType.id, round2(elCurrent + applied));
+    setValue(vlType.id, round2(vlCurrent - applied));
   }
 
-  /**
-   * Keeps the field showing a plain "0" / "1" instead of "00" / "01" as the
-   * user types. A plain `type="number"` input doesn't reliably re-sync its
-   * displayed string once the value is normalized (a known React quirk), so
-   * this is a text input with manual numeric filtering instead.
-   */
   function handleValueInput(leaveTypeId: string, raw: string) {
-    const cleaned = raw.replace(/[^0-9.]/g, "");
-    const next = cleaned === "" ? 0 : Number(cleaned);
-    if (elType && leaveTypeId === elType.id) {
-      transferToEmergencyLeave(next - valueFor(elType.id));
+    const formatted = formatBalanceInput(raw);
+    if (elType && vlType && leaveTypeId === elType.id) {
+      const typed = Number(formatted);
+      const elCurrent = valueFor(elType.id);
+      const vlCurrent = valueFor(vlType.id);
+      const delta = (Number.isFinite(typed) ? typed : 0) - elCurrent;
+      const applied = delta > 0 ? Math.min(delta, vlCurrent) : -Math.min(-delta, elCurrent);
+      // Not clamped by the available VL/EL balance — reflect exactly what
+      // was typed (including an in-progress "1." or "1.70") rather than a
+      // round-tripped number. Only clamping (a real behavior change, not
+      // just formatting) snaps the field to the applied amount.
+      setText(elType.id, applied === delta ? formatted : String(round2(elCurrent + applied)));
+      setValue(vlType.id, round2(vlCurrent - applied));
       return;
     }
-    setValue(leaveTypeId, next);
+    setText(leaveTypeId, formatted);
   }
 
   function adjustValue(leaveTypeId: string, delta: number) {
@@ -115,7 +131,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
       transferToEmergencyLeave(delta);
       return;
     }
-    setValue(leaveTypeId, roundHalf(valueFor(leaveTypeId) + delta));
+    setValue(leaveTypeId, round2(valueFor(leaveTypeId) + delta));
   }
 
   function staleLabel(leaveTypeId: string) {
@@ -245,6 +261,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
           <div className="credit-grid">
             {options.map((type) => {
               const current = valueFor(type.id);
+              const currentText = textFor(type.id);
               const original = originalValueFor(type.id);
               const changed = current !== original;
               const isEmergencyLeave = elType?.id === type.id;
@@ -272,7 +289,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
                     <input
                       type="text"
                       inputMode="decimal"
-                      value={current}
+                      value={currentText}
                       disabled={locked}
                       onChange={(event) => handleValueInput(type.id, event.target.value)}
                       aria-label={`${type.name} balance`}

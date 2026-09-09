@@ -1,7 +1,7 @@
 import type { ChangeEvent } from "react";
 import { FormField } from "@/components/ui/form-field";
 
-export type SelectOption = { value: string; label: string };
+export type SelectOption = { value: string; label: string; disabled?: boolean };
 
 type SelectFieldProps = Readonly<{
   name: string;
@@ -64,7 +64,7 @@ export function SelectField({
           </option>
         ))}
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} disabled={option.disabled}>
             {option.label}
           </option>
         ))}

@@ -53,9 +53,21 @@ export function LeaveRecordFormDialog({
     !options.some((type) => type.id === initialValue.leaveTypeId)
       ? leaveTypes.find((type) => type.id === initialValue.leaveTypeId)
       : undefined;
+  // Editing a record that already drew from this exact type shouldn't lock
+  // you out of keeping it selected (for the dropdown) or show a misleadingly
+  // low "days remaining" (below) — its own days are added back before
+  // either check.
+  function availableBalance(leaveTypeId: string) {
+    const restored = mode === "edit" && initialValue?.leaveTypeId === leaveTypeId ? initialValue.days : 0;
+    return balanceFor(leaveTypeId) + restored;
+  }
   const leaveTypeOptions: SelectOption[] = options.map((type) => ({
     value: type.id,
-    label: `${type.name} (${type.code})`,
+    label:
+      availableBalance(type.id) > 0
+        ? `${type.name} (${type.code})`
+        : `${type.name} (${type.code}) — no balance`,
+    disabled: availableBalance(type.id) <= 0,
   }));
 
   // Half day only makes sense for a single date — if the range widens past
@@ -69,14 +81,7 @@ export function LeaveRecordFormDialog({
         ? 0.5
         : inclusiveDayCount(startDate, endDate)
       : 0;
-  // Editing restores the record's own days to its original type before
-  // re-deducting, so previewing "days remaining" needs to add that back in
-  // when the selection still points at the same type.
-  const restoredDays =
-    mode === "edit" && initialValue?.leaveTypeId === leaveTypeId
-      ? initialValue.days
-      : 0;
-  const remainingAfter = balanceFor(leaveTypeId) + restoredDays - days;
+  const remainingAfter = availableBalance(leaveTypeId) - days;
 
   async function handleSubmit(event: {
     preventDefault(): void;

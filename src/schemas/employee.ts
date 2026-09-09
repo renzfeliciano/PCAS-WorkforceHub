@@ -36,7 +36,15 @@ export const tinNumberSchema = z
   .regex(/^\d{3}-\d{3}-\d{3}(-\d{3})?$/, "Use format XXX-XXX-XXX or XXX-XXX-XXX-XXX");
 export const leaveBalanceSchema = z.object({
   leaveTypeId: z.string().trim().min(1),
-  balance: z.number().min(0).multipleOf(0.5, "Balances must be in half-day increments"),
+  // Was restricted to half-day increments; clients need finer-grained
+  // credits (e.g. 1.73). Standard shape is now "at most 2 whole-number
+  // digits, at most 2 decimal places" (0-99.99), matching the input mask in
+  // leave-detail.tsx, rather than a fixed step.
+  balance: z
+    .number()
+    .min(0)
+    .max(99.99, "Balances can have at most two whole-number digits")
+    .multipleOf(0.01, "Balances can have at most two decimal places"),
 });
 
 const employeeObjectSchema = z.object({

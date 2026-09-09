@@ -219,4 +219,45 @@ describe("updateEmployeeLeaveBalances", () => {
       updateEmployeeLeaveBalances(repo, noopAudit, history, hrActor, "missing", []),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
+
+  it("accepts a balance with arbitrary decimal precision, not just half-day increments", async () => {
+    const repo = fakeEmployeeRepository(
+      makeEmployee({ leaveBalances: [{ leaveTypeId: "vl", balance: 5 }] }),
+    );
+    const history = fakeLeaveBalanceChangeRepository();
+    const updated = await updateEmployeeLeaveBalances(repo, noopAudit, history, hrActor, "emp-1", [
+      { leaveTypeId: "vl", balance: 1.73 },
+    ]);
+    expect(updated.leaveBalances).toEqual([{ leaveTypeId: "vl", balance: 1.73 }]);
+  });
+
+  it("still rejects a negative balance", async () => {
+    const repo = fakeEmployeeRepository(makeEmployee());
+    const history = fakeLeaveBalanceChangeRepository();
+    await expect(
+      updateEmployeeLeaveBalances(repo, noopAudit, history, hrActor, "emp-1", [
+        { leaveTypeId: "vl", balance: -1 },
+      ]),
+    ).rejects.toThrow();
+  });
+
+  it("rejects a balance with more than two whole-number digits", async () => {
+    const repo = fakeEmployeeRepository(makeEmployee());
+    const history = fakeLeaveBalanceChangeRepository();
+    await expect(
+      updateEmployeeLeaveBalances(repo, noopAudit, history, hrActor, "emp-1", [
+        { leaveTypeId: "vl", balance: 100 },
+      ]),
+    ).rejects.toThrow();
+  });
+
+  it("rejects a balance with more than two decimal places", async () => {
+    const repo = fakeEmployeeRepository(makeEmployee());
+    const history = fakeLeaveBalanceChangeRepository();
+    await expect(
+      updateEmployeeLeaveBalances(repo, noopAudit, history, hrActor, "emp-1", [
+        { leaveTypeId: "vl", balance: 1.734 },
+      ]),
+    ).rejects.toThrow();
+  });
 });
