@@ -241,12 +241,21 @@ describe("updateEmployeeLeaveBalances", () => {
     ).rejects.toThrow();
   });
 
-  it("rejects a balance with more than two whole-number digits", async () => {
+  it("accepts a balance with up to three whole-number digits", async () => {
+    const repo = fakeEmployeeRepository(makeEmployee());
+    const history = fakeLeaveBalanceChangeRepository();
+    const updated = await updateEmployeeLeaveBalances(repo, noopAudit, history, hrActor, "emp-1", [
+      { leaveTypeId: "vl", balance: 111.73 },
+    ]);
+    expect(updated.leaveBalances).toEqual([{ leaveTypeId: "vl", balance: 111.73 }]);
+  });
+
+  it("rejects a balance with more than three whole-number digits", async () => {
     const repo = fakeEmployeeRepository(makeEmployee());
     const history = fakeLeaveBalanceChangeRepository();
     await expect(
       updateEmployeeLeaveBalances(repo, noopAudit, history, hrActor, "emp-1", [
-        { leaveTypeId: "vl", balance: 100 },
+        { leaveTypeId: "vl", balance: 1000 },
       ]),
     ).rejects.toThrow();
   });

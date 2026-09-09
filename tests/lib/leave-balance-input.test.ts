@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { formatBalanceInput, round2 } from "@/lib/leave-balance-input";
 
 describe("formatBalanceInput", () => {
-  it("preserves a value already within the 2-digit/2-decimal shape", () => {
+  it("preserves a value already within the 3-digit/2-decimal shape", () => {
     expect(formatBalanceInput("1.73")).toBe("1.73");
+    expect(formatBalanceInput("111.73")).toBe("111.73");
     expect(formatBalanceInput("42")).toBe("42");
   });
 
@@ -18,8 +19,8 @@ describe("formatBalanceInput", () => {
     expect(formatBalanceInput("1.70")).toBe("1.70");
   });
 
-  it("caps the whole-number part at 2 digits", () => {
-    expect(formatBalanceInput("123")).toBe("12");
+  it("caps the whole-number part at 3 digits", () => {
+    expect(formatBalanceInput("1234")).toBe("123");
   });
 
   it("caps the decimal part at 2 digits", () => {

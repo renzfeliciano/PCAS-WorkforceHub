@@ -88,7 +88,21 @@ export function LeaveRecordFormDialog({
     currentTarget: HTMLFormElement;
   }) {
     event.preventDefault();
-    if (!validate(event.currentTarget)) return;
+    if (!validate(event.currentTarget)) {
+      // Overrides the browser's generic "select an item" validation message
+      // with one that actually explains the situation when there's nothing
+      // eligible to pick in the first place.
+      if (!leaveTypeId) {
+        applyServerErrors({
+          leaveTypeId: [
+            leaveTypeOptions.length > 0 && leaveTypeOptions.every((option) => option.disabled)
+              ? "No leave type has an available balance to log against."
+              : "Select a leave type.",
+          ],
+        });
+      }
+      return;
+    }
     const data = new FormData(event.currentTarget);
     const reason = String(data.get("reason") ?? "").trim();
     setIsSubmitting(true);
@@ -137,6 +151,12 @@ export function LeaveRecordFormDialog({
             variant="primary"
             isLoading={isSubmitting}
             loadingText={mode === "create" ? "Logging leave" : "Saving changes"}
+            // A leave type with *some* balance still isn't selectable-and-
+            // submittable for a range that exceeds it — the dropdown only
+            // rules out types with nothing at all (see leaveTypeOptions
+            // above); this is the second gate, for "not enough for this
+            // specific request."
+            disabled={Boolean(leaveTypeId) && days > 0 && remainingAfter < 0}
             data-testid="submit-leave-record-form"
           >
             {mode === "create" ? (
