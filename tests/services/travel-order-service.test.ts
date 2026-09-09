@@ -6,9 +6,9 @@ import {
   updateTravelOrder,
 } from "@/services/travel-order-service";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
-import type { TravelOrderRepository } from "@/repositories/travel-order-repository";
+import type { TravelOrderPatch, TravelOrderRepository } from "@/repositories/travel-order-repository";
 import type { Employee } from "@/types/employee";
-import type { TravelOrder } from "@/types/travel-order";
+import type { TravelOrder, TravelOrderEmployee } from "@/types/travel-order";
 import { employeeActor, hrActor, noopAudit } from "../test-utils";
 
 function makeEmployee(id: string, overrides: Partial<Employee> = {}): Employee {
@@ -17,9 +17,12 @@ function makeEmployee(id: string, overrides: Partial<Employee> = {}): Employee {
     employeeNumber: id,
     name: `Employee ${id}`,
     gender: "Male",
+    positionId: "pos-1",
     position: "Staff",
+    projectSiteId: "proj-1",
     projectSite: "HO",
     dateHired: "2020-01-01",
+    employmentStatusId: "status-1",
     employmentStatus: "Regular",
     leaveBalances: [],
     archived: false,
@@ -42,24 +45,84 @@ function fakeEmployeeRepository(employees: Employee[]): EmployeeRepository {
   };
 }
 
-function fakeTravelOrderRepository(seed: TravelOrder[] = []): TravelOrderRepository {
-  const orders = new Map(seed.map((o) => [o.id, o]));
+type StoredTravelOrder = {
+  id: string;
+  employeeIds: string[];
+  startDate: string;
+  endDate: string;
+  remarks?: string;
+  createdAt: string;
+};
+
+/**
+ * Mirrors MongoTravelOrderRepository's real behavior: only `employeeId`s are
+ * persisted, and `employeeNumber`/`name` are resolved live from the current
+ * `employees` list every time an order is read — never snapshotted at
+ * create/update time. Passing the same `employees` array used by
+ * `fakeEmployeeRepository` lets a test mutate an employee and see it reflected
+ * on a travel order that was created before the change.
+ */
+function fakeTravelOrderRepository(
+  seed: TravelOrder[] = [],
+  employees: Employee[] = [],
+): TravelOrderRepository {
+  const orders = new Map<string, StoredTravelOrder>(
+    seed.map((order) => [
+      order.id,
+      {
+        id: order.id,
+        employeeIds: order.employees.map((entry) => entry.employeeId),
+        startDate: order.startDate,
+        endDate: order.endDate,
+        remarks: order.remarks,
+        createdAt: order.createdAt,
+      },
+    ]),
+  );
+
+  function resolve(stored: StoredTravelOrder): TravelOrder {
+    const resolvedEmployees: TravelOrderEmployee[] = stored.employeeIds.map((employeeId) => {
+      const employee = employees.find((e) => e.id === employeeId);
+      return employee
+        ? { employeeId, employeeNumber: employee.employeeNumber, name: employee.name }
+        : { employeeId, employeeNumber: "—", name: "—" };
+    });
+    return {
+      id: stored.id,
+      employees: resolvedEmployees,
+      startDate: stored.startDate,
+      endDate: stored.endDate,
+      remarks: stored.remarks,
+      createdAt: stored.createdAt,
+    };
+  }
+
   return {
-    findAll: async () => [...orders.values()],
-    findById: async (id) => orders.get(id) ?? null,
-    create: async (input) => {
-      const order: TravelOrder = { id: "to-new", createdAt: "2026-01-01T00:00:00.000Z", ...input };
-      orders.set(order.id, order);
-      return order;
+    findAll: async () => [...orders.values()].map(resolve),
+    findById: async (id) => {
+      const stored = orders.get(id);
+      return stored ? resolve(stored) : null;
     },
-    update: async (id, patch) => {
+    create: async (input: TravelOrderPatch) => {
+      const stored: StoredTravelOrder = {
+        id: "to-new",
+        employeeIds: input.employeeIds,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        remarks: input.remarks,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      };
+      orders.set(stored.id, stored);
+      return resolve(stored);
+    },
+    update: async (id: string, patch: TravelOrderPatch) => {
       const existing = orders.get(id);
       if (!existing) throw new NotFoundError("Travel order not found");
-      const updated = { ...existing, ...patch };
+      const updated: StoredTravelOrder = { ...existing, ...patch };
       orders.set(id, updated);
-      return updated;
+      return resolve(updated);
     },
-    delete: async (id) => {
+    delete: async (id: string) => {
       if (!orders.has(id)) throw new NotFoundError("Travel order not found");
       orders.delete(id);
     },
@@ -103,15 +166,54 @@ describe("createTravelOrder", () => {
     ).rejects.toThrow();
   });
 
-  it("resolves employee references and dispatches for HR", async () => {
-    const employeeRepo = fakeEmployeeRepository([makeEmployee("emp-1", { name: "Alice" })]);
-    const repo = fakeTravelOrderRepository();
+  it("dispatches for HR, storing only the employee id (no name/number snapshot)", async () => {
+    const alice = makeEmployee("emp-1", { name: "Alice" });
+    const employees = [alice];
+    const employeeRepo = fakeEmployeeRepository(employees);
+    const repo = fakeTravelOrderRepository([], employees);
     const order = await createTravelOrder(repo, employeeRepo, noopAudit, hrActor, {
       employeeIds: ["emp-1"],
       startDate: "2026-02-01",
       endDate: "2026-02-03",
     });
     expect(order.employees).toEqual([{ employeeId: "emp-1", employeeNumber: "emp-1", name: "Alice" }]);
+  });
+
+  it("reflects a later employee rename on an existing order without re-saving it", async () => {
+    const alice = makeEmployee("emp-1", { name: "Alice" });
+    const employees = [alice];
+    const employeeRepo = fakeEmployeeRepository(employees);
+    const repo = fakeTravelOrderRepository([], employees);
+    const order = await createTravelOrder(repo, employeeRepo, noopAudit, hrActor, {
+      employeeIds: ["emp-1"],
+      startDate: "2026-02-01",
+      endDate: "2026-02-03",
+    });
+    expect(order.employees[0].name).toBe("Alice");
+
+    // Simulate the employee being renamed elsewhere — the travel order is
+    // never touched.
+    alice.name = "Alicia";
+
+    const found = await repo.findById(order.id);
+    expect(found?.employees[0].name).toBe("Alicia");
+  });
+
+  it("shows a fallback value for an employee that's since been deleted, rather than dropping the entry", async () => {
+    const alice = makeEmployee("emp-1", { name: "Alice" });
+    const employees = [alice];
+    const employeeRepo = fakeEmployeeRepository(employees);
+    const repo = fakeTravelOrderRepository([], employees);
+    const order = await createTravelOrder(repo, employeeRepo, noopAudit, hrActor, {
+      employeeIds: ["emp-1"],
+      startDate: "2026-02-01",
+      endDate: "2026-02-03",
+    });
+
+    employees.length = 0; // simulate the employee record being deleted elsewhere
+
+    const found = await repo.findById(order.id);
+    expect(found?.employees).toEqual([{ employeeId: "emp-1", employeeNumber: "—", name: "—" }]);
   });
 });
 

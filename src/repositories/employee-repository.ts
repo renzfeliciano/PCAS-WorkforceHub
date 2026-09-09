@@ -1,5 +1,6 @@
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, type PipelineStage } from "mongoose";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
+import { lookupCatalogNameStage, resolveCatalogNames } from "@/repositories/catalog-lookup";
 import { EmployeeModel } from "@/repositories/models/employee-model";
 import { resolveSort } from "@/repositories/sort";
 import type { EmployeeInput, EmployeeUpdateInput } from "@/schemas/employee";
@@ -43,16 +44,16 @@ export interface EmployeeRepository {
 
 type EmployeeDocument = {
   _id: { toString(): string };
-  employeeNumber: string;
+  employeeNumber?: string;
   name: string;
   gender: Gender;
-  position: string;
-  projectSite: string;
+  positionId: string;
+  projectSiteId: string;
   dateHired: string;
   birthDate?: string;
   endOfContract?: string;
   lastDay?: string;
-  employmentStatus: string;
+  employmentStatusId: string;
   contactNumber?: string;
   address?: string;
   sssNumber?: string;
@@ -64,18 +65,28 @@ type EmployeeDocument = {
   createdAt: Date;
 };
 
-function toEmployee(doc: EmployeeDocument): Employee {
+/** Same shape as `EmployeeDocument`, plus the catalog names an aggregation pipeline already resolved. */
+type ResolvedEmployeeDocument = EmployeeDocument & {
+  position: string;
+  projectSite: string;
+  employmentStatus: string;
+};
+
+function toEmployee(doc: ResolvedEmployeeDocument): Employee {
   return {
     id: doc._id.toString(),
     employeeNumber: doc.employeeNumber,
     name: doc.name,
     gender: doc.gender,
+    positionId: doc.positionId,
     position: doc.position,
+    projectSiteId: doc.projectSiteId,
     projectSite: doc.projectSite,
     dateHired: doc.dateHired,
     birthDate: doc.birthDate,
     endOfContract: doc.endOfContract,
     lastDay: doc.lastDay,
+    employmentStatusId: doc.employmentStatusId,
     employmentStatus: doc.employmentStatus,
     contactNumber: doc.contactNumber,
     address: doc.address,
@@ -87,6 +98,35 @@ function toEmployee(doc: EmployeeDocument): Employee {
     archived: doc.archived,
     createdAt: doc.createdAt.toISOString(),
   };
+}
+
+/** Resolves one document's positionId/projectSiteId/employmentStatusId against the catalog and maps it to an Employee. */
+async function resolveOne(doc: EmployeeDocument): Promise<Employee> {
+  const names = await resolveCatalogNames([doc.positionId, doc.projectSiteId, doc.employmentStatusId]);
+  return toEmployee({
+    ...doc,
+    // A catalog entry that's been deleted (rather than just renamed) has
+    // nothing to resolve to — shown the same way a missing birth date is in
+    // the table's Age column, not as a blank string.
+    position: names.get(doc.positionId) ?? "—",
+    projectSite: names.get(doc.projectSiteId) ?? "—",
+    employmentStatus: names.get(doc.employmentStatusId) ?? "—",
+  });
+}
+
+/** Resolves many documents' positionId/projectSiteId/employmentStatusId against the catalog in one batched lookup. */
+async function resolveMany(docs: EmployeeDocument[]): Promise<Employee[]> {
+  const names = await resolveCatalogNames(
+    docs.flatMap((doc) => [doc.positionId, doc.projectSiteId, doc.employmentStatusId]),
+  );
+  return docs.map((doc) =>
+    toEmployee({
+      ...doc,
+      position: names.get(doc.positionId) ?? "—",
+      projectSite: names.get(doc.projectSiteId) ?? "—",
+      employmentStatus: names.get(doc.employmentStatusId) ?? "—",
+    }),
+  );
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
@@ -119,54 +159,79 @@ export class MongoEmployeeRepository implements EmployeeRepository {
   async findAll(filters: EmployeeListFilters): Promise<EmployeeListResult> {
     const page = Math.max(1, filters.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
-    const mongoQuery: Record<string, unknown> = {
+    const baseMatch: Record<string, unknown> = {
       archived: filters.includeArchived ? true : false,
     };
-    if (filters.status?.length) mongoQuery.employmentStatus = { $in: filters.status };
-    if (filters.query) {
-      const pattern = new RegExp(escapeRegex(filters.query.trim()), "i");
-      mongoQuery.$or = [
-        { name: pattern },
-        { employeeNumber: pattern },
-        { position: pattern },
-        { projectSite: pattern },
-      ];
-    }
+    if (filters.status?.length) baseMatch.employmentStatusId = { $in: filters.status };
+
     const sort = resolveSort(
       filters.sortBy,
       filters.sortDir,
       EMPLOYEE_SORT_FIELD_MAP,
       { createdAt: -1 },
     );
-    const [docs, total] = await Promise.all([
-      EmployeeModel.find(mongoQuery)
-        .sort(sort)
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .lean<EmployeeDocument[]>(),
-      EmployeeModel.countDocuments(mongoQuery),
-    ]);
-    return { items: docs.map(toEmployee), total, page, pageSize };
+
+    // position/projectSite are stored as catalog ids, so search, sort, and
+    // pagination all need the resolved display name — that requires an
+    // aggregation ($lookup the catalog) rather than a plain find().
+    const pipeline: PipelineStage[] = [
+      { $match: baseMatch },
+      lookupCatalogNameStage("positionId", "_position") as PipelineStage,
+      lookupCatalogNameStage("projectSiteId", "_projectSite") as PipelineStage,
+      lookupCatalogNameStage("employmentStatusId", "_employmentStatus") as PipelineStage,
+      {
+        $addFields: {
+          // Same "—" fallback as a deleted-catalog-entry resolution
+          // elsewhere in this file, for a catalog id that no longer exists.
+          position: { $ifNull: [{ $arrayElemAt: ["$_position.name", 0] }, "—"] },
+          projectSite: { $ifNull: [{ $arrayElemAt: ["$_projectSite.name", 0] }, "—"] },
+          employmentStatus: { $ifNull: [{ $arrayElemAt: ["$_employmentStatus.name", 0] }, "—"] },
+        },
+      },
+      { $project: { _position: 0, _projectSite: 0, _employmentStatus: 0 } },
+    ];
+    if (filters.query) {
+      const pattern = new RegExp(escapeRegex(filters.query.trim()), "i");
+      pipeline.push({
+        $match: {
+          $or: [{ name: pattern }, { employeeNumber: pattern }, { position: pattern }, { projectSite: pattern }],
+        },
+      });
+    }
+    pipeline.push({
+      $facet: {
+        data: [{ $sort: sort }, { $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+        totalCount: [{ $count: "count" }],
+      },
+    });
+
+    const [result] = await EmployeeModel.aggregate<{
+      data: ResolvedEmployeeDocument[];
+      totalCount: { count: number }[];
+    }>(pipeline);
+    const items = (result?.data ?? []).map(toEmployee);
+    const total = result?.totalCount[0]?.count ?? 0;
+    return { items, total, page, pageSize };
   }
 
   async findActiveForDashboard(): Promise<Employee[]> {
     const docs = await EmployeeModel.find({ archived: false })
       .sort({ createdAt: -1 })
       .lean<EmployeeDocument[]>();
-    return docs.map(toEmployee);
+    return resolveMany(docs);
   }
 
   async findById(id: string): Promise<Employee | null> {
     if (!isValidObjectId(id)) return null;
     const doc = await EmployeeModel.findById(id).lean<EmployeeDocument | null>();
-    return doc ? toEmployee(doc) : null;
+    return doc ? resolveOne(doc) : null;
   }
 
   async create(input: EmployeeInput): Promise<Employee> {
     const { $set } = splitPatch(input);
     try {
       const doc = await EmployeeModel.create({ ...$set, archived: false });
-      return toEmployee(doc.toObject() as EmployeeDocument);
+      return resolveOne(doc.toObject() as EmployeeDocument);
     } catch (error) {
       if (isDuplicateKeyError(error))
         throw new ConflictError("That employee number is already in use.");
@@ -182,7 +247,7 @@ export class MongoEmployeeRepository implements EmployeeRepository {
     try {
       const doc = await EmployeeModel.findByIdAndUpdate(id, update, { new: true }).lean<EmployeeDocument | null>();
       if (!doc) throw new NotFoundError("Employee not found");
-      return toEmployee(doc);
+      return resolveOne(doc);
     } catch (error) {
       if (isDuplicateKeyError(error))
         throw new ConflictError("That employee number is already in use.");
@@ -208,7 +273,7 @@ export class MongoEmployeeRepository implements EmployeeRepository {
       { new: true },
     ).lean<EmployeeDocument | null>();
     if (!doc) throw new NotFoundError("Employee not found");
-    return toEmployee(doc);
+    return resolveOne(doc);
   }
 
   async deleteAll(): Promise<void> {

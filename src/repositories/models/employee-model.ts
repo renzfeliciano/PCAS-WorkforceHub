@@ -10,16 +10,19 @@ const leaveBalanceSchema = new Schema(
 
 const employeeSchema = new Schema(
   {
-    employeeNumber: { type: String, required: true, unique: true, trim: true },
+    // sparse: lets multiple employees have no employeeNumber at all without
+    // colliding on the unique index — only documents that actually have a
+    // value are checked against each other.
+    employeeNumber: { type: String, unique: true, sparse: true, trim: true },
     name: { type: String, required: true, trim: true },
     gender: { type: String, enum: ["Male", "Female"], required: true },
-    position: { type: String, required: true, trim: true },
-    projectSite: { type: String, required: true, trim: true },
+    positionId: { type: String, required: true },
+    projectSiteId: { type: String, required: true },
     dateHired: { type: String, required: true },
     birthDate: { type: String },
     endOfContract: { type: String },
     lastDay: { type: String },
-    employmentStatus: { type: String, required: true, index: true },
+    employmentStatusId: { type: String, required: true, index: true },
     contactNumber: { type: String, trim: true },
     address: { type: String, trim: true },
     sssNumber: { type: String, trim: true },

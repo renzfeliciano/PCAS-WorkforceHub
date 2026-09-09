@@ -8,7 +8,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 export const createAttendanceRecordSchema = z
   .object({
     date: isoDate,
-    status: z.string().trim().min(1),
+    statusId: z.string().trim().min(1),
     remarks: z.string().trim().max(255).optional(),
   })
   .refine((data) => data.date <= todayIso(), {
@@ -17,7 +17,7 @@ export const createAttendanceRecordSchema = z
   });
 
 export const updateAttendanceRecordSchema = z.object({
-  status: z.string().trim().min(1),
+  statusId: z.string().trim().min(1),
   remarks: z.string().trim().max(255).optional(),
 });
 

@@ -14,7 +14,9 @@ function makeApplication(overrides: Partial<JobApplication> = {}): JobApplicatio
   return {
     id: "app-1",
     applicantName: "Jane Doe",
+    positionId: "pos-1",
     position: "Engineer",
+    stageId: "stage-applied",
     stage: "Applied",
     appliedDate: "2026-01-01",
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -28,7 +30,7 @@ function fakeRepository(seed: JobApplication[] = []): JobApplicationRepository {
     findAll: async () => [...applications.values()],
     findById: async (id) => applications.get(id) ?? null,
     create: async (input) => {
-      const application = makeApplication({ id: "app-new", ...input, stage: "Applied" });
+      const application = makeApplication({ id: "app-new", ...input, stageId: "stage-applied", stage: "Applied" });
       applications.set(application.id, application);
       return application;
     },
@@ -39,10 +41,12 @@ function fakeRepository(seed: JobApplication[] = []): JobApplicationRepository {
       applications.set(id, updated);
       return updated;
     },
-    updateStage: async (id, stage) => {
+    updateStage: async (id, stageId) => {
       const existing = applications.get(id);
       if (!existing) throw new NotFoundError("Job application not found");
-      const updated = { ...existing, stage };
+      // The fake has no real catalog to resolve against, so the id doubles
+      // as the display name here — enough to prove the service forwards it.
+      const updated = { ...existing, stageId, stage: stageId };
       applications.set(id, updated);
       return updated;
     },
@@ -59,7 +63,7 @@ describe("createJobApplication", () => {
     await expect(
       createJobApplication(repo, noopAudit, employeeActor, {
         applicantName: "Jane Doe",
-        position: "Engineer",
+        positionId: "pos-1",
         appliedDate: "2026-01-01",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
@@ -70,7 +74,7 @@ describe("createJobApplication", () => {
     await expect(
       createJobApplication(repo, noopAudit, hrActor, {
         applicantName: "Jane Doe",
-        position: "Engineer",
+        positionId: "pos-1",
         appliedDate: "2026-01-01",
         email: "not-an-email",
       }),
@@ -81,7 +85,7 @@ describe("createJobApplication", () => {
     const repo = fakeRepository();
     const application = await createJobApplication(repo, noopAudit, hrActor, {
       applicantName: "Jane Doe",
-      position: "Engineer",
+      positionId: "pos-1",
       appliedDate: "2026-01-01",
     });
     expect(application.stage).toBe("Applied");
@@ -92,14 +96,14 @@ describe("moveJobApplicationStage", () => {
   it("rejects roles that cannot manage recruitment", async () => {
     const repo = fakeRepository([makeApplication()]);
     await expect(
-      moveJobApplicationStage(repo, noopAudit, employeeActor, "app-1", { stage: "Interview" }),
+      moveJobApplicationStage(repo, noopAudit, employeeActor, "app-1", { stageId: "Interview" }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("moves the applicant to a new stage without touching other fields", async () => {
     const repo = fakeRepository([makeApplication()]);
     const moved = await moveJobApplicationStage(repo, noopAudit, hrActor, "app-1", {
-      stage: "Interview",
+      stageId: "Interview",
     });
     expect(moved.stage).toBe("Interview");
     expect(moved.applicantName).toBe("Jane Doe");
@@ -108,7 +112,7 @@ describe("moveJobApplicationStage", () => {
   it("throws NotFoundError for a missing application", async () => {
     const repo = fakeRepository([]);
     await expect(
-      moveJobApplicationStage(repo, noopAudit, hrActor, "missing", { stage: "Interview" }),
+      moveJobApplicationStage(repo, noopAudit, hrActor, "missing", { stageId: "Interview" }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 });
@@ -119,7 +123,7 @@ describe("updateJobApplication", () => {
     await expect(
       updateJobApplication(repo, noopAudit, employeeActor, "app-1", {
         applicantName: "Jane Doe",
-        position: "Senior Engineer",
+        positionId: "pos-2",
         appliedDate: "2026-01-01",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);

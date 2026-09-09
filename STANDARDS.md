@@ -2,7 +2,7 @@
 
 *Every claim in [SYSTEM_ANALYSIS.md](SYSTEM_ANALYSIS.md) and README.md's "Security & Accessibility Standards" section, traced to the exact file and line that enforces it, plus how to check it yourself. If a line number below doesn't match what's in the file, treat the claim as unverified and flag it — this document is meant to be checked against the code, not trusted on its own.*
 
-*Last verified: 2026-09-08 (includes the repository/API-route/UI-component test layers added the same day).*
+*Last verified: 2026-09-09 (adds §10 Entity References, covering the position/projectSite/travel-order id-reference fix).*
 
 ## How to use this file
 
@@ -79,20 +79,31 @@ Each row is a claim → the file/line that implements it → a command or manual
 | --- | --- | --- |
 | Every create/update/delete on leave records writes an immutable audit entry with actor, action, entity, and request ID | [src/services/leave-record-service.ts:86,125,149](src/services/leave-record-service.ts) (`audit.record(...)` on create/update/delete) | `grep -n "audit.record" src/services/*.ts` — check each mutating service |
 
-## 10. Accessibility (WAI-ARIA)
+## 10. Entity References (resolve by ID, not by copied name)
+
+| Claim | Enforced in | Verify it yourself |
+| --- | --- | --- |
+| A field that points at another entity stores that entity's id, never a copy of its current display name/label — so renaming the referenced entity is reflected everywhere it's used, without touching the documents that reference it | [src/repositories/models/employee-model.ts:5](src/repositories/models/employee-model.ts:5) (`leaveBalances[].leaveTypeId`), [src/repositories/models/employee-model.ts:16-22](src/repositories/models/employee-model.ts:16) (`positionId`/`projectSiteId`/`employmentStatusId`), [src/repositories/models/attendance-record-model.ts:5](src/repositories/models/attendance-record-model.ts:5), [src/repositories/models/leave-record-model.ts:5](src/repositories/models/leave-record-model.ts:5), [src/repositories/models/asset-issuance-model.ts:6](src/repositories/models/asset-issuance-model.ts:6), [src/repositories/models/travel-order-model.ts:7-9](src/repositories/models/travel-order-model.ts:7) (all `employeeId` only) | `grep -n "Id:" src/repositories/models/*.ts` — a field referencing another entity should be named `...Id` and typed accordingly, not duplicate that entity's name/label as a plain string |
+| The display name for such a reference is resolved from the referenced document at read time, not stored alongside the id | [src/repositories/employee-repository.ts](src/repositories/employee-repository.ts) (`resolveOne`/`resolveMany`, and the `findAll` aggregation's `$lookup` stages), [src/repositories/travel-order-repository.ts](src/repositories/travel-order-repository.ts) (`resolveEmployeeRefs`), [src/features/leave/components/leave-balance-history-panel.tsx:67](src/features/leave/components/leave-balance-history-panel.tsx:67) | Rename a Position/Project in Settings → Catalog Management, or rename an employee, without touching any other record — the roster, employee edit form, CSV export, and travel orders should all show the new name immediately |
+| A reference to a deleted entity shows an explicit fallback value (`"—"`), the same convention already used for a genuinely absent value (e.g. Age with no birth date), rather than a blank string or a dropped row | [src/repositories/employee-repository.ts](src/repositories/employee-repository.ts) (`?? "—"` in `resolveOne`/`resolveMany`/the aggregation's `$ifNull`), [src/repositories/travel-order-repository.ts](src/repositories/travel-order-repository.ts) (`resolveEmployeeRefs` fallback), [src/features/employees/components/employee-table.tsx:98](src/features/employees/components/employee-table.tsx:98) (`employee.birthDate ? calculateAge(...) : "—"`) | `npm test -- employee-repository` / `npm test -- travel-order-service` — see the "shows a fallback value for a ... that's since been deleted" tests |
+| An inactive catalog entry is excluded from selection dropdowns, but a record's own already-assigned value stays visible and selectable (labeled "(inactive)") so opening it for edit can't silently discard that value | [src/hooks/use-catalog-options.ts:33](src/hooks/use-catalog-options.ts:33) (`activeItems`), [src/features/employees/components/employee-form-dialog.tsx](src/features/employees/components/employee-form-dialog.tsx) (`stalePosition`/`staleProject`/`staleStatus`, each rendered as an `extraOptions` entry) | Deactivate a Position an existing employee uses, then open that employee's edit form — the dropdown shouldn't offer it to other records, but this employee's field should still show it, marked "(inactive)" |
+
+**Known gap:** `employmentStatusId` fixes the *display* staleness (the roster, forms, dashboard, CSV all show the current status name), but the required-date rule (`needsEndOfContract`/`needsLastDay` in [src/lib/employment-status.ts](src/lib/employment-status.ts)) still hardcodes specific status *names*, resolved from the id via `employmentStatusName` in [src/schemas/employee.ts](src/schemas/employee.ts) purely for that one check (never persisted). Renaming one of those specific statuses (e.g. "Contractual") would silently stop matching the hardcoded list — true today regardless of id vs. name storage, and unchanged by this fix. Closing that gap needs a stable `code` field on status catalog entries (mirroring `LeaveType.code`) that the rule matches on instead of the display name — not done yet.
+
+## 11. Accessibility (WAI-ARIA)
 
 | Claim | Enforced in | Verify it yourself |
 | --- | --- | --- |
 | Every dialog in the app is built on one shared, accessible Modal component | [src/components/ui/modal.tsx:80-81](src/components/ui/modal.tsx) (`role: "dialog"`, `"aria-modal": true`) | `grep -rln "from \"@/components/ui/modal\"" src/features/` — every feature's dialogs should import from here, not build their own |
 | Escape closes the dialog; focus moves in on open and returns to the trigger on close | [src/components/ui/modal.tsx:40-54](src/components/ui/modal.tsx) | Open any modal, press `Tab` then `Escape` — focus should return to whatever button opened it |
 
-## 11. Responsive Design
+## 12. Responsive Design
 
 | Claim | Enforced in | Verify it yourself |
 | --- | --- | --- |
 | Modals are capped at a maximum height that respects the actual viewport, never a fixed height that overflows on small screens | [src/app/globals.css:1748](src/app/globals.css) (base rule, `calc(100dvh - 40px)`) and [src/app/globals.css:2371](src/app/globals.css) (≤620px rule, `min(75vh, calc(100dvh - 24px))`) | Open any modal at a narrow browser width (e.g. 375px) — it should never be taller than the visible screen |
 
-## 12. Automated Test Coverage
+## 13. Automated Test Coverage
 
 | Claim | Enforced in | Verify it yourself |
 | --- | --- | --- |
@@ -108,7 +119,7 @@ Each row is a claim → the file/line that implements it → a command or manual
 | Any change to an already-tested service also updates that service's designated test file, in the same piece of work | Process convention, not code | Check that a commit touching `src/services/*.ts` also touches the matching `tests/services/*.test.ts`, unless the change is genuinely untestable (e.g. a comment-only edit) |
 | The test-only `mongodb-memory-server` dependency never downloads its MongoDB binary during `npm install` on a deploy — only lazily, the first time a test actually runs — so it can't slow down or risk failing a Vercel build for something the deployed app never uses | [package.json](package.json) (`config.mongodbMemoryServer.disablePostinstall`) | `node node_modules/mongodb-memory-server/postinstall.js` should print "postinstall skipped" instead of downloading anything |
 
-## 13. Known Gaps (Honest, Not Hidden)
+## 14. Known Gaps (Honest, Not Hidden)
 
 Things claimed nowhere as "done" but worth being explicit about, so this document doesn't overstate what exists:
 

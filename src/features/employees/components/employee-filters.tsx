@@ -30,7 +30,10 @@ export function EmployeeFilters({
 }: EmployeeFiltersProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const statusOptions = statuses.filter((item) => item.active).map((item) => item.name);
+  // Filtered/matched by id (statuses can be renamed without breaking a
+  // filter already in flight), displayed by the catalog's current name.
+  const statusOptions = statuses.filter((item) => item.active).map((item) => ({ id: item.id, name: item.name }));
+  const statusIds = statusOptions.map((item) => item.id);
   const noStatusFilter = selectedStatuses.length === 0;
   const isAllActive = noStatusFilter && !showArchived;
 
@@ -52,17 +55,17 @@ export function EmployeeFilters({
     };
   }, [open]);
 
-  function toggleStatus(value: string) {
+  function toggleStatus(id: string) {
     // While "All" is active every option shows as checked; unchecking one
     // narrows the selection to "everything except that one" rather than
     // starting from nothing.
-    const baseline = noStatusFilter ? statusOptions : selectedStatuses;
-    const isChecked = baseline.includes(value);
+    const baseline = noStatusFilter ? statusIds : selectedStatuses;
+    const isChecked = baseline.includes(id);
     const next = isChecked
-      ? baseline.filter((item) => item !== value)
-      : [...baseline, value];
+      ? baseline.filter((item) => item !== id)
+      : [...baseline, id];
     // Selecting every individual status is equivalent to "All" selected.
-    onSelectedStatusesChange(next.length === statusOptions.length ? [] : next);
+    onSelectedStatusesChange(next.length === statusIds.length ? [] : next);
   }
 
   function selectAll() {
@@ -70,9 +73,12 @@ export function EmployeeFilters({
     onShowArchivedChange(false);
   }
 
+  const selectedStatusNames = selectedStatuses.map(
+    (id) => statusOptions.find((item) => item.id === id)?.name ?? id,
+  );
   const summaryLabel = isAllActive
     ? "All"
-    : [...selectedStatuses, ...(showArchived ? ["Archived"] : [])].join(", ");
+    : [...selectedStatusNames, ...(showArchived ? ["Archived"] : [])].join(", ");
 
   return (
     <div className="toolbar">
@@ -102,13 +108,13 @@ export function EmployeeFilters({
               All
             </label>
             {statusOptions.map((option) => (
-              <label className="status-dropdown-option" key={option}>
+              <label className="status-dropdown-option" key={option.id}>
                 <input
                   type="checkbox"
-                  checked={noStatusFilter || selectedStatuses.includes(option)}
-                  onChange={() => toggleStatus(option)}
+                  checked={noStatusFilter || selectedStatuses.includes(option.id)}
+                  onChange={() => toggleStatus(option.id)}
                 />
-                {option}
+                {option.name}
               </label>
             ))}
             {canManage && (

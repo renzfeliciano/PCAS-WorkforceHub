@@ -1,5 +1,6 @@
 import { isValidObjectId } from "mongoose";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
+import { resolveCatalogNames } from "@/repositories/catalog-lookup";
 import { AttendanceRecordModel } from "@/repositories/models/attendance-record-model";
 import type { AttendanceRecord } from "@/types/attendance";
 
@@ -7,25 +8,40 @@ type AttendanceRecordDocument = {
   _id: { toString(): string };
   employeeId: { toString(): string };
   date: string;
-  status: string;
+  statusId: string;
   remarks?: string;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export type AttendanceRecordFields = { date: string; status: string; remarks?: string };
-export type AttendanceRecordPatch = { status: string; remarks?: string };
+export type AttendanceRecordFields = { date: string; statusId: string; remarks?: string };
+export type AttendanceRecordPatch = { statusId: string; remarks?: string };
 
-function toAttendanceRecord(doc: AttendanceRecordDocument): AttendanceRecord {
+function toAttendanceRecord(doc: AttendanceRecordDocument, statusName: string): AttendanceRecord {
   return {
     id: doc._id.toString(),
     employeeId: doc.employeeId.toString(),
     date: doc.date,
-    status: doc.status,
+    statusId: doc.statusId,
+    status: statusName,
     remarks: doc.remarks,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
   };
+}
+
+/** Resolves one document's statusId against the catalog and maps it to an AttendanceRecord. */
+async function resolveOne(doc: AttendanceRecordDocument): Promise<AttendanceRecord> {
+  const names = await resolveCatalogNames([doc.statusId]);
+  // Same "—" fallback used for a deleted catalog entry elsewhere (e.g. the
+  // roster's Age column with no birth date).
+  return toAttendanceRecord(doc, names.get(doc.statusId) ?? "—");
+}
+
+/** Resolves many documents' statusId against the catalog in one batched lookup. */
+async function resolveMany(docs: AttendanceRecordDocument[]): Promise<AttendanceRecord[]> {
+  const names = await resolveCatalogNames(docs.map((doc) => doc.statusId));
+  return docs.map((doc) => toAttendanceRecord(doc, names.get(doc.statusId) ?? "—"));
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
@@ -51,19 +67,19 @@ export class MongoAttendanceRecordRepository implements AttendanceRecordReposito
     })
       .sort({ date: 1 })
       .lean<AttendanceRecordDocument[]>();
-    return docs.map(toAttendanceRecord);
+    return resolveMany(docs);
   }
 
   async findById(id: string): Promise<AttendanceRecord | null> {
     if (!isValidObjectId(id)) return null;
     const doc = await AttendanceRecordModel.findById(id).lean<AttendanceRecordDocument | null>();
-    return doc ? toAttendanceRecord(doc) : null;
+    return doc ? resolveOne(doc) : null;
   }
 
   async create(employeeId: string, input: AttendanceRecordFields): Promise<AttendanceRecord> {
     try {
       const doc = await AttendanceRecordModel.create({ employeeId, ...input });
-      return toAttendanceRecord(doc.toObject() as AttendanceRecordDocument);
+      return resolveOne(doc.toObject() as AttendanceRecordDocument);
     } catch (error) {
       if (isDuplicateKeyError(error))
         throw new ConflictError("Attendance is already recorded for this date.");
@@ -75,13 +91,13 @@ export class MongoAttendanceRecordRepository implements AttendanceRecordReposito
     if (!isValidObjectId(id)) throw new NotFoundError("Attendance record not found");
     const doc = await AttendanceRecordModel.findByIdAndUpdate(id, { $set: patch }, { new: true }).lean<AttendanceRecordDocument | null>();
     if (!doc) throw new NotFoundError("Attendance record not found");
-    return toAttendanceRecord(doc);
+    return resolveOne(doc);
   }
 
   async delete(id: string): Promise<AttendanceRecord> {
     if (!isValidObjectId(id)) throw new NotFoundError("Attendance record not found");
     const doc = await AttendanceRecordModel.findByIdAndDelete(id).lean<AttendanceRecordDocument | null>();
     if (!doc) throw new NotFoundError("Attendance record not found");
-    return toAttendanceRecord(doc);
+    return resolveOne(doc);
   }
 }

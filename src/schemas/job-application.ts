@@ -3,12 +3,12 @@ import { contactNumberSchema, emailSchema } from "@/schemas/shared";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
-/** The default stage a new applicant lands in — must match a seeded name in the "recruitment" status catalog (see RECRUITMENT_STAGE_CATEGORY). */
-export const DEFAULT_APPLICATION_STAGE = "Applied";
+/** The default stage a new applicant lands in — must match a seeded name in the "recruitment" status catalog (see RECRUITMENT_STAGE_CATEGORY). Resolved to a catalog id at creation time (see MongoJobApplicationRepository.create), not stored as this literal name. */
+export const DEFAULT_APPLICATION_STAGE_NAME = "Applied";
 
 export const jobApplicationSchema = z.object({
   applicantName: z.string().trim().min(1, "Applicant name is required").max(120),
-  position: z.string().trim().min(1, "Position is required").max(120),
+  positionId: z.string().trim().min(1, "Position is required"),
   email: emailSchema.optional(),
   phone: contactNumberSchema.optional(),
   appliedDate: isoDate,
@@ -23,6 +23,6 @@ export type JobApplicationInput = z.infer<typeof jobApplicationSchema>;
  * non-empty check rather than a fixed enum — the same trust-the-UI-dropdown
  * approach used for attendance status. */
 export const moveApplicationStageSchema = z.object({
-  stage: z.string().trim().min(1, "Select a stage"),
+  stageId: z.string().trim().min(1, "Select a stage"),
 });
 export type MoveApplicationStageInput = z.infer<typeof moveApplicationStageSchema>;

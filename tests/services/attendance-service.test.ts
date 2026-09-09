@@ -15,6 +15,7 @@ function makeRecord(overrides: Partial<AttendanceRecord> = {}): AttendanceRecord
     id: "rec-1",
     employeeId: "emp-1",
     date: "2026-01-10",
+    statusId: "status-present",
     status: "Present",
     createdAt: "2026-01-10T00:00:00.000Z",
     updatedAt: "2026-01-10T00:00:00.000Z",
@@ -28,14 +29,16 @@ function fakeRepository(seed: AttendanceRecord[] = []): AttendanceRecordReposito
     findByEmployeeAndRange: vi.fn(async () => [...records.values()]),
     findById: async (id) => records.get(id) ?? null,
     create: async (employeeId, input) => {
-      const record = makeRecord({ id: "rec-new", employeeId, ...input });
+      // The fake has no real catalog to resolve against, so the id doubles
+      // as the display name here — enough to prove the service forwards it.
+      const record = makeRecord({ id: "rec-new", employeeId, ...input, status: input.statusId });
       records.set(record.id, record);
       return record;
     },
     update: async (id, patch) => {
       const existing = records.get(id);
       if (!existing) throw new NotFoundError("Attendance record not found");
-      const updated = { ...existing, ...patch };
+      const updated = { ...existing, ...patch, status: patch.statusId };
       records.set(id, updated);
       return updated;
     },
@@ -80,7 +83,7 @@ describe("createAttendanceRecord", () => {
     await expect(
       createAttendanceRecord(repo, noopAudit, employeeActor, "emp-1", {
         date: "2026-01-10",
-        status: "Present",
+        statusId: "Present",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
@@ -90,7 +93,7 @@ describe("createAttendanceRecord", () => {
     await expect(
       createAttendanceRecord(repo, noopAudit, hrActor, "emp-1", {
         date: "2099-01-01",
-        status: "Present",
+        statusId: "Present",
       }),
     ).rejects.toThrow();
   });
@@ -99,7 +102,7 @@ describe("createAttendanceRecord", () => {
     const repo = fakeRepository();
     const record = await createAttendanceRecord(repo, noopAudit, hrActor, "emp-1", {
       date: "2026-01-10",
-      status: "Present",
+      statusId: "Present",
     });
     expect(record.status).toBe("Present");
   });
@@ -109,21 +112,21 @@ describe("updateAttendanceRecord", () => {
   it("rejects roles that cannot manage attendance", async () => {
     const repo = fakeRepository([makeRecord()]);
     await expect(
-      updateAttendanceRecord(repo, noopAudit, employeeActor, "rec-1", { status: "Absent" }),
+      updateAttendanceRecord(repo, noopAudit, employeeActor, "rec-1", { statusId: "Absent" }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("throws NotFoundError for a missing record", async () => {
     const repo = fakeRepository([]);
     await expect(
-      updateAttendanceRecord(repo, noopAudit, hrActor, "missing", { status: "Absent" }),
+      updateAttendanceRecord(repo, noopAudit, hrActor, "missing", { statusId: "Absent" }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("updates the status for HR", async () => {
     const repo = fakeRepository([makeRecord()]);
     const updated = await updateAttendanceRecord(repo, noopAudit, hrActor, "rec-1", {
-      status: "Late",
+      statusId: "Late",
     });
     expect(updated.status).toBe("Late");
   });

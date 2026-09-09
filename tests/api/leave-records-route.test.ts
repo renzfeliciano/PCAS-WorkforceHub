@@ -39,10 +39,10 @@ async function seedEmployeeWithBalances(vlBalance: number, elBalance: number) {
     employeeNumber: "001",
     name: "Alice Smith",
     gender: "Female",
-    position: "Engineer",
-    projectSite: "HO",
+    positionId: "pos-1",
+    projectSiteId: "proj-1",
     dateHired: "2020-01-01",
-    employmentStatus: "Regular",
+    employmentStatusId: "status-1",
     leaveBalances: [
       { leaveTypeId: vlType._id.toString(), balance: vlBalance },
       { leaveTypeId: elType._id.toString(), balance: elBalance },

@@ -68,14 +68,26 @@ export function EmployeeFormDialog({
   const [contactNumber, setContactNumber] = useState(
     formatContactNumber(initialValue?.contactNumber ?? ""),
   );
-  const [employmentStatus, setEmploymentStatus] = useState(
-    initialValue?.employmentStatus ?? "",
+  const [employmentStatusId, setEmploymentStatusId] = useState(
+    initialValue?.employmentStatusId ?? "",
   );
 
-  const showEndOfContract = needsEndOfContract(employmentStatus);
-  const showLastDay = needsLastDay(employmentStatus);
+  // needsEndOfContract/needsLastDay match on the status's display *name*
+  // (see src/lib/employment-status.ts), so the selected id still needs
+  // resolving to a name here — from the live catalog once loaded, or from
+  // the record's own already-resolved name if the id hasn't changed from
+  // what was loaded (covers a status that's since gone inactive).
+  const selectedStatusName =
+    statuses.find((item) => item.id === employmentStatusId)?.name ??
+    (employmentStatusId && employmentStatusId === initialValue?.employmentStatusId
+      ? initialValue?.employmentStatus
+      : undefined) ??
+    "";
 
-  // Guarded by `!isLoading`: before a catalog has loaded, its active-names
+  const showEndOfContract = needsEndOfContract(selectedStatusName);
+  const showLastDay = needsLastDay(selectedStatusName);
+
+  // Guarded by `!isLoading`: before a catalog has loaded, its active-ids
   // list is still empty, which would otherwise flag the current value as
   // "stale" for one render just because nothing has arrived yet — for
   // employmentStatus specifically, that transient false positive collided
@@ -84,45 +96,45 @@ export function EmployeeFormDialog({
   // key.
   const staleValue = (
     current: string | undefined,
-    activeNames: string[],
+    activeValues: string[],
     isLoading: boolean,
-  ) => (current && !isLoading && !activeNames.includes(current) ? current : undefined);
+  ) => (current && !isLoading && !activeValues.includes(current) ? current : undefined);
   const stalePosition = staleValue(
-    initialValue?.position,
-    positions.map((item) => item.name),
+    initialValue?.positionId,
+    positions.map((item) => item.id),
     positionsLoading,
   );
   const staleProject = staleValue(
-    initialValue?.projectSite,
-    projects.map((item) => item.name),
+    initialValue?.projectSiteId,
+    projects.map((item) => item.id),
     projectsLoading,
   );
   const staleStatus = staleValue(
-    initialValue?.employmentStatus,
-    statuses.map((item) => item.name),
+    initialValue?.employmentStatusId,
+    statuses.map((item) => item.id),
     statusesLoading,
   );
 
   const positionOptions: SelectOption[] = positions.map((item) => ({
-    value: item.name,
+    value: item.id,
     label: item.name,
   }));
   const projectOptions: SelectOption[] = projects.map((item) => ({
-    value: item.name,
+    value: item.id,
     label: item.name,
   }));
   const statusOptions: SelectOption[] = statuses.map((item) => ({
-    value: item.name,
+    value: item.id,
     label: item.name,
   }));
   // useCatalogOptions' `items` and `isLoading` land in separate renders
   // (its fetch resolves items first, isLoading second), so checking
   // "already covered by a real option" directly — rather than trusting
   // isLoading's exact timing — is what actually prevents the transient
-  // duplicate <option value="Contractual"> this guards against.
+  // duplicate <option> this guards against.
   const employmentStatusAlreadyListed =
-    staleStatus === employmentStatus ||
-    statusOptions.some((option) => option.value === employmentStatus);
+    staleStatus === employmentStatusId ||
+    statusOptions.some((option) => option.value === employmentStatusId);
 
   async function handleSubmit(event: {
     preventDefault(): void;
@@ -133,12 +145,15 @@ export function EmployeeFormDialog({
     const data = new FormData(event.currentTarget);
     const value = (field: string) => String(data.get(field) ?? "").trim();
     const input: EmployeeInput = {
-      employeeNumber: value("employeeNumber"),
+      employeeNumber: value("employeeNumber") || null,
       name: value("name"),
       gender: value("gender") as EmployeeInput["gender"],
-      position: value("position"),
-      projectSite: value("projectSite"),
-      employmentStatus: value("employmentStatus"),
+      positionId: value("positionId"),
+      projectSiteId: value("projectSiteId"),
+      employmentStatusId: value("employmentStatusId"),
+      // Not persisted — see the schema comment on employmentStatusName for
+      // why the resolved name still needs to travel with the request.
+      employmentStatusName: selectedStatusName,
       dateHired: value("dateHired"),
       birthDate: value("birthDate") || null,
       endOfContract: showEndOfContract ? value("endOfContract") : null,
@@ -180,7 +195,7 @@ export function EmployeeFormDialog({
       }
       description={
         initialValue
-          ? `${initialValue.employeeNumber} · ${initialValue.position}`
+          ? [initialValue.employeeNumber, initialValue.position].filter(Boolean).join(" · ")
           : "Employment, contact, and statutory ID details."
       }
       onClose={onClose}
@@ -221,7 +236,6 @@ export function EmployeeFormDialog({
         <TextField
           name="employeeNumber"
           label="Employee number"
-          required
           maxLength={20}
           placeholder="e.g. WH-2026-001"
           defaultValue={initialValue?.employeeNumber}
@@ -246,52 +260,52 @@ export function EmployeeFormDialog({
           error={fieldError("gender")}
         />
         <SelectField
-          name="position"
+          name="positionId"
           label="Position"
           options={positionOptions}
           placeholder="Select a position"
           extraOptions={
             stalePosition
-              ? [{ value: stalePosition, label: `${stalePosition} (inactive)` }]
+              ? [{ value: stalePosition, label: `${initialValue?.position} (inactive)` }]
               : undefined
           }
-          defaultValue={initialValue?.position ?? ""}
+          defaultValue={initialValue?.positionId ?? ""}
           required
           remountKey={positionsLoading ? "loading" : "loaded"}
-          error={fieldError("position")}
+          error={fieldError("positionId")}
         />
         <SelectField
-          name="projectSite"
+          name="projectSiteId"
           label="Project / site"
           options={projectOptions}
           placeholder="Select a project/site"
           extraOptions={
             staleProject
-              ? [{ value: staleProject, label: `${staleProject} (inactive)` }]
+              ? [{ value: staleProject, label: `${initialValue?.projectSite} (inactive)` }]
               : undefined
           }
-          defaultValue={initialValue?.projectSite ?? ""}
+          defaultValue={initialValue?.projectSiteId ?? ""}
           required
           remountKey={projectsLoading ? "loading" : "loaded"}
-          error={fieldError("projectSite")}
+          error={fieldError("projectSiteId")}
         />
         <SelectField
-          name="employmentStatus"
+          name="employmentStatusId"
           label="Employment status"
           options={statusOptions}
           placeholder="Select a status"
           extraOptions={[
             ...(staleStatus
-              ? [{ value: staleStatus, label: `${staleStatus} (inactive)` }]
+              ? [{ value: staleStatus, label: `${initialValue?.employmentStatus} (inactive)` }]
               : []),
-            ...(employmentStatus && !employmentStatusAlreadyListed
-              ? [{ value: employmentStatus, label: employmentStatus }]
+            ...(employmentStatusId && !employmentStatusAlreadyListed
+              ? [{ value: employmentStatusId, label: selectedStatusName || employmentStatusId }]
               : []),
           ]}
-          value={employmentStatus}
-          onChange={(event) => setEmploymentStatus(event.target.value)}
+          value={employmentStatusId}
+          onChange={(event) => setEmploymentStatusId(event.target.value)}
           required
-          error={fieldError("employmentStatus")}
+          error={fieldError("employmentStatusId")}
         />
         <DateField
           name="birthDate"

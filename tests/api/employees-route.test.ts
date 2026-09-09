@@ -40,10 +40,11 @@ function validEmployeeInput(overrides: Record<string, unknown> = {}) {
     employeeNumber: "001",
     name: "Alice Smith",
     gender: "Female",
-    position: "Engineer",
-    projectSite: "HO",
+    positionId: "pos-1",
+    projectSiteId: "proj-1",
     dateHired: "2020-01-01",
-    employmentStatus: "Regular",
+    employmentStatusId: "status-1",
+    employmentStatusName: "Regular",
     ...overrides,
   };
 }

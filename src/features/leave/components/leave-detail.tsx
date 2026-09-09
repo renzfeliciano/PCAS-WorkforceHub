@@ -196,7 +196,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
           </Link>
           <h1>{employee.name}</h1>
           <p className="muted">
-            {employee.employeeNumber} · {employee.position}
+            {[employee.employeeNumber, employee.position].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>

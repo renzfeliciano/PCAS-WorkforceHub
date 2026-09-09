@@ -98,7 +98,7 @@ export function EmployeeLookup({
                 <div>
                   <b>{employee.name}</b>
                   <small>
-                    {employee.employeeNumber} · {employee.position}
+                    {[employee.employeeNumber, employee.position].filter(Boolean).join(" · ")}
                   </small>
                 </div>
               </Link>

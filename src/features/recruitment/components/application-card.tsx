@@ -8,10 +8,10 @@ type ApplicationCardProps = Readonly<{
   application: JobApplication;
   canManage: boolean;
   /** The catalog's active recruitment stages, for the Move dropdown. */
-  stages: readonly string[];
+  stages: readonly { id: string; name: string }[];
   onEdit: () => void;
   onDelete: () => void;
-  onMoveStage: (stage: string) => void;
+  onMoveStage: (stageId: string) => void;
 }>;
 
 export function ApplicationCard({
@@ -57,16 +57,16 @@ export function ApplicationCard({
           <label className="kanban-card-move">
             <span className="visually-hidden">{`Move ${application.applicantName} to a different stage`}</span>
             <select
-              value={application.stage}
+              value={application.stageId}
               onChange={(event) => onMoveStage(event.target.value)}
               data-testid={`move-application-${application.id}`}
             >
-              {!stages.includes(application.stage) && (
-                <option value={application.stage}>{application.stage} (inactive)</option>
+              {!stages.some((stage) => stage.id === application.stageId) && (
+                <option value={application.stageId}>{application.stage} (inactive)</option>
               )}
               {stages.map((stage) => (
-                <option key={stage} value={stage}>
-                  {stage}
+                <option key={stage.id} value={stage.id}>
+                  {stage.name}
                 </option>
               ))}
             </select>

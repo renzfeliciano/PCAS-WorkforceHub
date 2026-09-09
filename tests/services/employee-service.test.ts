@@ -18,9 +18,12 @@ function makeEmployee(overrides: Partial<Employee> = {}): Employee {
     employeeNumber: "001",
     name: "Test Employee",
     gender: "Male",
+    positionId: "pos-1",
     position: "Staff",
+    projectSiteId: "proj-1",
     projectSite: "HO",
     dateHired: "2020-01-01",
+    employmentStatusId: "status-1",
     employmentStatus: "Regular",
     leaveBalances: [],
     archived: false,
@@ -34,10 +37,11 @@ function validCreateInput() {
     employeeNumber: "002",
     name: "New Employee",
     gender: "Male" as const,
-    position: "Staff",
-    projectSite: "HO",
+    positionId: "pos-1",
+    projectSiteId: "proj-1",
     dateHired: "2026-01-01",
-    employmentStatus: "Regular",
+    employmentStatusId: "status-1",
+    employmentStatusName: "Regular",
   };
 }
 

@@ -16,7 +16,7 @@ type AttendanceDayDialogProps = Readonly<{
   existing: AttendanceRecord | null;
   statuses: SettingItem[];
   onClose: () => void;
-  onSave: (input: { status: string; remarks?: string }) => Promise<void>;
+  onSave: (input: { statusId: string; remarks?: string }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }>;
 
@@ -34,9 +34,13 @@ export function AttendanceDayDialog({
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
   const statusOptions: SelectOption[] = statuses.map((item) => ({
-    value: item.name,
+    value: item.id,
     label: item.name,
   }));
+  const staleStatus =
+    existing?.statusId && !statuses.some((item) => item.id === existing.statusId)
+      ? existing.statusId
+      : undefined;
 
   const formattedDate = new Date(`${date}T00:00:00Z`).toLocaleDateString(
     "en-US",
@@ -56,12 +60,12 @@ export function AttendanceDayDialog({
     event.preventDefault();
     if (!validate(event.currentTarget)) return;
     const data = new FormData(event.currentTarget);
-    const status = String(data.get("status") ?? "").trim();
+    const statusId = String(data.get("statusId") ?? "").trim();
     const remarks = String(data.get("remarks") ?? "").trim();
     setIsSubmitting(true);
     setError("");
     try {
-      await onSave({ status, remarks: remarks || undefined });
+      await onSave({ statusId, remarks: remarks || undefined });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setIsSubmitting(false);
@@ -128,14 +132,17 @@ export function AttendanceDayDialog({
     >
       <div className="form-grid">
         <SelectField
-          name="status"
+          name="statusId"
           label="Status"
           options={statusOptions}
           placeholder="Select a status"
-          defaultValue={existing?.status ?? ""}
+          extraOptions={
+            staleStatus ? [{ value: staleStatus, label: `${existing?.status} (inactive)` }] : undefined
+          }
+          defaultValue={existing?.statusId ?? ""}
           required
           fullWidth
-          error={fieldError("status")}
+          error={fieldError("statusId")}
         />
         <RemarksField
           defaultValue={existing?.remarks}

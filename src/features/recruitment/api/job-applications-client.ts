@@ -14,10 +14,10 @@ export const jobApplicationsClient = {
       method: "PATCH",
       body: JSON.stringify(input),
     }),
-  moveStage: (id: string, stage: string) =>
+  moveStage: (id: string, stageId: string) =>
     apiRequest<JobApplication>(`/api/v1/job-applications/${id}/stage`, {
       method: "PATCH",
-      body: JSON.stringify({ stage }),
+      body: JSON.stringify({ stageId }),
     }),
   delete: (id: string) =>
     apiRequest<{ id: string }>(`/api/v1/job-applications/${id}`, { method: "DELETE" }),

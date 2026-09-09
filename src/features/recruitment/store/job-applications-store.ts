@@ -19,7 +19,7 @@ type JobApplicationsState = {
    * behind a modal submit, where the button's own loading state is already
    * the feedback, so those just apply the server's response once it lands.
    */
-  updateStage: (id: string, stage: string) => Promise<void>;
+  updateStage: (id: string, stageId: string) => Promise<void>;
   removeApplication: (id: string) => Promise<void>;
 };
 
@@ -59,15 +59,21 @@ export const useJobApplicationsStore = create<JobApplicationsState>((set, get) =
     }));
   },
 
-  async updateStage(id, stage) {
+  async updateStage(id, stageId) {
     const previous = get().applications;
     const application = previous.find((item) => item.id === id);
-    if (!application || application.stage === stage) return;
+    if (!application || application.stageId === stageId) return;
+    // Column grouping keys off stageId, so the card visibly moves right
+    // away; the resolved display name (`stage`) is left as-is until the
+    // server's response lands a moment later, rather than guessing it here.
     set({
-      applications: previous.map((item) => (item.id === id ? { ...item, stage } : item)),
+      applications: previous.map((item) => (item.id === id ? { ...item, stageId } : item)),
     });
     try {
-      await jobApplicationsClient.moveStage(id, stage);
+      const updated = await jobApplicationsClient.moveStage(id, stageId);
+      set((state) => ({
+        applications: state.applications.map((item) => (item.id === id ? updated : item)),
+      }));
     } catch (err) {
       set({
         applications: previous,

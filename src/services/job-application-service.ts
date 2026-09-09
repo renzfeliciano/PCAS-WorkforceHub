@@ -70,7 +70,7 @@ export async function moveJobApplicationStage(
   if (!canManageRecruitment(actor.role))
     throw new ForbiddenActionError("Only Admin and HR may manage recruitment applications");
   const valid = moveApplicationStageSchema.parse(input);
-  const application = await repository.updateStage(id, valid.stage);
+  const application = await repository.updateStage(id, valid.stageId);
   await audit.record({
     action: "job_application.stage_moved",
     entityId: id,

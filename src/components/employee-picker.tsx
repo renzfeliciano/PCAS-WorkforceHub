@@ -118,7 +118,7 @@ export function EmployeePicker({ selected, onChange, multiple = true }: Employee
               onChange={() => toggle(employee)}
             />
             <span>{employee.name}</span>
-            <small>{employee.employeeNumber}</small>
+            <small>{employee.employeeNumber || "—"}</small>
           </label>
         ))}
       </div>

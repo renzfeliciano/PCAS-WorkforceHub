@@ -56,7 +56,13 @@ export function EmployeeTable({
               <SortableHeader
                 className="col-sticky-2"
                 field="employeeNumber"
-                label="Employee number"
+                label={
+                  <>
+                    Employee
+                    <br />
+                    number
+                  </>
+                }
                 activeField={sortBy}
                 direction={sortDir}
                 onSort={onSort}
@@ -91,7 +97,7 @@ export function EmployeeTable({
             {employees.map((employee, index) => (
               <tr key={employee.id} data-testid={`employee-row-${employee.id}`}>
                 <td className="col-index">{startIndex + index + 1}</td>
-                <td className="col-sticky-2">{employee.employeeNumber}</td>
+                <td className="col-sticky-2">{employee.employeeNumber || "—"}</td>
                 <td>{employee.name}</td>
                 <td>{employee.position}</td>
                 <td>{employee.projectSite}</td>

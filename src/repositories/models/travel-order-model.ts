@@ -6,8 +6,6 @@ const travelOrderSchema = new Schema(
       type: [
         {
           employeeId: { type: Schema.Types.ObjectId, required: true, ref: "Employee" },
-          employeeNumber: { type: String, required: true },
-          name: { type: String, required: true },
         },
       ],
       required: true,

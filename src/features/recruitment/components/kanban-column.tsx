@@ -4,23 +4,24 @@ import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
 type KanbanColumnProps = Readonly<{
-  stage: string;
+  stageId: string;
+  label: string;
   count: number;
   children: ReactNode;
 }>;
 
-export function KanbanColumn({ stage, count, children }: KanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: stage });
+export function KanbanColumn({ stageId, label, count, children }: KanbanColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: stageId });
 
   return (
     <div
       ref={setNodeRef}
       className={`kanban-column${isOver ? " over" : ""}`}
       role="group"
-      aria-label={`${stage}, ${count} application${count === 1 ? "" : "s"}`}
+      aria-label={`${label}, ${count} application${count === 1 ? "" : "s"}`}
     >
       <div className="kanban-column-head">
-        <b>{stage}</b>
+        <b>{label}</b>
         <span className="kanban-column-count">{count}</span>
       </div>
       <div className="kanban-column-body">{children}</div>

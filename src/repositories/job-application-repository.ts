@@ -1,14 +1,17 @@
 import { isValidObjectId } from "mongoose";
 import { NotFoundError } from "@/lib/app-errors";
-import { DEFAULT_APPLICATION_STAGE } from "@/schemas/job-application";
+import { resolveCatalogNames } from "@/repositories/catalog-lookup";
+import { DEFAULT_APPLICATION_STAGE_NAME } from "@/schemas/job-application";
 import { JobApplicationModel } from "@/repositories/models/job-application-model";
+import { SettingModel } from "@/repositories/models/setting-model";
+import { RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
 import type { JobApplication } from "@/types/job-application";
 
 const LIST_LIMIT = 500;
 
 export type JobApplicationPatch = {
   applicantName: string;
-  position: string;
+  positionId: string;
   email?: string;
   phone?: string;
   appliedDate: string;
@@ -20,34 +23,65 @@ export interface JobApplicationRepository {
   findById(id: string): Promise<JobApplication | null>;
   create(input: JobApplicationPatch): Promise<JobApplication>;
   update(id: string, patch: JobApplicationPatch): Promise<JobApplication>;
-  updateStage(id: string, stage: string): Promise<JobApplication>;
+  updateStage(id: string, stageId: string): Promise<JobApplication>;
   delete(id: string): Promise<void>;
 }
 
 type JobApplicationDocument = {
   _id: { toString(): string };
   applicantName: string;
-  position: string;
+  positionId: string;
   email?: string;
   phone?: string;
-  stage: string;
+  stageId: string;
   appliedDate: string;
   remarks?: string;
   createdAt: Date;
 };
 
-function toJobApplication(doc: JobApplicationDocument): JobApplication {
+function toJobApplication(doc: JobApplicationDocument, names: Map<string, string>): JobApplication {
+  // Same "—" fallback used for a deleted catalog entry elsewhere (e.g. the
+  // roster's Age column with no birth date).
   return {
     id: doc._id.toString(),
     applicantName: doc.applicantName,
-    position: doc.position,
+    positionId: doc.positionId,
+    position: names.get(doc.positionId) ?? "—",
     email: doc.email,
     phone: doc.phone,
-    stage: doc.stage,
+    stageId: doc.stageId,
+    stage: names.get(doc.stageId) ?? "—",
     appliedDate: doc.appliedDate,
     remarks: doc.remarks,
     createdAt: doc.createdAt.toISOString(),
   };
+}
+
+/** Resolves one document's positionId/stageId against the catalog and maps it to a JobApplication. */
+async function resolveOne(doc: JobApplicationDocument): Promise<JobApplication> {
+  const names = await resolveCatalogNames([doc.positionId, doc.stageId]);
+  return toJobApplication(doc, names);
+}
+
+/** Resolves many documents' positionId/stageId against the catalog in one batched lookup. */
+async function resolveMany(docs: JobApplicationDocument[]): Promise<JobApplication[]> {
+  const names = await resolveCatalogNames(docs.flatMap((doc) => [doc.positionId, doc.stageId]));
+  return docs.map((doc) => toJobApplication(doc, names));
+}
+
+/** The default stage a new application lands in, resolved by name from the recruitment stage catalog (not a hardcoded id, since catalog ids aren't stable across environments/seeds). */
+async function resolveDefaultStageId(): Promise<string> {
+  const setting = await SettingModel.findOne({
+    kind: "status",
+    category: RECRUITMENT_STAGE_CATEGORY,
+    name: DEFAULT_APPLICATION_STAGE_NAME,
+  }).lean<{ _id: { toString(): string } } | null>();
+  if (!setting) {
+    throw new NotFoundError(
+      `No "${DEFAULT_APPLICATION_STAGE_NAME}" recruitment stage is configured in Settings — seed or add it before creating applications.`,
+    );
+  }
+  return setting._id.toString();
 }
 
 export class MongoJobApplicationRepository implements JobApplicationRepository {
@@ -56,32 +90,33 @@ export class MongoJobApplicationRepository implements JobApplicationRepository {
       .sort({ appliedDate: -1, createdAt: -1 })
       .limit(LIST_LIMIT)
       .lean<JobApplicationDocument[]>();
-    return docs.map(toJobApplication);
+    return resolveMany(docs);
   }
 
   async findById(id: string): Promise<JobApplication | null> {
     if (!isValidObjectId(id)) return null;
     const doc = await JobApplicationModel.findById(id).lean<JobApplicationDocument | null>();
-    return doc ? toJobApplication(doc) : null;
+    return doc ? resolveOne(doc) : null;
   }
 
   async create(input: JobApplicationPatch): Promise<JobApplication> {
-    const doc = await JobApplicationModel.create({ ...input, stage: DEFAULT_APPLICATION_STAGE });
-    return toJobApplication(doc.toObject() as JobApplicationDocument);
+    const stageId = await resolveDefaultStageId();
+    const doc = await JobApplicationModel.create({ ...input, stageId });
+    return resolveOne(doc.toObject() as JobApplicationDocument);
   }
 
   async update(id: string, patch: JobApplicationPatch): Promise<JobApplication> {
     if (!isValidObjectId(id)) throw new NotFoundError("Job application not found");
     const doc = await JobApplicationModel.findByIdAndUpdate(id, { $set: patch }, { new: true }).lean<JobApplicationDocument | null>();
     if (!doc) throw new NotFoundError("Job application not found");
-    return toJobApplication(doc);
+    return resolveOne(doc);
   }
 
-  async updateStage(id: string, stage: string): Promise<JobApplication> {
+  async updateStage(id: string, stageId: string): Promise<JobApplication> {
     if (!isValidObjectId(id)) throw new NotFoundError("Job application not found");
-    const doc = await JobApplicationModel.findByIdAndUpdate(id, { $set: { stage } }, { new: true }).lean<JobApplicationDocument | null>();
+    const doc = await JobApplicationModel.findByIdAndUpdate(id, { $set: { stageId } }, { new: true }).lean<JobApplicationDocument | null>();
     if (!doc) throw new NotFoundError("Job application not found");
-    return toJobApplication(doc);
+    return resolveOne(doc);
   }
 
   async delete(id: string): Promise<void> {

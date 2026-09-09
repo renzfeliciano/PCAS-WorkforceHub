@@ -36,11 +36,11 @@ export function ApplicationFormDialog({
   const [error, setError] = useState("");
   const [phone, setPhone] = useState(formatContactNumber(initialValue?.phone ?? ""));
   const stalePosition =
-    initialValue?.position && !positions.some((item) => item.name === initialValue.position)
-      ? initialValue.position
+    initialValue?.positionId && !positions.some((item) => item.id === initialValue.positionId)
+      ? initialValue.positionId
       : undefined;
   const positionOptions: SelectOption[] = positions.map((item) => ({
-    value: item.name,
+    value: item.id,
     label: item.name,
   }));
 
@@ -55,7 +55,7 @@ export function ApplicationFormDialog({
     try {
       await onSubmit({
         applicantName: String(data.get("applicantName") ?? "").trim(),
-        position: String(data.get("position") ?? "").trim(),
+        positionId: String(data.get("positionId") ?? "").trim(),
         email: email || undefined,
         phone: phone || undefined,
         appliedDate: String(data.get("appliedDate") ?? ""),
@@ -123,19 +123,19 @@ export function ApplicationFormDialog({
           error={fieldError("applicantName")}
         />
         <SelectField
-          name="position"
+          name="positionId"
           label="Position"
           options={positionOptions}
           placeholder="Select a position"
           extraOptions={
             stalePosition
-              ? [{ value: stalePosition, label: `${stalePosition} (inactive)` }]
+              ? [{ value: stalePosition, label: `${initialValue?.position} (inactive)` }]
               : undefined
           }
-          defaultValue={initialValue?.position ?? ""}
+          defaultValue={initialValue?.positionId ?? ""}
           required
           remountKey={positionsLoading ? "loading" : "loaded"}
-          error={fieldError("position")}
+          error={fieldError("positionId")}
         />
         <EmailField defaultValue={initialValue?.email} error={fieldError("email")} />
         <ContactNumberField name="phone" value={phone} onChange={setPhone} error={fieldError("phone")} />

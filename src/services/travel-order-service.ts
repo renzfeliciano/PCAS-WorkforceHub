@@ -4,23 +4,26 @@ import { canManageTravelOrders } from "@/lib/rbac";
 import { createTravelOrderSchema, updateTravelOrderSchema } from "@/schemas/travel-order";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { TravelOrderRepository } from "@/repositories/travel-order-repository";
-import type { TravelOrder, TravelOrderEmployee } from "@/types/travel-order";
+import type { TravelOrder } from "@/types/travel-order";
 import type { Role } from "@/types/user";
 
 type Actor = { role: Role; id: string; requestId: string };
 
-async function resolveEmployees(
+/**
+ * Only checks the employees exist — their name/number are resolved live
+ * from the Employee collection when a travel order is read, not snapshotted
+ * here, so a later name change is reflected on existing orders too.
+ */
+async function assertEmployeesExist(
   employeeRepository: EmployeeRepository,
   employeeIds: string[],
-): Promise<TravelOrderEmployee[]> {
-  const employees = await Promise.all(
+): Promise<void> {
+  await Promise.all(
     employeeIds.map(async (employeeId) => {
       const employee = await employeeRepository.findById(employeeId);
       if (!employee) throw new NotFoundError(`Employee ${employeeId} not found`);
-      return { employeeId, employeeNumber: employee.employeeNumber, name: employee.name };
     }),
   );
-  return employees;
 }
 
 export async function listTravelOrders(repository: TravelOrderRepository): Promise<TravelOrder[]> {
@@ -37,9 +40,9 @@ export async function createTravelOrder(
   if (!canManageTravelOrders(actor.role))
     throw new ForbiddenActionError("Only Admin and HR may manage travel orders");
   const valid = createTravelOrderSchema.parse(input);
-  const employees = await resolveEmployees(employeeRepository, valid.employeeIds);
+  await assertEmployeesExist(employeeRepository, valid.employeeIds);
   const travelOrder = await repository.create({
-    employees,
+    employeeIds: valid.employeeIds,
     startDate: valid.startDate,
     endDate: valid.endDate,
     remarks: valid.remarks,
@@ -65,9 +68,9 @@ export async function updateTravelOrder(
   if (!canManageTravelOrders(actor.role))
     throw new ForbiddenActionError("Only Admin and HR may manage travel orders");
   const valid = updateTravelOrderSchema.parse(input);
-  const employees = await resolveEmployees(employeeRepository, valid.employeeIds);
+  await assertEmployeesExist(employeeRepository, valid.employeeIds);
   const travelOrder = await repository.update(id, {
-    employees,
+    employeeIds: valid.employeeIds,
     startDate: valid.startDate,
     endDate: valid.endDate,
     remarks: valid.remarks,

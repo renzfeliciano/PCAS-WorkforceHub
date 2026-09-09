@@ -40,16 +40,22 @@ export const leaveBalanceSchema = z.object({
 });
 
 const employeeObjectSchema = z.object({
-  employeeNumber: requiredText,
+  employeeNumber: z.string().trim().max(20).optional().nullable(),
   name: requiredText.max(30, "Must be 30 characters or fewer"),
   gender: genderSchema,
-  position: requiredText,
-  projectSite: requiredText,
+  positionId: requiredText,
+  projectSiteId: requiredText,
   dateHired: isoDate,
   birthDate: isoDate.optional().nullable(),
   endOfContract: isoDate.optional().nullable(),
   lastDay: isoDate.optional().nullable(),
-  employmentStatus: requiredText,
+  employmentStatusId: requiredText,
+  // Not persisted (the Employee model only stores employmentStatusId) —
+  // carried in the payload solely so withEmploymentDateRules below can
+  // still apply its required-date rule synchronously, without a DB lookup
+  // to resolve the id to a name. The client already has this name (it's
+  // rendering the option label), so it costs nothing to include.
+  employmentStatusName: requiredText,
   contactNumber: contactNumberSchema.optional().nullable(),
   address: z.string().trim().max(255, "Must be 255 characters or fewer").optional().nullable(),
   sssNumber: sssNumberSchema.optional().nullable(),
@@ -62,20 +68,20 @@ const employeeObjectSchema = z.object({
 /**
  * End of contract only applies to contractual/probationary staff, and last
  * day only applies to AWOL/terminated/resigned staff (regular employees get
- * neither). Only enforced when employmentStatus is present in the payload,
- * so partial patches that don't touch status/dates are left alone.
+ * neither). Only enforced when employmentStatusName is present in the
+ * payload, so partial patches that don't touch status/dates are left alone.
  */
 function withEmploymentDateRules<T extends z.ZodTypeAny>(schema: T) {
   return schema.superRefine((data, ctx) => {
-    const { employmentStatus, endOfContract, lastDay } = data as {
-      employmentStatus?: string;
+    const { employmentStatusName, endOfContract, lastDay } = data as {
+      employmentStatusName?: string;
       endOfContract?: string;
       lastDay?: string;
     };
-    if (!employmentStatus) return;
+    if (!employmentStatusName) return;
 
-    const requiresEndOfContract = needsEndOfContract(employmentStatus);
-    const requiresLastDay = needsLastDay(employmentStatus);
+    const requiresEndOfContract = needsEndOfContract(employmentStatusName);
+    const requiresLastDay = needsLastDay(employmentStatusName);
 
     if (requiresEndOfContract && !endOfContract) {
       ctx.addIssue({

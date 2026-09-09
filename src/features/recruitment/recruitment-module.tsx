@@ -35,7 +35,7 @@ export function RecruitmentModule({
     "status",
     RECRUITMENT_STAGE_CATEGORY,
   );
-  const stages = stageOptions.map((option) => option.name);
+  const stages = stageOptions.map((option) => ({ id: option.id, name: option.name }));
 
   const applications = useJobApplicationsStore((state) => state.applications);
   const isLoading = useJobApplicationsStore((state) => state.isLoading);
@@ -125,11 +125,16 @@ export function RecruitmentModule({
                 its own column, so that application is never silently hidden. */}
             {[
               ...stages,
-              ...new Set(applications.map((item) => item.stage).filter((stage) => !stages.includes(stage))),
+              ...[...new Set(applications.map((item) => item.stageId).filter((id) => !stages.some((s) => s.id === id)))].map(
+                (id) => ({
+                  id,
+                  name: applications.find((item) => item.stageId === id)?.stage ?? "—",
+                }),
+              ),
             ].map((stage) => {
-              const stageItems = applications.filter((item) => item.stage === stage);
+              const stageItems = applications.filter((item) => item.stageId === stage.id);
               return (
-                <KanbanColumn key={stage} stage={stage} count={stageItems.length}>
+                <KanbanColumn key={stage.id} stageId={stage.id} label={stage.name} count={stageItems.length}>
                   {stageItems.map((application) => (
                     <ApplicationCard
                       key={application.id}
@@ -138,7 +143,7 @@ export function RecruitmentModule({
                       stages={stages}
                       onEdit={() => setEditing(application)}
                       onDelete={() => setDeleting(application)}
-                      onMoveStage={(newStage) => updateStage(application.id, newStage)}
+                      onMoveStage={(newStageId) => updateStage(application.id, newStageId)}
                     />
                   ))}
                 </KanbanColumn>

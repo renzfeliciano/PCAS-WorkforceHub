@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import type { SortDir } from "@/types/list-query";
 
 type SortButtonProps = Readonly<{
   field: string;
-  label: string;
+  label: ReactNode;
   activeField?: string;
   direction?: SortDir;
   onSort: (field: string) => void;
