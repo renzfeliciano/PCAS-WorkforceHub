@@ -141,6 +141,21 @@ describe("createLeaveRecord", () => {
     expect(employee?.leaveBalances).toEqual([{ leaveTypeId: VL_ID, balance: 4 }]);
   });
 
+  it("avoids floating-point drift when deducting from a decimal balance", async () => {
+    const employeeRepo = fakeEmployeeRepository(makeEmployee([{ leaveTypeId: VL_ID, balance: 16.72 }]));
+    await createLeaveRecord(
+      fakeLeaveRecordRepository(),
+      employeeRepo,
+      fakeLeaveTypeRepository(),
+      noopAudit,
+      hrActor,
+      "emp-1",
+      { leaveTypeId: VL_ID, startDate: "2026-01-10", endDate: "2026-01-10" },
+    );
+    const employee = await employeeRepo.findById("emp-1");
+    expect(employee?.leaveBalances).toEqual([{ leaveTypeId: VL_ID, balance: 15.72 }]);
+  });
+
   it("deducts half a day when halfDay is set on a single-day request", async () => {
     const employeeRepo = fakeEmployeeRepository(makeEmployee([{ leaveTypeId: SL_ID, balance: 2 }]));
     const record = await createLeaveRecord(

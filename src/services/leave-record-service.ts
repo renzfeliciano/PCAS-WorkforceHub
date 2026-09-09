@@ -1,6 +1,7 @@
 import type { AuditLogger } from "@/lib/audit-logger";
 import { ConflictError, ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
 import { inclusiveDayCount } from "@/lib/date-range";
+import { round2 } from "@/lib/leave-balance-input";
 import { canManageLeaveBalances } from "@/lib/rbac";
 import { createLeaveRecordSchema, updateLeaveRecordSchema } from "@/schemas/leave-record";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
@@ -35,7 +36,7 @@ async function adjustBalance(
   const balanceOf = (id: string) =>
     employee.leaveBalances.find((b) => b.leaveTypeId === id)?.balance ?? 0;
 
-  const updates = new Map<string, number>([[leaveTypeId, balanceOf(leaveTypeId) + delta]]);
+  const updates = new Map<string, number>([[leaveTypeId, round2(balanceOf(leaveTypeId) + delta)]]);
 
   if (delta < 0 && updates.get(leaveTypeId)! < 0) {
     const leaveTypes = await leaveTypeRepository.findAll();
@@ -45,8 +46,8 @@ async function adjustBalance(
       const shortfall = -updates.get(leaveTypeId)!;
       const vlBalance = balanceOf(vlType.id);
       const fromVl = Math.min(shortfall, vlBalance);
-      updates.set(leaveTypeId, updates.get(leaveTypeId)! + fromVl);
-      updates.set(vlType.id, vlBalance - fromVl);
+      updates.set(leaveTypeId, round2(updates.get(leaveTypeId)! + fromVl));
+      updates.set(vlType.id, round2(vlBalance - fromVl));
     }
   }
 
