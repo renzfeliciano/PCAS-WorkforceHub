@@ -4,15 +4,21 @@ import { authOptions } from "@/lib/auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import {
   seedAttendanceStatuses,
+  seedEventCategories,
   seedRecruitmentStages,
   seedSettingsCatalog,
 } from "@/services/settings-seed-service";
 import { canManageSettings } from "@/lib/rbac";
-import { ATTENDANCE_STATUS_CATEGORY, RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
+import {
+  ATTENDANCE_STATUS_CATEGORY,
+  EVENT_CATEGORY_CATEGORY,
+  RECRUITMENT_STAGE_CATEGORY,
+} from "@/types/settings";
 import type { SettingKind } from "@/types/settings";
 import { checkApiRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 import {
   isAttendanceStatusSeedingEnabled,
+  isEventCategorySeedingEnabled,
   isRecruitmentStageSeedingEnabled,
   isSeedingEnabled,
 } from "@/lib/seed-flags";
@@ -85,6 +91,21 @@ export async function POST(request: Request) {
       );
     await connectMongoDB();
     const result = await seedRecruitmentStages();
+    return NextResponse.json(
+      { inserted: result.upsertedCount, kind, category: body.category, requestId },
+      { headers },
+    );
+  }
+
+  const isEventCategory = kind === "status" && body.category === EVENT_CATEGORY_CATEGORY;
+  if (isEventCategory) {
+    if (!isEventCategorySeedingEnabled())
+      return NextResponse.json(
+        { error: "SEEDING_DISABLED", requestId },
+        { status: 403, headers },
+      );
+    await connectMongoDB();
+    const result = await seedEventCategories();
     return NextResponse.json(
       { inserted: result.upsertedCount, kind, category: body.category, requestId },
       { headers },

@@ -9,6 +9,7 @@ import { SettingsCatalogSkeleton } from "@/features/settings/components/settings
 import {
   ATTENDANCE_STATUS_CATEGORY,
   EMPLOYMENT_STATUS_CATEGORY,
+  EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
 } from "@/types/settings";
 import type { SettingItem, SettingKind } from "@/types/settings";
@@ -26,6 +27,7 @@ export function SettingsModule({
   seedFlags,
   attendanceStatusSeedEnabled,
   recruitmentStageSeedEnabled,
+  eventCategorySeedEnabled,
   leaveTypeSeedEnabled,
   initialSettings,
   initialLeaveTypes,
@@ -33,6 +35,7 @@ export function SettingsModule({
   seedFlags: Record<SettingKind, boolean>;
   attendanceStatusSeedEnabled: boolean;
   recruitmentStageSeedEnabled: boolean;
+  eventCategorySeedEnabled: boolean;
   leaveTypeSeedEnabled: boolean;
   initialSettings?: SettingItem[];
   initialLeaveTypes?: LeaveType[];
@@ -60,6 +63,13 @@ export function SettingsModule({
       category: RECRUITMENT_STAGE_CATEGORY,
       label: "Recruitment stages",
       seedEnabled: recruitmentStageSeedEnabled,
+    },
+    {
+      key: "status:event",
+      kind: "status",
+      category: EVENT_CATEGORY_CATEGORY,
+      label: "Event categories",
+      seedEnabled: eventCategorySeedEnabled,
     },
   ];
   const settings = useSettingsCatalog(initialSettings);

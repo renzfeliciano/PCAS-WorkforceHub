@@ -53,7 +53,7 @@ export const seedCatalog: Record<SettingKind, readonly string[]> = {
 export const attendanceStatusCatalog: readonly string[] = [
   "Present",
   "Absent",
-  "Tardy / Late",
+  "Tardy/Late",
   "Half-day",
   "On leave",
   "Day off",
@@ -70,6 +70,15 @@ export const recruitmentStageCatalog: readonly string[] = [
   "Offer",
   "Hired",
   "Rejected",
+];
+
+/** Seeded under the "status" kind, category "event" (see EVENT_CATEGORY_CATEGORY) — the calendar's event categories. */
+export const eventCategoryCatalog: readonly string[] = [
+  "Meeting",
+  "Holiday",
+  "Deadline",
+  "Reminder",
+  "Other",
 ];
 
 export const leaveTypeCatalog: readonly {

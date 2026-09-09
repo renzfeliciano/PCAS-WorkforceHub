@@ -1,8 +1,14 @@
 import { SettingModel } from "@/repositories/models/setting-model";
-import { attendanceStatusCatalog, recruitmentStageCatalog, seedCatalog } from "@/lib/seed-catalog";
+import {
+  attendanceStatusCatalog,
+  eventCategoryCatalog,
+  recruitmentStageCatalog,
+  seedCatalog,
+} from "@/lib/seed-catalog";
 import {
   ATTENDANCE_STATUS_CATEGORY,
   EMPLOYMENT_STATUS_CATEGORY,
+  EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
 } from "@/types/settings";
 import type { SettingKind } from "@/types/settings";
@@ -55,6 +61,16 @@ export async function seedRecruitmentStages() {
     name,
     kind: "status" as const,
     category: RECRUITMENT_STAGE_CATEGORY,
+    sortOrder,
+  }));
+  return upsertSettings(records);
+}
+
+export async function seedEventCategories() {
+  const records = eventCategoryCatalog.map((name, sortOrder) => ({
+    name,
+    kind: "status" as const,
+    category: EVENT_CATEGORY_CATEGORY,
     sortOrder,
   }));
   return upsertSettings(records);

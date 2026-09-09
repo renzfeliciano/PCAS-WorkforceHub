@@ -62,7 +62,9 @@ export function SettingsCatalogSection({
           ? "e.g. Half-day"
           : category === "recruitment"
             ? "e.g. Screening"
-            : "e.g. Regular";
+            : category === "event"
+              ? "e.g. Deadline"
+              : "e.g. Regular";
 
   async function handleSeed() {
     setIsSeeding(true);

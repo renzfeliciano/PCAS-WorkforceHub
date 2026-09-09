@@ -10,6 +10,7 @@ function makeEvent(overrides: Partial<WorkforceEvent> = {}): WorkforceEvent {
     id: "evt-1",
     title: "Town Hall",
     date: "2026-01-15",
+    categoryId: "cat-meeting",
     category: "Meeting",
     createdAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
@@ -22,14 +23,16 @@ function fakeRepository(seed: WorkforceEvent[] = []): EventRepository {
     findByRange: vi.fn(async () => [...events.values()]),
     findById: async (id) => events.get(id) ?? null,
     create: async (input) => {
-      const event = makeEvent({ id: "evt-new", ...input });
+      // The fake has no real catalog to resolve against, so the id doubles
+      // as the display name here — enough to prove the service forwards it.
+      const event = makeEvent({ id: "evt-new", ...input, category: input.categoryId });
       events.set(event.id, event);
       return event;
     },
     update: async (id, patch) => {
       const existing = events.get(id);
       if (!existing) throw new NotFoundError("Event not found");
-      const updated = { ...existing, ...patch };
+      const updated = { ...existing, ...patch, category: patch.categoryId };
       events.set(id, updated);
       return updated;
     },
@@ -60,7 +63,7 @@ describe("createEvent", () => {
       createEvent(repo, noopAudit, employeeActor, {
         title: "Town Hall",
         date: "2026-01-15",
-        category: "Meeting",
+        categoryId: "cat-meeting",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
@@ -71,7 +74,7 @@ describe("createEvent", () => {
       createEvent(repo, noopAudit, hrActor, {
         title: "Town Hall",
         date: "2026-01-15",
-        category: "Meeting",
+        categoryId: "cat-meeting",
         time: "25:99",
       }),
     ).rejects.toThrow();
@@ -82,7 +85,7 @@ describe("createEvent", () => {
     const event = await createEvent(repo, noopAudit, hrActor, {
       title: "Town Hall",
       date: "2026-01-15",
-      category: "Meeting",
+      categoryId: "cat-meeting",
     });
     expect(event.title).toBe("Town Hall");
   });
@@ -95,7 +98,7 @@ describe("updateEvent", () => {
       updateEvent(repo, noopAudit, employeeActor, "evt-1", {
         title: "Renamed",
         date: "2026-01-15",
-        category: "Meeting",
+        categoryId: "cat-meeting",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
@@ -106,7 +109,7 @@ describe("updateEvent", () => {
       updateEvent(repo, noopAudit, hrActor, "missing", {
         title: "Renamed",
         date: "2026-01-15",
-        category: "Meeting",
+        categoryId: "cat-meeting",
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });

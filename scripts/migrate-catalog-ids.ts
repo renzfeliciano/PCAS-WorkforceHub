@@ -1,13 +1,13 @@
 /**
  * One-off migration: several collections used to store a copy of a catalog
  * entry's name string (Employee.position/projectSite/employmentStatus,
- * JobApplication.position/stage). They now store the catalog entry's id
- * instead (positionId/projectSiteId/employmentStatusId/stageId), so a later
- * rename in Settings shows up everywhere the record is displayed instead of
- * going stale. This script backfills existing documents from the old string
- * fields to the new id fields, using the matching Setting (kind
- * "position"/"project"/"status") by name — creating one if it's somehow
- * missing, rather than dropping data.
+ * JobApplication.position/stage, Event.category). They now store the
+ * catalog entry's id instead (positionId/projectSiteId/employmentStatusId/
+ * stageId/categoryId), so a later rename in Settings shows up everywhere the
+ * record is displayed instead of going stale. This script backfills existing
+ * documents from the old string fields to the new id fields, using the
+ * matching Setting (kind "position"/"project"/"status") by name — creating
+ * one if it's somehow missing, rather than dropping data.
  *
  * Run once, manually, after deploying the code that expects the new id
  * fields:
@@ -17,9 +17,14 @@ import mongoose from "mongoose";
 import { config } from "dotenv";
 import { connectMongoDB } from "@/lib/mongodb";
 import { EmployeeModel } from "@/repositories/models/employee-model";
+import { EventModel } from "@/repositories/models/event-model";
 import { JobApplicationModel } from "@/repositories/models/job-application-model";
 import { SettingModel } from "@/repositories/models/setting-model";
-import { EMPLOYMENT_STATUS_CATEGORY, RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
+import {
+  EMPLOYMENT_STATUS_CATEGORY,
+  EVENT_CATEGORY_CATEGORY,
+  RECRUITMENT_STAGE_CATEGORY,
+} from "@/types/settings";
 
 config({ path: ".env.local", override: true });
 config({ path: ".env" });
@@ -103,6 +108,10 @@ async function migrate() {
   await migrateCollection("job application", JobApplicationModel, [
     { key: "position", idKey: "positionId", kind: "position" },
     { key: "stage", idKey: "stageId", kind: "status", category: RECRUITMENT_STAGE_CATEGORY },
+  ]);
+
+  await migrateCollection("event", EventModel, [
+    { key: "category", idKey: "categoryId", kind: "status", category: EVENT_CATEGORY_CATEGORY },
   ]);
 
   await mongoose.connection.close();

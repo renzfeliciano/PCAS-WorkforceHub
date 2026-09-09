@@ -7,17 +7,13 @@ import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { SelectField, type SelectOption } from "@/components/ui/select-field";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
 import { eventCategoryTone } from "@/lib/event-category-tone";
-import { EVENT_CATEGORIES } from "@/schemas/event";
+import { EVENT_CATEGORY_CATEGORY } from "@/types/settings";
 import type { EventInput } from "@/schemas/event";
 import type { WorkforceEvent } from "@/types/event";
-
-const CATEGORY_OPTIONS: SelectOption[] = EVENT_CATEGORIES.map((category) => ({
-  value: category,
-  label: category,
-}));
 
 type View = { mode: "list" } | { mode: "create" } | { mode: "edit"; event: WorkforceEvent };
 
@@ -169,9 +165,26 @@ type EventFormProps = Readonly<{
 }>;
 
 function EventForm({ date, initialValue, onBack, onClose, onSubmit }: EventFormProps) {
+  const { activeItems: categories, isLoading: categoriesLoading } = useCatalogOptions(
+    "status",
+    EVENT_CATEGORY_CATEGORY,
+  );
   const { validate, handleChange, fieldError, applyServerErrors } = useInlineFormValidation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const categoryOptions: SelectOption[] = categories.map((item) => ({
+    value: item.id,
+    label: item.name,
+  }));
+  // Guarded by `!isLoading` — see the same pattern (and why) in
+  // employee-form-dialog.tsx's stalePosition/staleProject/staleStatus.
+  const staleCategory =
+    initialValue?.categoryId &&
+    !categoriesLoading &&
+    !categories.some((item) => item.id === initialValue.categoryId)
+      ? initialValue.categoryId
+      : undefined;
 
   async function handleSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     event.preventDefault();
@@ -186,7 +199,7 @@ function EventForm({ date, initialValue, onBack, onClose, onSubmit }: EventFormP
         title: String(data.get("title") ?? "").trim(),
         date,
         time: time || undefined,
-        category: String(data.get("category")) as EventInput["category"],
+        categoryId: String(data.get("categoryId") ?? "").trim(),
         description: description || undefined,
       });
     } catch (err) {
@@ -252,12 +265,19 @@ function EventForm({ date, initialValue, onBack, onClose, onSubmit }: EventFormP
         />
         <TextField name="time" label="Time" type="time" defaultValue={initialValue?.time} />
         <SelectField
-          name="category"
+          name="categoryId"
           label="Category"
-          options={CATEGORY_OPTIONS}
+          options={categoryOptions}
+          placeholder="Select a category"
+          extraOptions={
+            staleCategory
+              ? [{ value: staleCategory, label: `${initialValue?.category} (inactive)` }]
+              : undefined
+          }
           required
-          defaultValue={initialValue?.category ?? EVENT_CATEGORIES[0]}
-          error={fieldError("category")}
+          defaultValue={initialValue?.categoryId ?? ""}
+          remountKey={categoriesLoading ? "loading" : "loaded"}
+          error={fieldError("categoryId")}
         />
         <TextField
           name="description"

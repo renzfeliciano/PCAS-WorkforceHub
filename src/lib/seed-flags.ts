@@ -34,3 +34,7 @@ export function isAttendanceStatusSeedingEnabled(env: NodeJS.ProcessEnv = proces
 export function isRecruitmentStageSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
   return env.ENABLE_RECRUITMENT_STAGES_SEEDING === "true";
 }
+
+export function isEventCategorySeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
+  return env.ENABLE_EVENTS_CATEGORY_SEEDING === "true";
+}
