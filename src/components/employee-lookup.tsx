@@ -98,7 +98,9 @@ export function EmployeeLookup({
                 <div>
                   <b>{employee.name}</b>
                   <small>
-                    {[employee.employeeNumber, employee.position].filter(Boolean).join(" · ")}
+                    {[employee.employeeNumber, employee.position, employee.projectSite]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </small>
                 </div>
               </Link>
@@ -109,7 +111,7 @@ export function EmployeeLookup({
       {showNoResults && (
         <EmptyState
           title="No employees found"
-          description="Try a different name, employee number, or position."
+          description="Try a different name, employee number, position, or project."
         />
       )}
       {showPrompt && (

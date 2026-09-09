@@ -75,12 +75,12 @@ const employeeGroup: NavGroup = {
       label: "Leave management",
       icon: CalendarRange,
     },
-    { href: "/employees/travel-orders", label: "Travel orders", icon: Plane },
     {
       href: "/employees/asset-issuance",
       label: "Asset issuance",
       icon: Package,
     },
+    { href: "/employees/travel-orders", label: "Travel orders", icon: Plane },
   ],
 };
 

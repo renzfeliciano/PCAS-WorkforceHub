@@ -9,7 +9,7 @@ export function LeaveModule() {
       eyebrow="Leave management"
       title="Leave balances & records"
       description="Look up an employee to assign leave balances and log leave taken."
-      placeholder="Search by name, employee number, or position..."
+      placeholder="Search by name, employee number, position, or project..."
     />
   );
 }

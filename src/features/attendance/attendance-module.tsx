@@ -9,7 +9,7 @@ export function AttendanceModule() {
       eyebrow="Attendance logging"
       title="Attendance monitoring"
       description="Look up an employee to view and log their daily attendance."
-      placeholder="Search by name, employee number, or position..."
+      placeholder="Search by name, employee number, position, or project..."
     />
   );
 }
