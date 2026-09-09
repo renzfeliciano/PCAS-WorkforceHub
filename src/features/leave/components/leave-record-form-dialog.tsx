@@ -12,6 +12,7 @@ import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
 import { inclusiveDayCount } from "@/lib/date-range";
 import { eligibleLeaveTypes } from "@/lib/leave-eligibility";
+import { round2 } from "@/lib/leave-balance-input";
 import type { LeaveRecordInput } from "@/schemas/leave-record";
 import type { Employee } from "@/types/employee";
 import type { LeaveRecord } from "@/types/leave-record";
@@ -81,7 +82,7 @@ export function LeaveRecordFormDialog({
         ? 0.5
         : inclusiveDayCount(startDate, endDate)
       : 0;
-  const remainingAfter = availableBalance(leaveTypeId) - days;
+  const remainingAfter = round2(availableBalance(leaveTypeId) - days);
 
   async function handleSubmit(event: {
     preventDefault(): void;
