@@ -436,6 +436,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
           title={`Delete this ${typeLabel(deleting.leaveTypeId)} record?`}
           description={`This restores ${deleting.days} day${deleting.days === 1 ? "" : "s"} to the employee's balance and cannot be undone.`}
           confirmLabel="Delete"
+          confirmLoadingLabel="Deleting"
           onClose={() => setDeleting(null)}
           onConfirm={async () => {
             await leaveRecordsClient.delete(employee.id, deleting.id);

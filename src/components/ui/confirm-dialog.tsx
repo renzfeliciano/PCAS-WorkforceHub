@@ -7,8 +7,13 @@ type ConfirmDialogProps = Readonly<{
   title: string;
   description: string;
   confirmLabel: string;
-  /** Present-participle label shown while onConfirm is running, e.g. "Deleting" for confirmLabel="Delete". */
-  confirmLoadingLabel?: string;
+  /**
+   * Present-participle label shown while onConfirm is running, e.g.
+   * "Deleting" for confirmLabel="Delete". Required, not optional — leaving
+   * it out silently renders just the spinner with no text next to it,
+   * which is exactly the standard this prop exists to enforce.
+   */
+  confirmLoadingLabel: string;
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
   deactivateLabel?: string;

@@ -12,6 +12,7 @@ describe("ConfirmDialog", () => {
         title="Delete Jane Doe?"
         description="This cannot be undone."
         confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
         onClose={vi.fn()}
         onConfirm={vi.fn()}
       />,
@@ -30,6 +31,7 @@ describe("ConfirmDialog", () => {
         title="Delete Jane Doe?"
         description="This cannot be undone."
         confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
         onClose={onClose}
         onConfirm={vi.fn()}
       />,
@@ -48,6 +50,7 @@ describe("ConfirmDialog", () => {
         title="Delete Jane Doe?"
         description="This cannot be undone."
         confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
         onClose={vi.fn()}
         onConfirm={onConfirm}
       />,
@@ -66,6 +69,7 @@ describe("ConfirmDialog", () => {
         title="Delete Jane Doe?"
         description="This cannot be undone."
         confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
         onClose={vi.fn()}
         onConfirm={onConfirm}
       />,
@@ -86,6 +90,7 @@ describe("ConfirmDialog", () => {
         title="Delete Jane Doe?"
         description="This cannot be undone."
         confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
         onClose={vi.fn()}
         onConfirm={vi.fn()}
       />,
@@ -98,12 +103,40 @@ describe("ConfirmDialog", () => {
         title="Delete Jane Doe?"
         description="This cannot be undone."
         confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
         onClose={vi.fn()}
         onConfirm={vi.fn()}
         onDeactivate={vi.fn()}
       />,
     );
     expect(screen.getByText("Deactivate instead")).toBeInTheDocument();
+  });
+
+  it("shows the loading label next to the spinner while onConfirm is pending, not just the spinner alone", async () => {
+    let resolveConfirm: () => void = () => {};
+    const onConfirm = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveConfirm = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+    render(
+      <ConfirmDialog
+        eyebrow="Remove employee"
+        title="Delete Jane Doe?"
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
+        onClose={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(screen.getByRole("button", { name: "Deleting" })).toBeInTheDocument();
+    resolveConfirm();
   });
 
   it("disables the confirm button while a deactivate is in flight, and vice versa", async () => {
@@ -121,6 +154,7 @@ describe("ConfirmDialog", () => {
         title="Delete Jane Doe?"
         description="This cannot be undone."
         confirmLabel="Delete"
+        confirmLoadingLabel="Deleting"
         onClose={vi.fn()}
         onConfirm={vi.fn()}
         onDeactivate={onDeactivate}
