@@ -11,8 +11,8 @@ export function GlobalLoader() {
   if (!visible) return null;
 
   return (
-    <div className="global-loader" role="status" aria-live="polite">
-      <div className="global-loader-skyline">
+    <div className="global-loader">
+      <div className="global-loader-skyline" aria-hidden="true">
         <span />
         <span />
         <span />
@@ -23,7 +23,10 @@ export function GlobalLoader() {
         <p className="global-loader-text">
           Workforce<b>Hub</b>
         </p>
-        <p className="global-loader-caption">Loading your workspace…</p>
+        {/* <output> carries an implicit role="status" (aria-live="polite"),
+            so only the text that actually needs announcing sits inside it —
+            not the decorative skyline or static "WorkforceHub" heading. */}
+        <output className="global-loader-caption">Loading your workspace…</output>
       </div>
     </div>
   );

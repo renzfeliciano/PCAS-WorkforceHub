@@ -1709,6 +1709,10 @@ thead .col-sticky-2 {
   color: var(--coral);
 }
 .global-loader-caption {
+  /* <output>'s UA default is inline, unlike the <p> this used to be —
+     margin-top is a no-op on plain inline boxes, so it's pinned to block
+     explicitly to keep the same spacing. */
+  display: block;
   margin-top: 4px;
   color: var(--muted);
   font:
