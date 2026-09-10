@@ -129,7 +129,7 @@ export default function LoginPage() {
         </section>
       </div>
       <footer className="app-footer login-footer">
-        PCAS WorkforceHub <span>·</span> Established 2026
+        &copy; {new Date().getFullYear()} PCAS WorkforceHub. All rights reserved.
       </footer>
     </main>
   );
