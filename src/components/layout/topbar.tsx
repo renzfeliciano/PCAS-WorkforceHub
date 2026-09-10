@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu } from "lucide-react";
+import { ChevronDown, LogOut, Menu } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
@@ -92,7 +92,12 @@ export function Topbar({ onToggleNav }: Readonly<{ onToggleNav: () => void }>) {
           aria-label="Account menu"
           data-testid="account-menu-trigger"
         >
+          <span className="profile-trigger-info">
+            <b>{user.name}</b>
+            <small>{user.role}</small>
+          </span>
           <Avatar name={user.name} tone="coral" />
+          <ChevronDown size={14} className="profile-trigger-chevron" />
         </button>
         {menuOpen && (
           <div className="profile-dropdown" role="menu" data-testid="account-menu">
