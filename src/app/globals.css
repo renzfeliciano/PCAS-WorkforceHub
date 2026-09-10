@@ -2896,7 +2896,7 @@ input[type="checkbox"].toggle-input:disabled {
 }
 @media (min-width: 640px) {
   .login-page {
-    grid-template-columns: minmax(360px, min(40%, 560px)) minmax(0, 1fr);
+    grid-template-columns: minmax(360px, 40%) minmax(0, 1fr);
   }
 }
 .login-visual {
