@@ -46,7 +46,16 @@ export async function checkApiRateLimit(identifier: string, kind: RateLimitKind 
   const activeLimiter = getLimiter(kind);
   if (!activeLimiter)
     return { success: true, limit: 0, remaining: 0, reset: 0 };
-  return activeLimiter.limit(identifier);
+  try {
+    return await activeLimiter.limit(identifier);
+  } catch (error) {
+    // This runs on every request via middleware — Upstash being unreachable
+    // or misconfigured must never take the whole app down with it. Same
+    // fail-open behavior as the "not configured at all" branch above, just
+    // covering the "configured but erroring at request time" case too.
+    console.error("Rate limit check failed, allowing the request through:", error);
+    return { success: true, limit: 0, remaining: 0, reset: 0 };
+  }
 }
 
 export function getClientIdentifier(request: Request, subject?: string) {
