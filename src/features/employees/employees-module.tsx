@@ -158,7 +158,7 @@ export function EmployeesModule({
             <p className="eyebrow">Workforce directory</p>
             <h1>Employee roster</h1>
             <p className="muted">
-              Every record, including leave balances and statutory IDs.
+              Search and manage every employee — leave balances and statutory IDs are included in exports and prints.
             </p>
           </div>
           <div className="actions">
