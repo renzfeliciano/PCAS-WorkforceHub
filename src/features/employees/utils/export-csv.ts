@@ -1,4 +1,5 @@
 import { calculateAge, formatLengthOfService } from "@/lib/employee-dates";
+import { downloadCsv } from "@/lib/csv";
 import { leaveBalanceCell, leaveBalanceColumnHeader } from "@/features/employees/utils/leave-balance-columns";
 import type { Employee } from "@/types/employee";
 import type { LeaveType } from "@/types/leave-type";
@@ -32,7 +33,7 @@ export function exportEmployeesCsv(
   const headers = [...BASE_HEADERS, ...leaveTypes.map(leaveBalanceColumnHeader)];
   const rows = employees.map((employee, index) => [
     index + 1,
-    employee.employeeNumber,
+    employee.employeeNumber ?? "",
     employee.name,
     employee.gender,
     employee.position,
@@ -52,12 +53,5 @@ export function exportEmployeesCsv(
     employee.tinNumber ?? "",
     ...leaveTypes.map((type) => leaveBalanceCell(employee, type)),
   ]);
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
-    .join("\n");
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  link.download = "pcas-workforcehub-employees.csv";
-  link.click();
-  URL.revokeObjectURL(link.href);
+  downloadCsv(headers, rows, "pcas-workforcehub-employees.csv");
 }
