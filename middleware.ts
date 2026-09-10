@@ -1,6 +1,7 @@
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { withAuth } from "next-auth/middleware";
 import { getInactivityMs } from "@/lib/duration";
+import { checkApiRateLimit, getClientIdentifier, type RateLimitKind } from "@/lib/rate-limit";
 
 const inactivityMs = getInactivityMs();
 
@@ -40,10 +41,45 @@ function isCrossOriginApiWrite(req: NextRequest): boolean {
   return Boolean(origin) && origin !== req.nextUrl.origin;
 }
 
-export default function middleware(req: NextRequest, event: NextFetchEvent) {
+/** api/auth (NextAuth itself) never reaches this middleware — excluded by the matcher below — so any remaining /api/ path is a REST endpoint worth rate-limiting. */
+export function isApiPath(pathname: string): boolean {
+  return pathname.startsWith("/api/");
+}
+
+/** Reads are generous, writes are tight — matches the tiers in @/lib/rate-limit. */
+export function rateLimitKindFor(method: string): RateLimitKind {
+  return method === "GET" || method === "HEAD" ? "read" : "write";
+}
+
+/**
+ * Blanket, IP-keyed rate limit for every /api/ route, applied here in
+ * middleware so it covers all current and future endpoints without each
+ * route handler having to remember to call checkApiRateLimit itself. A few
+ * routes (e.g. settings/seed, login) additionally rate-limit on their own,
+ * keyed by user id where a session exists — that's a tighter, complementary
+ * budget layered on top of this one, not a replacement for it.
+ */
+async function enforceApiRateLimit(req: NextRequest): Promise<NextResponse | null> {
+  if (!isApiPath(req.nextUrl.pathname)) return null;
+  const rate = await checkApiRateLimit(getClientIdentifier(req), rateLimitKindFor(req.method));
+  if (rate.success) return null;
+  return NextResponse.json(
+    { error: "RATE_LIMITED" },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.max(1, Math.ceil((rate.reset - Date.now()) / 1000))),
+      },
+    },
+  );
+}
+
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
   if (isCrossOriginApiWrite(req)) {
     return NextResponse.json({ error: "CROSS_ORIGIN_REQUEST_BLOCKED" }, { status: 403 });
   }
+  const rateLimited = await enforceApiRateLimit(req);
+  if (rateLimited) return rateLimited;
   // withAuth's middleware type expects NextRequestWithAuth (a NextRequest
   // plus a `nextauth` field it injects internally at runtime) — this
   // function is the actual Next.js middleware entry point, so it only ever
