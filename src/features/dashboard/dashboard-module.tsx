@@ -8,6 +8,7 @@ import { UpcomingEventsList } from "@/features/dashboard/components/upcoming-eve
 import { BirthdayList } from "@/features/dashboard/components/birthday-list";
 import { StatusBreakdownChart } from "@/features/dashboard/components/status-breakdown-chart";
 import { DistributionChart } from "@/features/dashboard/components/distribution-chart";
+import { ColumnDistributionChart } from "@/features/dashboard/components/column-distribution-chart";
 import { GenderDonutChart } from "@/features/dashboard/components/gender-donut-chart";
 import { HiringTrendChart } from "@/features/dashboard/components/hiring-trend-chart";
 import { RecruitmentPipeline } from "@/features/dashboard/components/recruitment-pipeline";
@@ -108,7 +109,7 @@ export function DashboardModule({
           <div className="section-head">
             <h2>Age</h2>
           </div>
-          <DistributionChart
+          <ColumnDistributionChart
             buckets={data.ageBreakdown}
             ariaLabel="Employees by age"
             emptyTitle="No age data yet"

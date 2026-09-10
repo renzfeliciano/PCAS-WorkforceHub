@@ -88,6 +88,27 @@ describe("GET /api/v1/employees", () => {
     const response = await GET(jsonRequest("http://localhost/api/v1/employees", "GET"));
     expect(response.headers.get("X-Request-Id")).toBeTruthy();
   });
+
+  it("filters by projectId", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    await POST(
+      jsonRequest("http://localhost/api/v1/employees", "POST", validEmployeeInput({ projectSiteId: "proj-1" })),
+    );
+    await POST(
+      jsonRequest(
+        "http://localhost/api/v1/employees",
+        "POST",
+        validEmployeeInput({ employeeNumber: "002", name: "Bob Jones", projectSiteId: "proj-2" }),
+      ),
+    );
+
+    const response = await GET(
+      jsonRequest("http://localhost/api/v1/employees?projectId=proj-2", "GET"),
+    );
+    const body = await response.json();
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].name).toBe("Bob Jones");
+  });
 });
 
 describe("POST /api/v1/employees", () => {

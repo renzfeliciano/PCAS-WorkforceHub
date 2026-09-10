@@ -193,6 +193,23 @@ describe("MongoEmployeeRepository.findAll — search", () => {
     expect(result.items[0].employmentStatus).toBe("Contractual");
   });
 
+  it("filters by project site id", async () => {
+    const positionId = await makePosition("Engineer");
+    const rufinoId = await makeProject("Rufino Tower");
+    const insulaId = await makeProject("South Insula");
+    await repository.create(
+      makeInput({ employeeNumber: "001", name: "Alice", positionId, projectSiteId: rufinoId }),
+    );
+    await repository.create(
+      makeInput({ employeeNumber: "002", name: "Bob", positionId, projectSiteId: insulaId }),
+    );
+
+    const result = await repository.findAll({ projectId: insulaId });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].name).toBe("Bob");
+    expect(result.items[0].projectSite).toBe("South Insula");
+  });
+
   it("excludes archived employees by default and includes them when asked", async () => {
     const positionId = await makePosition("Engineer");
     const projectSiteId = await makeProject("HO");

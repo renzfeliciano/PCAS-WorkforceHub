@@ -17,6 +17,7 @@ const EMPLOYEE_SORT_FIELD_MAP = {
 export type EmployeeListFilters = {
   query?: string;
   status?: string[];
+  projectId?: string;
   includeArchived?: boolean;
   page?: number;
   pageSize?: number;
@@ -163,6 +164,7 @@ export class MongoEmployeeRepository implements EmployeeRepository {
       archived: filters.includeArchived ? true : false,
     };
     if (filters.status?.length) baseMatch.employmentStatusId = { $in: filters.status };
+    if (filters.projectId) baseMatch.projectSiteId = filters.projectId;
 
     const sort = resolveSort(
       filters.sortBy,

@@ -10,9 +10,12 @@ type EmployeeFiltersProps = Readonly<{
   onQueryChange: (value: string) => void;
   selectedStatuses: string[];
   onSelectedStatusesChange: (values: string[]) => void;
+  selectedProjectId: string;
+  onSelectedProjectIdChange: (value: string) => void;
   showArchived: boolean;
   onShowArchivedChange: (value: boolean) => void;
   statuses: SettingItem[];
+  projects: SettingItem[];
   canManage: boolean;
   isFetching?: boolean;
 }>;
@@ -22,9 +25,12 @@ export function EmployeeFilters({
   onQueryChange,
   selectedStatuses,
   onSelectedStatusesChange,
+  selectedProjectId,
+  onSelectedProjectIdChange,
   showArchived,
   onShowArchivedChange,
   statuses,
+  projects,
   canManage,
   isFetching,
 }: EmployeeFiltersProps) {
@@ -90,6 +96,22 @@ export function EmployeeFilters({
           placeholder="Search employees, roles, projects..."
         />
       </div>
+      <select
+        className="project-filter"
+        value={selectedProjectId}
+        onChange={(event) => onSelectedProjectIdChange(event.target.value)}
+        aria-label="Filter by project"
+        data-testid="employee-filter-project"
+      >
+        <option value="">All projects</option>
+        {projects
+          .filter((item) => item.active)
+          .map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+      </select>
       <div className="status-dropdown" ref={containerRef}>
         <button
           type="button"

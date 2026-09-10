@@ -1,8 +1,9 @@
 import { calculateAge, formatLengthOfService } from "@/lib/employee-dates";
+import { leaveBalanceCell, leaveBalanceColumnHeader } from "@/features/employees/utils/leave-balance-columns";
 import type { Employee } from "@/types/employee";
 import type { LeaveType } from "@/types/leave-type";
 
-const HEADERS = [
+const BASE_HEADERS = [
   "#",
   "Employee number",
   "Employee name",
@@ -22,23 +23,13 @@ const HEADERS = [
   "PhilHealth no",
   "Pag-ibig no",
   "TIN no",
-  "Leave balances",
 ];
-
-function formatLeaveBalances(employee: Employee, leaveTypes: readonly LeaveType[]) {
-  return employee.leaveBalances
-    .map((balance) => {
-      const type = leaveTypes.find((item) => item.id === balance.leaveTypeId);
-      return type ? `${type.code}: ${balance.balance}` : null;
-    })
-    .filter((entry): entry is string => entry !== null)
-    .join(", ");
-}
 
 export function exportEmployeesCsv(
   employees: readonly Employee[],
   leaveTypes: readonly LeaveType[],
 ) {
+  const headers = [...BASE_HEADERS, ...leaveTypes.map(leaveBalanceColumnHeader)];
   const rows = employees.map((employee, index) => [
     index + 1,
     employee.employeeNumber,
@@ -59,9 +50,9 @@ export function exportEmployeesCsv(
     employee.philHealthNumber ?? "",
     employee.pagIbigNumber ?? "",
     employee.tinNumber ?? "",
-    formatLeaveBalances(employee, leaveTypes),
+    ...leaveTypes.map((type) => leaveBalanceCell(employee, type)),
   ]);
-  const csv = [HEADERS, ...rows]
+  const csv = [headers, ...rows]
     .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
     .join("\n");
   const link = document.createElement("a");

@@ -8,6 +8,7 @@ export type EmployeeListParams = {
   pageSize?: number;
   query?: string;
   status?: string[];
+  projectId?: string;
   includeArchived?: boolean;
   sortBy?: string;
   sortDir?: SortDir;
@@ -25,6 +26,7 @@ function buildQuery(params: EmployeeListParams) {
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
   if (params.query) search.set("query", params.query);
   if (params.status?.length) search.set("status", params.status.join(","));
+  if (params.projectId) search.set("projectId", params.projectId);
   if (params.includeArchived) search.set("includeArchived", "true");
   if (params.sortBy) search.set("sortBy", params.sortBy);
   if (params.sortDir) search.set("sortDir", params.sortDir);

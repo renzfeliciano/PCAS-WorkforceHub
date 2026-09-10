@@ -141,6 +141,7 @@ export const employeeListQuerySchema = paginationQuerySchema(20)
       .transform((value) =>
         value ? value.split(",").map((entry) => entry.trim()).filter(Boolean) : undefined,
       ),
+    projectId: z.string().trim().min(1).optional(),
     includeArchived: z
       .union([z.literal("true"), z.literal("false")])
       .optional()
