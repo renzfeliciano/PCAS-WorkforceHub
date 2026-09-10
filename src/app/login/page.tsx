@@ -3,10 +3,9 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { ShieldCheck, LogIn, ShieldAlert } from "lucide-react";
+import { Eye, EyeOff, Lock, LogIn, Mail, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LoginBackgroundCarousel } from "@/components/login-background-carousel";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
@@ -35,6 +34,7 @@ export default function LoginPage() {
   const { validate, handleChange, fieldError } = useInlineFormValidation();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   async function submit(event: {
     preventDefault(): void;
     currentTarget: HTMLFormElement;
@@ -56,7 +56,6 @@ export default function LoginPage() {
   }
   return (
     <main className="login-page">
-      <LoginBackgroundCarousel />
       <div className="login-theme-toggle">
         <ThemeToggle />
       </div>
@@ -69,6 +68,8 @@ export default function LoginPage() {
             </span>
           </div>
           <div className="login-copy">
+            <p className="eyebrow">Workforce management platform</p>
+            <h1>Welcome back</h1>
             <p className="muted">
               Sign in to manage your workforce operations.
             </p>
@@ -82,32 +83,54 @@ export default function LoginPage() {
             className="login-form"
             noValidate
           >
-            <FormField
-              label="Email or username"
-              name="username"
-              error={fieldError("username")}
-            >
-              <input
-                name="username"
-                type="text"
-                autoComplete="username"
-                required
-                placeholder="Enter your email or username"
-              />
-            </FormField>
-            <FormField
-              label="Password"
-              name="password"
-              error={fieldError("password")}
-            >
-              <input
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                placeholder="Enter your password"
-              />
-            </FormField>
+            <label>
+              <span className="field-label">Email or username</span>
+              <div className="login-input-group">
+                <Mail size={16} className="login-input-icon" aria-hidden="true" />
+                <input
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  placeholder="Enter your email or username"
+                  aria-invalid={fieldError("username") ? true : undefined}
+                  aria-describedby={fieldError("username") ? "username-field-error" : undefined}
+                />
+              </div>
+              {fieldError("username") && (
+                <small id="username-field-error" className="inline-error" role="alert">
+                  {fieldError("username")}
+                </small>
+              )}
+            </label>
+            <label>
+              <span className="field-label">Password</span>
+              <div className="login-input-group">
+                <Lock size={16} className="login-input-icon" aria-hidden="true" />
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  placeholder="Enter your password"
+                  aria-invalid={fieldError("password") ? true : undefined}
+                  aria-describedby={fieldError("password") ? "password-field-error" : undefined}
+                />
+                <button
+                  type="button"
+                  className="login-input-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {fieldError("password") && (
+                <small id="password-field-error" className="inline-error" role="alert">
+                  {fieldError("password")}
+                </small>
+              )}
+            </label>
             {error && (
               <p className="login-error" role="alert">
                 {error}
@@ -127,10 +150,11 @@ export default function LoginPage() {
             permissions.
           </div>
         </section>
+        <footer className="app-footer login-footer">
+          &copy; {new Date().getFullYear()} PCAS WorkforceHub. All rights reserved.
+        </footer>
       </div>
-      <footer className="app-footer login-footer">
-        &copy; {new Date().getFullYear()} PCAS WorkforceHub. All rights reserved.
-      </footer>
+      <LoginBackgroundCarousel />
     </main>
   );
 }

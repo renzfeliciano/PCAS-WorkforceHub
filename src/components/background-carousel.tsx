@@ -21,6 +21,8 @@ type BackgroundCarouselProps = Readonly<{
   priority?: boolean;
   /** Passed straight to next/image — match this to the rendered width so the right source size is fetched. */
   sizes?: string;
+  /** Notified on every slide change — lets a caller render its own synced UI (e.g. dot indicators) without duplicating the timer. */
+  onActiveIndexChange?: (index: number) => void;
 }>;
 
 /**
@@ -34,9 +36,17 @@ export function BackgroundCarousel({
   slideClassName = "bg-carousel-slide",
   priority,
   sizes = "100vw",
+  onActiveIndexChange,
 }: BackgroundCarouselProps) {
   const [order, setOrder] = useState(images);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    onActiveIndexChange?.(activeIndex);
+    // Only re-notify when the index itself changes — re-running this because
+    // the caller passed a new callback reference would defeat the point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +64,6 @@ export function BackgroundCarousel({
       setActiveIndex((current) => (current + 1) % images.length);
     }, SLIDE_INTERVAL_MS);
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images.length]);
 
   return (
