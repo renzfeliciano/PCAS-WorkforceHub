@@ -37,6 +37,8 @@ export const canManageAssetIssuance = (role: Role) => role === "Admin" || role =
 export const canManageRecruitment = (role: Role) => role === "Admin" || role === "HR";
 /** Create, edit, and delete organization events. */
 export const canManageEvents = (role: Role) => role === "Admin" || role === "HR";
+/** Create, edit, and delete case monitoring records. */
+export const canManageCaseMonitoring = (role: Role) => role === "Admin" || role === "HR";
 /** Archive (soft-delete) employee records. */
 export const canDeleteEmployees = (role: Role) => role === "Admin";
 export const canManageSettings = (role: Role) => role === "Admin";

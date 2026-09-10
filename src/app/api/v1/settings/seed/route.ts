@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import {
   seedAttendanceStatuses,
+  seedCaseClassifications,
+  seedCaseStatuses,
   seedEventCategories,
   seedRecruitmentStages,
   seedSettingsCatalog,
@@ -11,6 +13,8 @@ import {
 import { canManageSettings } from "@/lib/rbac";
 import {
   ATTENDANCE_STATUS_CATEGORY,
+  CASE_CLASSIFICATION_CATEGORY,
+  CASE_STATUS_CATEGORY,
   EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
 } from "@/types/settings";
@@ -18,6 +22,8 @@ import type { SettingKind } from "@/types/settings";
 import { checkApiRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 import {
   isAttendanceStatusSeedingEnabled,
+  isCaseClassificationSeedingEnabled,
+  isCaseStatusSeedingEnabled,
   isEventCategorySeedingEnabled,
   isRecruitmentStageSeedingEnabled,
   isSeedingEnabled,
@@ -106,6 +112,36 @@ export async function POST(request: Request) {
       );
     await connectMongoDB();
     const result = await seedEventCategories();
+    return NextResponse.json(
+      { inserted: result.upsertedCount, kind, category: body.category, requestId },
+      { headers },
+    );
+  }
+
+  const isCaseClassification = kind === "status" && body.category === CASE_CLASSIFICATION_CATEGORY;
+  if (isCaseClassification) {
+    if (!isCaseClassificationSeedingEnabled())
+      return NextResponse.json(
+        { error: "SEEDING_DISABLED", requestId },
+        { status: 403, headers },
+      );
+    await connectMongoDB();
+    const result = await seedCaseClassifications();
+    return NextResponse.json(
+      { inserted: result.upsertedCount, kind, category: body.category, requestId },
+      { headers },
+    );
+  }
+
+  const isCaseStatus = kind === "status" && body.category === CASE_STATUS_CATEGORY;
+  if (isCaseStatus) {
+    if (!isCaseStatusSeedingEnabled())
+      return NextResponse.json(
+        { error: "SEEDING_DISABLED", requestId },
+        { status: 403, headers },
+      );
+    await connectMongoDB();
+    const result = await seedCaseStatuses();
     return NextResponse.json(
       { inserted: result.upsertedCount, kind, category: body.category, requestId },
       { headers },

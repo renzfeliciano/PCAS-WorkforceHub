@@ -20,6 +20,7 @@ const CRUMBS: Record<string, Crumb> = {
   "/employees/roster": { parent: "Employees", page: "Roster" },
   "/employees/asset-issuance": { parent: "Employees", page: "Asset issuance" },
   "/recruitment/application-tracking": { parent: "Recruitment", page: "Application tracking" },
+  "/case-monitoring": { parent: "Workspace", page: "Case monitoring" },
   "/events": { parent: "Workspace", page: "Events" },
   "/settings/permissions": { parent: "Settings", page: "User management" },
   "/settings/catalog-management": { parent: "Settings", page: "Catalog management" },

@@ -1,12 +1,16 @@
 import { SettingModel } from "@/repositories/models/setting-model";
 import {
   attendanceStatusCatalog,
+  caseClassificationCatalog,
+  caseStatusCatalog,
   eventCategoryCatalog,
   recruitmentStageCatalog,
   seedCatalog,
 } from "@/lib/seed-catalog";
 import {
   ATTENDANCE_STATUS_CATEGORY,
+  CASE_CLASSIFICATION_CATEGORY,
+  CASE_STATUS_CATEGORY,
   EMPLOYMENT_STATUS_CATEGORY,
   EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
@@ -71,6 +75,26 @@ export async function seedEventCategories() {
     name,
     kind: "status" as const,
     category: EVENT_CATEGORY_CATEGORY,
+    sortOrder,
+  }));
+  return upsertSettings(records);
+}
+
+export async function seedCaseClassifications() {
+  const records = caseClassificationCatalog.map((name, sortOrder) => ({
+    name,
+    kind: "status" as const,
+    category: CASE_CLASSIFICATION_CATEGORY,
+    sortOrder,
+  }));
+  return upsertSettings(records);
+}
+
+export async function seedCaseStatuses() {
+  const records = caseStatusCatalog.map((name, sortOrder) => ({
+    name,
+    kind: "status" as const,
+    category: CASE_STATUS_CATEGORY,
     sortOrder,
   }));
   return upsertSettings(records);

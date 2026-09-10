@@ -81,6 +81,23 @@ export const eventCategoryCatalog: readonly string[] = [
   "Other",
 ];
 
+/** Seeded under the "status" kind, category "case-classification" (see CASE_CLASSIFICATION_CATEGORY). */
+export const caseClassificationCatalog: readonly string[] = [
+  "SeNA/Labor Case",
+  "Criminal Case",
+  "Civil Case",
+  "HLURB/DSHUD",
+  "Others",
+];
+
+/** Seeded under the "status" kind, category "case-status" (see CASE_STATUS_CATEGORY). */
+export const caseStatusCatalog: readonly string[] = [
+  "Mediation",
+  "Ongoing",
+  "Pending",
+  "Dismissed",
+];
+
 export const leaveTypeCatalog: readonly {
   name: string;
   code: string;

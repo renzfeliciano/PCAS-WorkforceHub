@@ -38,3 +38,11 @@ export function isRecruitmentStageSeedingEnabled(env: NodeJS.ProcessEnv = proces
 export function isEventCategorySeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
   return env.ENABLE_EVENTS_CATEGORY_SEEDING === "true";
 }
+
+export function isCaseClassificationSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
+  return env.ENABLE_CASE_MONITORING_CLASSIFICATIONS === "true";
+}
+
+export function isCaseStatusSeedingEnabled(env: NodeJS.ProcessEnv = process.env) {
+  return env.ENABLE_CASE_MONITORING_STATUSES === "true";
+}

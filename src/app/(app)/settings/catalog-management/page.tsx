@@ -1,6 +1,8 @@
 import { withRoleGuard } from "@/lib/with-role-guard";
 import {
   isAttendanceStatusSeedingEnabled,
+  isCaseClassificationSeedingEnabled,
+  isCaseStatusSeedingEnabled,
   isEventCategorySeedingEnabled,
   isLeaveTypeSeedingEnabled,
   isRecruitmentStageSeedingEnabled,
@@ -30,6 +32,8 @@ export default async function CatalogManagementPage() {
       attendanceStatusSeedEnabled={isAttendanceStatusSeedingEnabled()}
       recruitmentStageSeedEnabled={isRecruitmentStageSeedingEnabled()}
       eventCategorySeedEnabled={isEventCategorySeedingEnabled()}
+      caseClassificationSeedEnabled={isCaseClassificationSeedingEnabled()}
+      caseStatusSeedEnabled={isCaseStatusSeedingEnabled()}
       leaveTypeSeedEnabled={isLeaveTypeSeedingEnabled()}
       initialSettings={initialSettings}
       initialLeaveTypes={initialLeaveTypes}

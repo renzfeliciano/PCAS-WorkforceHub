@@ -16,6 +16,7 @@ import {
   Layers,
   Package,
   Plane,
+  Scale,
   Settings2,
   ShieldCheck,
   Table2,
@@ -271,6 +272,17 @@ export function Sidebar({
           </Link>
           {renderGroup(employeeGroup)}
           {renderGroup(recruitmentGroup)}
+          <Link
+            href="/case-monitoring"
+            className={pathname.startsWith("/case-monitoring") ? "active" : ""}
+            aria-current={pathname.startsWith("/case-monitoring") ? "page" : undefined}
+            onClick={onNavigate}
+            title="Case monitoring"
+            data-testid="nav-link-/case-monitoring"
+          >
+            <Scale size={17} />
+            <span>Case monitoring</span>
+          </Link>
           <Link
             href="/events"
             className={pathname.startsWith("/events") ? "active" : ""}

@@ -8,6 +8,8 @@ import { LeaveTypesSection } from "@/features/settings/components/leave-types-se
 import { SettingsCatalogSkeleton } from "@/features/settings/components/settings-catalog-skeleton";
 import {
   ATTENDANCE_STATUS_CATEGORY,
+  CASE_CLASSIFICATION_CATEGORY,
+  CASE_STATUS_CATEGORY,
   EMPLOYMENT_STATUS_CATEGORY,
   EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
@@ -28,6 +30,8 @@ export function SettingsModule({
   attendanceStatusSeedEnabled,
   recruitmentStageSeedEnabled,
   eventCategorySeedEnabled,
+  caseClassificationSeedEnabled,
+  caseStatusSeedEnabled,
   leaveTypeSeedEnabled,
   initialSettings,
   initialLeaveTypes,
@@ -36,6 +40,8 @@ export function SettingsModule({
   attendanceStatusSeedEnabled: boolean;
   recruitmentStageSeedEnabled: boolean;
   eventCategorySeedEnabled: boolean;
+  caseClassificationSeedEnabled: boolean;
+  caseStatusSeedEnabled: boolean;
   leaveTypeSeedEnabled: boolean;
   initialSettings?: SettingItem[];
   initialLeaveTypes?: LeaveType[];
@@ -70,6 +76,20 @@ export function SettingsModule({
       category: EVENT_CATEGORY_CATEGORY,
       label: "Event categories",
       seedEnabled: eventCategorySeedEnabled,
+    },
+    {
+      key: "status:case-classification",
+      kind: "status",
+      category: CASE_CLASSIFICATION_CATEGORY,
+      label: "Case classifications",
+      seedEnabled: caseClassificationSeedEnabled,
+    },
+    {
+      key: "status:case-status",
+      kind: "status",
+      category: CASE_STATUS_CATEGORY,
+      label: "Case statuses",
+      seedEnabled: caseStatusSeedEnabled,
     },
   ];
   const settings = useSettingsCatalog(initialSettings);
