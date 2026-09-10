@@ -4,8 +4,6 @@ import { EmployeeModel } from "@/repositories/models/employee-model";
 import { TravelOrderModel } from "@/repositories/models/travel-order-model";
 import type { TravelOrder, TravelOrderEmployee } from "@/types/travel-order";
 
-const LIST_LIMIT = 200;
-
 export type TravelOrderPatch = {
   employeeIds: string[];
   startDate: string;
@@ -13,8 +11,19 @@ export type TravelOrderPatch = {
   remarks?: string;
 };
 
+export type TravelOrderListFilters = {
+  page?: number;
+  pageSize?: number;
+};
+export type TravelOrderListResult = {
+  items: TravelOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 export interface TravelOrderRepository {
-  findAll(): Promise<TravelOrder[]>;
+  findAll(filters: TravelOrderListFilters): Promise<TravelOrderListResult>;
   findById(id: string): Promise<TravelOrder | null>;
   create(input: TravelOrderPatch): Promise<TravelOrder>;
   update(id: string, patch: TravelOrderPatch): Promise<TravelOrder>;
@@ -97,12 +106,19 @@ function toPatchDocument(input: TravelOrderPatch) {
 }
 
 export class MongoTravelOrderRepository implements TravelOrderRepository {
-  async findAll(): Promise<TravelOrder[]> {
-    const docs = await TravelOrderModel.find()
-      .sort({ startDate: -1, createdAt: -1 })
-      .limit(LIST_LIMIT)
-      .lean<TravelOrderDocument[]>();
-    return toTravelOrders(docs);
+  async findAll(filters: TravelOrderListFilters): Promise<TravelOrderListResult> {
+    const page = Math.max(1, filters.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
+    const [docs, total] = await Promise.all([
+      TravelOrderModel.find()
+        .sort({ startDate: -1, createdAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean<TravelOrderDocument[]>(),
+      TravelOrderModel.countDocuments(),
+    ]);
+    const items = await toTravelOrders(docs);
+    return { items, total, page, pageSize };
   }
 
   async findById(id: string): Promise<TravelOrder | null> {

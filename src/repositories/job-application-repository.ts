@@ -7,8 +7,6 @@ import { SettingModel } from "@/repositories/models/setting-model";
 import { RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
 import type { JobApplication } from "@/types/job-application";
 
-const LIST_LIMIT = 500;
-
 export type JobApplicationPatch = {
   applicantName: string;
   positionId: string;
@@ -85,10 +83,17 @@ async function resolveDefaultStageId(): Promise<string> {
 }
 
 export class MongoJobApplicationRepository implements JobApplicationRepository {
+  /**
+   * Deliberately unbounded — the recruitment board is a Kanban view that
+   * groups every application by stage, so a page-based cutoff would make
+   * older active applications disappear from their column instead of just
+   * being on a page nobody's viewing. Recruitment volume is bounded by
+   * headcount need in a way employee/attendance history isn't, so this is
+   * safe without a limit.
+   */
   async findAll(): Promise<JobApplication[]> {
     const docs = await JobApplicationModel.find()
       .sort({ appliedDate: -1, createdAt: -1 })
-      .limit(LIST_LIMIT)
       .lean<JobApplicationDocument[]>();
     return resolveMany(docs);
   }

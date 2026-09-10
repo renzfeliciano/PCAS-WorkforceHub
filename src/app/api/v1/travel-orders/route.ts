@@ -2,6 +2,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { isGuardError, requireApiSession } from "@/lib/api-guard";
 import { apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
+import { travelOrderListQuerySchema } from "@/schemas/travel-order";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
 import { MongoTravelOrderRepository } from "@/repositories/travel-order-repository";
 import { createTravelOrder, listTravelOrders } from "@/services/travel-order-service";
@@ -13,10 +14,14 @@ export async function GET(request: Request) {
   const guard = await requireApiSession(request);
   if (isGuardError(guard)) return guard;
   const { requestId, headers } = guard;
+  const parsed = travelOrderListQuerySchema.safeParse(
+    Object.fromEntries(new URL(request.url).searchParams),
+  );
+  if (!parsed.success) return mapServiceError(parsed.error, requestId, headers);
   try {
     await connectMongoDB();
-    const items = await listTravelOrders(repository);
-    return apiJson({ items }, requestId, headers);
+    const result = await listTravelOrders(repository, parsed.data);
+    return apiJson(result, requestId, headers);
   } catch (error) {
     return mapServiceError(error, requestId, headers);
   }

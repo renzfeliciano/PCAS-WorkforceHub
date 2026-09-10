@@ -5,6 +5,6 @@ import { TravelOrdersModule } from "@/features/travel-orders/travel-orders-modul
 
 export default async function TravelOrdersPage() {
   await connectMongoDB();
-  const items = await listTravelOrders(new MongoTravelOrderRepository());
-  return <TravelOrdersModule initialItems={items} />;
+  const initialData = await listTravelOrders(new MongoTravelOrderRepository(), { page: 1, pageSize: 20 });
+  return <TravelOrdersModule initialData={initialData} />;
 }

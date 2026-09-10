@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { paginationQuerySchema } from "@/schemas/list-query";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+
+export const travelOrderListQuerySchema = paginationQuerySchema(20);
 
 export const travelOrderSchema = z
   .object({

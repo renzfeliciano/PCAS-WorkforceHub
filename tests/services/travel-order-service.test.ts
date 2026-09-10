@@ -3,6 +3,7 @@ import { ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
 import {
   createTravelOrder,
   deleteTravelOrder,
+  listTravelOrders,
   updateTravelOrder,
 } from "@/services/travel-order-service";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
@@ -98,7 +99,13 @@ function fakeTravelOrderRepository(
   }
 
   return {
-    findAll: async () => [...orders.values()].map(resolve),
+    findAll: async (filters) => {
+      const page = Math.max(1, filters.page ?? 1);
+      const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
+      const all = [...orders.values()].map(resolve);
+      const items = all.slice((page - 1) * pageSize, page * pageSize);
+      return { items, total: all.length, page, pageSize };
+    },
     findById: async (id) => {
       const stored = orders.get(id);
       return stored ? resolve(stored) : null;
@@ -128,6 +135,37 @@ function fakeTravelOrderRepository(
     },
   };
 }
+
+describe("listTravelOrders", () => {
+  it("pages through results instead of returning everything at once", async () => {
+    const seed = Array.from({ length: 5 }, (_, i) => ({
+      id: `to-${i + 1}`,
+      employees: [],
+      startDate: "2026-02-01",
+      endDate: "2026-02-03",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    }));
+    const repo = fakeTravelOrderRepository(seed);
+
+    const firstPage = await listTravelOrders(repo, { page: 1, pageSize: 2 });
+    expect(firstPage.items).toHaveLength(2);
+    expect(firstPage.total).toBe(5);
+    expect(firstPage.page).toBe(1);
+    expect(firstPage.pageSize).toBe(2);
+
+    const lastPage = await listTravelOrders(repo, { page: 3, pageSize: 2 });
+    expect(lastPage.items).toHaveLength(1);
+  });
+
+  it("defaults to page 1 when no filters are given", async () => {
+    const repo = fakeTravelOrderRepository([
+      { id: "to-1", employees: [], startDate: "2026-02-01", endDate: "2026-02-03", createdAt: "2026-01-01T00:00:00.000Z" },
+    ]);
+    const result = await listTravelOrders(repo);
+    expect(result.page).toBe(1);
+    expect(result.items).toHaveLength(1);
+  });
+});
 
 describe("createTravelOrder", () => {
   it("rejects roles that cannot manage travel orders", async () => {

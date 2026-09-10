@@ -3,7 +3,11 @@ import { ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
 import { canManageTravelOrders } from "@/lib/rbac";
 import { createTravelOrderSchema, updateTravelOrderSchema } from "@/schemas/travel-order";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
-import type { TravelOrderRepository } from "@/repositories/travel-order-repository";
+import type {
+  TravelOrderListFilters,
+  TravelOrderListResult,
+  TravelOrderRepository,
+} from "@/repositories/travel-order-repository";
 import type { TravelOrder } from "@/types/travel-order";
 import type { Role } from "@/types/user";
 
@@ -26,8 +30,11 @@ async function assertEmployeesExist(
   );
 }
 
-export async function listTravelOrders(repository: TravelOrderRepository): Promise<TravelOrder[]> {
-  return repository.findAll();
+export async function listTravelOrders(
+  repository: TravelOrderRepository,
+  filters: TravelOrderListFilters = {},
+): Promise<TravelOrderListResult> {
+  return repository.findAll(filters);
 }
 
 export async function createTravelOrder(

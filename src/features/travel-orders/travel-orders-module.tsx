@@ -5,29 +5,42 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Pagination } from "@/components/ui/pagination";
 import { Spinner } from "@/components/ui/spinner";
 import { useCurrentUser } from "@/context/current-user-context";
 import { canManageTravelOrders } from "@/lib/rbac";
-import { travelOrdersClient } from "@/features/travel-orders/api/travel-orders-client";
+import {
+  travelOrdersClient,
+  type TravelOrderListResponse,
+} from "@/features/travel-orders/api/travel-orders-client";
 import { TravelOrderFormDialog } from "@/features/travel-orders/components/travel-order-form-dialog";
 import type { TravelOrder } from "@/types/travel-order";
 
+const DEFAULT_PAGE_SIZE = 20;
+
 export function TravelOrdersModule({
-  initialItems,
-}: Readonly<{ initialItems?: TravelOrder[] }>) {
+  initialData,
+}: Readonly<{ initialData?: TravelOrderListResponse }>) {
   const user = useCurrentUser();
   const canManage = canManageTravelOrders(user.role);
 
-  const [items, setItems] = useState<TravelOrder[]>(initialItems ?? []);
-  const [isLoading, setIsLoading] = useState(!initialItems);
+  const [items, setItems] = useState<TravelOrder[]>(initialData?.items ?? []);
+  const [total, setTotal] = useState(initialData?.total ?? 0);
+  const [page, setPage] = useState(initialData?.page ?? 1);
+  const [pageSize, setPageSize] = useState(initialData?.pageSize ?? DEFAULT_PAGE_SIZE);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<TravelOrder | "new" | null>(null);
   const [deleting, setDeleting] = useState<TravelOrder | null>(null);
 
-  async function reload() {
+  async function reload(nextPage = page, nextPageSize = pageSize) {
+    setIsLoading(true);
     try {
-      const result = await travelOrdersClient.list();
+      const result = await travelOrdersClient.list({ page: nextPage, pageSize: nextPageSize });
       setItems(result.items);
+      setTotal(result.total);
+      setPage(result.page);
+      setPageSize(result.pageSize);
       setError("");
     } catch (err) {
       setError(
@@ -39,8 +52,8 @@ export function TravelOrdersModule({
   }
 
   useEffect(() => {
-    if (initialItems) return;
-    queueMicrotask(reload);
+    if (initialData) return;
+    queueMicrotask(() => reload());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -135,6 +148,16 @@ export function TravelOrdersModule({
             );
           })}
         </ul>
+      )}
+      {!isLoading && total > 0 && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          itemLabel="travel order"
+          onPageChange={(nextPage) => reload(nextPage, pageSize)}
+          onPageSizeChange={(nextPageSize) => reload(1, nextPageSize)}
+        />
       )}
       {editing && (
         <TravelOrderFormDialog
