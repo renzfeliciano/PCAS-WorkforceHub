@@ -51,7 +51,8 @@ describe("EmployeePrintReport", () => {
     expect(screen.getByText("VL balance")).toBeInTheDocument();
     expect(screen.getByText("SIL balance")).toBeInTheDocument();
     expect(screen.getByText("7.5")).toBeInTheDocument();
-    // No entry for SIL — shown as a dash rather than a misleading 0.
+    // No entry for SIL, a trackable type — shown as 0, not a dash.
+    expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByText("Alice Smith")).toBeInTheDocument();
   });
 

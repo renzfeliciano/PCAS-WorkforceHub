@@ -5,8 +5,13 @@ export function leaveBalanceColumnHeader(leaveType: LeaveType): string {
   return `${leaveType.code} balance`;
 }
 
-/** "—" when the employee has no balance entry for this type — either they're ineligible or the type doesn't track a balance at all. */
+/**
+ * Missing balance for a trackable type reads as 0 (not blank) — the employee
+ * is simply at zero, not undefined. "—" is reserved for types that don't
+ * track a balance at all, where a numeric value wouldn't mean anything.
+ */
 export function leaveBalanceCell(employee: Employee, leaveType: LeaveType): string {
   const balance = employee.leaveBalances.find((entry) => entry.leaveTypeId === leaveType.id);
-  return balance ? String(balance.balance) : "—";
+  if (balance) return String(balance.balance);
+  return leaveType.tracksBalance ? "0" : "—";
 }

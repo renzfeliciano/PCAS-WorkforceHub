@@ -45,13 +45,13 @@ describe("leaveBalanceCell", () => {
     expect(leaveBalanceCell(emp, type)).toBe("7.5");
   });
 
-  it("returns an em dash when the employee has no entry for the type", () => {
+  it("returns 0 when the employee has no entry for a trackable type", () => {
     const type = leaveType({ id: "sil" });
     const emp = employee({ leaveBalances: [{ leaveTypeId: "vl", balance: 5 }] });
-    expect(leaveBalanceCell(emp, type)).toBe("—");
+    expect(leaveBalanceCell(emp, type)).toBe("0");
   });
 
-  it("returns an em dash for a no-credit-value type the employee was never assigned a balance for", () => {
+  it("returns an em dash for a non-trackable type the employee was never assigned a balance for", () => {
     const type = leaveType({ id: "unpaid", tracksBalance: false });
     const emp = employee({ leaveBalances: [] });
     expect(leaveBalanceCell(emp, type)).toBe("—");
