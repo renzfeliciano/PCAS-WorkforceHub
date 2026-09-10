@@ -2889,9 +2889,9 @@ input[type="checkbox"].toggle-input:disabled {
   overflow: hidden;
   background: var(--paper);
 }
-@media (min-width: 900px) {
+@media (min-width: 640px) {
   .login-page {
-    grid-template-columns: minmax(360px, 35%) minmax(0, 65%);
+    grid-template-columns: minmax(360px, 40%) minmax(0, 60%);
     max-width: 1560px;
     margin: 0 auto;
   }
@@ -2903,7 +2903,7 @@ input[type="checkbox"].toggle-input:disabled {
   overflow: hidden;
   background: var(--sidebar);
 }
-@media (min-width: 900px) {
+@media (min-width: 640px) {
   .login-visual {
     position: relative;
     inset: auto;
@@ -2961,7 +2961,7 @@ input[type="checkbox"].toggle-input:disabled {
       transparent 55%
     );
 }
-@media (min-width: 900px) {
+@media (min-width: 640px) {
   .login-visual-scrim {
     background: linear-gradient(
       to top,
@@ -2975,7 +2975,7 @@ input[type="checkbox"].toggle-input:disabled {
 .login-visual-content {
   display: none;
 }
-@media (min-width: 900px) {
+@media (min-width: 640px) {
   .login-visual-content {
     display: block;
     position: absolute;
