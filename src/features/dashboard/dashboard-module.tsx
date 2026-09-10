@@ -1,12 +1,17 @@
 "use client";
 
-import { CalendarClock, Clock3, UserCheck, Users } from "lucide-react";
+import { Briefcase, CalendarClock, UserPlus, Users } from "lucide-react";
 import { useDashboardSummary } from "@/features/dashboard/hooks/use-dashboard-summary";
 import { StatCard } from "@/features/dashboard/components/stat-card";
 import { RecentEmployeesList } from "@/features/dashboard/components/recent-employees-list";
 import { UpcomingEventsList } from "@/features/dashboard/components/upcoming-events-list";
 import { BirthdayList } from "@/features/dashboard/components/birthday-list";
 import { StatusBreakdownChart } from "@/features/dashboard/components/status-breakdown-chart";
+import { DistributionChart } from "@/features/dashboard/components/distribution-chart";
+import { GenderDonutChart } from "@/features/dashboard/components/gender-donut-chart";
+import { HiringTrendChart } from "@/features/dashboard/components/hiring-trend-chart";
+import { RecruitmentPipeline } from "@/features/dashboard/components/recruitment-pipeline";
+import { UpcomingCompanyEventsList } from "@/features/dashboard/components/upcoming-company-events-list";
 import { DashboardSkeleton } from "@/features/dashboard/components/dashboard-skeleton";
 import { calculateAge } from "@/lib/employee-dates";
 import type { DashboardSummary } from "@/services/dashboard-service";
@@ -24,15 +29,7 @@ export function DashboardModule({
     );
   if (isLoading || !data) return <DashboardSkeleton />;
 
-  const regularCount =
-    data.statusBreakdown.find((entry) => entry.status === "Regular")?.count ??
-    0;
-  const contractualCount = data.statusBreakdown
-    .filter(
-      (entry) =>
-        entry.status === "Contractual" || entry.status === "Probationary",
-    )
-    .reduce((sum, entry) => sum + entry.count, 0);
+  const newHiresThisMonth = data.hiringTrend[data.hiringTrend.length - 1]?.count ?? 0;
 
   return (
     <>
@@ -51,17 +48,17 @@ export function DashboardModule({
           hint="Active records"
         />
         <StatCard
-          icon={UserCheck}
-          label="Regular"
-          value={regularCount}
-          hint="Permanent staff"
+          icon={UserPlus}
+          label="New hires"
+          value={newHiresThisMonth}
+          hint="This month"
           dark
         />
         <StatCard
-          icon={Clock3}
-          label="Contractual / Probationary"
-          value={contractualCount}
-          hint="Fixed-term staff"
+          icon={Briefcase}
+          label="Total applicants"
+          value={data.totalApplications}
+          hint="Recruitment pipeline"
         />
         <StatCard
           icon={CalendarClock}
@@ -80,6 +77,52 @@ export function DashboardModule({
         </section>
         <section className="panel">
           <div className="section-head">
+            <div>
+              <h2>Hiring trend</h2>
+              <p className="muted">New hires per month, last 12 months.</p>
+            </div>
+          </div>
+          <HiringTrendChart points={data.hiringTrend} />
+        </section>
+        <section className="panel">
+          <div className="section-head">
+            <div>
+              <h2>Recruitment pipeline</h2>
+              <p className="muted">Open applications by stage.</p>
+            </div>
+          </div>
+          <RecruitmentPipeline stages={data.recruitmentPipeline} />
+        </section>
+        <section className="panel">
+          <div className="section-head">
+            <h2>Tenure</h2>
+          </div>
+          <DistributionChart
+            buckets={data.tenureBreakdown}
+            ariaLabel="Employees by tenure"
+            emptyTitle="No tenure data yet"
+            emptyDescription="Add employees to see how long staff have been with the company."
+          />
+        </section>
+        <section className="panel">
+          <div className="section-head">
+            <h2>Age</h2>
+          </div>
+          <DistributionChart
+            buckets={data.ageBreakdown}
+            ariaLabel="Employees by age"
+            emptyTitle="No age data yet"
+            emptyDescription="Add a birth date to employee records to see the age spread."
+          />
+        </section>
+        <section className="panel">
+          <div className="section-head">
+            <h2>Gender split</h2>
+          </div>
+          <GenderDonutChart buckets={data.genderBreakdown} />
+        </section>
+        <section className="panel">
+          <div className="section-head">
             <h2>Recent employees</h2>
           </div>
           <RecentEmployeesList employees={data.recentEmployees} />
@@ -89,6 +132,12 @@ export function DashboardModule({
             <h2>Upcoming contract endings</h2>
           </div>
           <UpcomingEventsList employees={data.upcomingContractEndings} />
+        </section>
+        <section className="panel">
+          <div className="section-head">
+            <h2>Upcoming events</h2>
+          </div>
+          <UpcomingCompanyEventsList events={data.upcomingEvents} />
         </section>
         <section className="panel">
           <div className="section-head">

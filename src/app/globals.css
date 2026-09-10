@@ -17,6 +17,13 @@
   --login-glow: #e6f0fa;
   --coral-tint: #12619918;
   --danger: #bd6659;
+  /* Sequential ordinal ramp (single hue, light -> dark) for ordered chart
+     buckets (tenure, age, ...) — validated with the dataviz skill's
+     validate_palette.js --ordinal against this exact --surface (#fff). */
+  --seq-1: #86b6ef;
+  --seq-2: #5598e7;
+  --seq-3: #2a78d6;
+  --seq-4: #184f95;
   /* --line reads fine against --surface (white), but --line and --sidebar
      are too close in lightness for a divider drawn ON --sidebar itself
      (e.g. above the sidebar footer) — this ink-tinted line stays visible
@@ -125,6 +132,13 @@
   --coral-tint: #4391bf33;
   --danger: #d9847a;
   --sidebar-line: rgba(255, 255, 255, 0.14);
+  /* Re-validated against this app's actual dark --surface (#1e2f4d), not the
+     light steps — #184f95 (light mode's darkest step) falls below the 2:1
+     floor there, so dark mode stops one step earlier at #1c5cab. */
+  --seq-1: #86b6ef;
+  --seq-2: #5598e7;
+  --seq-3: #2a78d6;
+  --seq-4: #1c5cab;
 }
 
 /* Standard WAI-ARIA visually-hidden utility: content stays in the
@@ -1101,6 +1115,151 @@ thead .col-sticky-2 {
     sans-serif;
 }
 .status-chart-value small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.hiring-trend {
+  position: relative;
+  margin-top: 6px;
+}
+.hiring-trend-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: none;
+}
+.hiring-trend-baseline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.hiring-trend-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hiring-trend-crosshair {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.hiring-trend-dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.hiring-trend-end-label {
+  fill: var(--ink);
+  text-anchor: middle;
+  font:
+    600 12px Arial,
+    sans-serif;
+}
+.hiring-trend-tick {
+  fill: var(--muted);
+  text-anchor: middle;
+  font:
+    10px Arial,
+    sans-serif;
+}
+.hiring-trend-tooltip {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  pointer-events: none;
+  font:
+    11px Arial,
+    sans-serif;
+}
+.hiring-trend-tooltip b {
+  font-weight: 700;
+}
+.pipeline-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.pipeline-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 84px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--sidebar);
+}
+.pipeline-pill b {
+  color: var(--ink);
+  font:
+    700 19px Arial,
+    sans-serif;
+}
+.pipeline-pill span {
+  color: var(--muted);
+  white-space: nowrap;
+  font:
+    10px Arial,
+    sans-serif;
+}
+.gender-donut {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 10px;
+}
+.gender-donut-svg {
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+.gender-donut-total-value {
+  fill: var(--ink);
+  font:
+    700 30px Arial,
+    sans-serif;
+}
+.gender-donut-total-label {
+  fill: var(--muted);
+  font:
+    10px Arial,
+    sans-serif;
+}
+.gender-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gender-donut-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font:
+    12px Arial,
+    sans-serif;
+}
+.gender-donut-swatch {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.gender-donut-legend b {
+  margin-left: auto;
+  font-weight: 700;
+}
+.gender-donut-legend small {
   color: var(--muted);
   font-weight: 400;
 }
