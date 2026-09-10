@@ -23,6 +23,7 @@ type LeaveTypeDocument = {
   description?: string;
   order: number;
   active: boolean;
+  tracksBalance?: boolean;
 };
 
 function toLeaveType(doc: LeaveTypeDocument): LeaveType {
@@ -34,6 +35,8 @@ function toLeaveType(doc: LeaveTypeDocument): LeaveType {
     description: doc.description,
     order: doc.order,
     active: doc.active,
+    // Pre-existing documents saved before this field was added have no value stored — treat them as balance-tracked, matching the schema default.
+    tracksBalance: doc.tracksBalance ?? true,
   };
 }
 

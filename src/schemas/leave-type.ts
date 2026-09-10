@@ -12,6 +12,7 @@ export const createLeaveTypeSchema = z.object({
     .transform((value) => value.toUpperCase()),
   eligibility: leaveEligibilitySchema.default("Any"),
   description: z.string().trim().max(160).optional(),
+  tracksBalance: z.boolean().default(true),
 });
 
 export const updateLeaveTypeSchema = z.object({
@@ -26,6 +27,7 @@ export const updateLeaveTypeSchema = z.object({
   eligibility: leaveEligibilitySchema.optional(),
   description: z.string().trim().max(160).optional(),
   active: z.boolean().optional(),
+  tracksBalance: z.boolean().optional(),
 });
 
 export type CreateLeaveTypeInput = z.infer<typeof createLeaveTypeSchema>;

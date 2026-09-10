@@ -16,11 +16,21 @@ import type { LeaveType } from "@/types/leave-type";
 const VL_ID = "vl-type";
 const SL_ID = "sl-type";
 const EL_ID = "el-type";
+const UNPAID_ID = "unpaid-type";
 
 const LEAVE_TYPES: LeaveType[] = [
-  { id: VL_ID, name: "Vacation Leave", code: "VL", eligibility: "Any", order: 0, active: true },
-  { id: SL_ID, name: "Sick Leave", code: "SL", eligibility: "Any", order: 1, active: true },
-  { id: EL_ID, name: "Emergency Leave", code: "EL", eligibility: "Any", order: 2, active: true },
+  { id: VL_ID, name: "Vacation Leave", code: "VL", eligibility: "Any", order: 0, active: true, tracksBalance: true },
+  { id: SL_ID, name: "Sick Leave", code: "SL", eligibility: "Any", order: 1, active: true, tracksBalance: true },
+  { id: EL_ID, name: "Emergency Leave", code: "EL", eligibility: "Any", order: 2, active: true, tracksBalance: true },
+  {
+    id: UNPAID_ID,
+    name: "Authorized Unpaid Leave",
+    code: "AUL",
+    eligibility: "Any",
+    order: 3,
+    active: true,
+    tracksBalance: false,
+  },
 ];
 
 function makeEmployee(balances: LeaveBalance[]): Employee {
@@ -185,6 +195,22 @@ describe("createLeaveRecord", () => {
         { leaveTypeId: SL_ID, startDate: "2026-01-10", endDate: "2026-01-10", halfDay: true },
       ),
     ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("logs against a leave type with no credit balance without touching leaveBalances", async () => {
+    const employeeRepo = fakeEmployeeRepository(makeEmployee([]));
+    const record = await createLeaveRecord(
+      fakeLeaveRecordRepository(),
+      employeeRepo,
+      fakeLeaveTypeRepository(),
+      noopAudit,
+      hrActor,
+      "emp-1",
+      { leaveTypeId: UNPAID_ID, startDate: "2026-01-10", endDate: "2026-01-14" },
+    );
+    expect(record.days).toBe(5);
+    const employee = await employeeRepo.findById("emp-1");
+    expect(employee?.leaveBalances).toEqual([]);
   });
 
   // Regression test: logging a half-day Emergency Leave request used to fail

@@ -62,13 +62,16 @@ export function LeaveRecordFormDialog({
     const restored = mode === "edit" && initialValue?.leaveTypeId === leaveTypeId ? initialValue.days : 0;
     return balanceFor(leaveTypeId) + restored;
   }
+  // A leave type with no specific credit allocation (tracksBalance: false, e.g.
+  // Authorized Unpaid Leave) has nothing to check a balance against — it stays
+  // selectable and never shows a balance-derived label.
   const leaveTypeOptions: SelectOption[] = options.map((type) => ({
     value: type.id,
     label:
-      availableBalance(type.id) > 0
+      !type.tracksBalance || availableBalance(type.id) > 0
         ? `${type.name} (${type.code})`
         : `${type.name} (${type.code}) — no balance`,
-    disabled: availableBalance(type.id) <= 0,
+    disabled: type.tracksBalance && availableBalance(type.id) <= 0,
   }));
 
   // Half day only makes sense for a single date — if the range widens past
@@ -82,6 +85,8 @@ export function LeaveRecordFormDialog({
         ? 0.5
         : inclusiveDayCount(startDate, endDate)
       : 0;
+  const selectedType = options.find((type) => type.id === leaveTypeId);
+  const tracksBalance = selectedType?.tracksBalance ?? true;
   const remainingAfter = round2(availableBalance(leaveTypeId) - days);
 
   async function handleSubmit(event: {
@@ -157,7 +162,7 @@ export function LeaveRecordFormDialog({
             // rules out types with nothing at all (see leaveTypeOptions
             // above); this is the second gate, for "not enough for this
             // specific request."
-            disabled={Boolean(leaveTypeId) && days > 0 && remainingAfter < 0}
+            disabled={Boolean(leaveTypeId) && days > 0 && tracksBalance && remainingAfter < 0}
             data-testid="submit-leave-record-form"
           >
             {mode === "create" ? (
@@ -227,9 +232,11 @@ export function LeaveRecordFormDialog({
       {leaveTypeId && days > 0 && (
         <p className="muted">
           {days} day{days === 1 ? "" : "s"} ·{" "}
-          {remainingAfter < 0
-            ? "insufficient balance for this range"
-            : `${remainingAfter} day${remainingAfter === 1 ? "" : "s"} remaining after this`}
+          {!tracksBalance
+            ? "no credit balance to track"
+            : remainingAfter < 0
+              ? "insufficient balance for this range"
+              : `${remainingAfter} day${remainingAfter === 1 ? "" : "s"} remaining after this`}
         </p>
       )}
       {error && (

@@ -8,4 +8,6 @@ export type LeaveType = {
   description?: string;
   order: number;
   active: boolean;
+  /** False for leave types with no specific credit allocation (e.g. Authorized Unpaid Leave) — always loggable, never balance-checked. */
+  tracksBalance: boolean;
 };

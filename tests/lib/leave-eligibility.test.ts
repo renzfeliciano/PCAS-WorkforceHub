@@ -3,10 +3,10 @@ import { eligibleLeaveTypes } from "@/lib/leave-eligibility";
 import type { LeaveType } from "@/types/leave-type";
 
 const TYPES: LeaveType[] = [
-  { id: "1", name: "Vacation Leave", code: "VL", eligibility: "Any", order: 0, active: true },
-  { id: "2", name: "Maternity Leave", code: "ML", eligibility: "Female", order: 1, active: true },
-  { id: "3", name: "Paternity Leave", code: "PL", eligibility: "Male", order: 2, active: true },
-  { id: "4", name: "Retired Leave", code: "RL", eligibility: "Any", order: 3, active: false },
+  { id: "1", name: "Vacation Leave", code: "VL", eligibility: "Any", order: 0, active: true, tracksBalance: true },
+  { id: "2", name: "Maternity Leave", code: "ML", eligibility: "Female", order: 1, active: true, tracksBalance: true },
+  { id: "3", name: "Paternity Leave", code: "PL", eligibility: "Male", order: 2, active: true, tracksBalance: true },
+  { id: "4", name: "Retired Leave", code: "RL", eligibility: "Any", order: 3, active: false, tracksBalance: true },
 ];
 
 describe("eligibleLeaveTypes", () => {

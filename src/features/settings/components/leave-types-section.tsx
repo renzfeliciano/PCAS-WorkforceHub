@@ -84,6 +84,7 @@ export function LeaveTypesSection({
                 <b>{item.name}</b>
                 <small>
                   {item.code} · {item.eligibility === "Any" ? "All employees" : `${item.eligibility} only`}
+                  {!item.tracksBalance ? " · No credit balance" : ""}
                 </small>
               </div>
             </div>

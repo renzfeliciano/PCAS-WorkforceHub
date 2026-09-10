@@ -8,6 +8,7 @@ const leaveTypeSchema = new Schema(
     description: { type: String, trim: true },
     order: { type: Number, required: true, default: 0 },
     active: { type: Boolean, default: true, index: true },
+    tracksBalance: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

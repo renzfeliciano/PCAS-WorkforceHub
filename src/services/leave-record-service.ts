@@ -31,6 +31,13 @@ async function adjustBalance(
   leaveTypeId: string,
   delta: number,
 ) {
+  const leaveTypes = await leaveTypeRepository.findAll();
+  const leaveType = leaveTypes.find((type) => type.id === leaveTypeId);
+  // A leave type with no specific credit allocation (e.g. Authorized Unpaid
+  // Leave) has no balance to adjust or guard — leave the employee's
+  // leaveBalances untouched and never block on it.
+  if (leaveType && !leaveType.tracksBalance) return;
+
   const employee = await employeeRepository.findById(employeeId);
   if (!employee) throw new NotFoundError("Employee not found");
   const balanceOf = (id: string) =>
@@ -39,7 +46,6 @@ async function adjustBalance(
   const updates = new Map<string, number>([[leaveTypeId, round2(balanceOf(leaveTypeId) + delta)]]);
 
   if (delta < 0 && updates.get(leaveTypeId)! < 0) {
-    const leaveTypes = await leaveTypeRepository.findAll();
     const elType = leaveTypes.find((type) => type.code.toUpperCase() === "EL");
     const vlType = leaveTypes.find((type) => type.code.toUpperCase() === "VL");
     if (elType?.id === leaveTypeId && vlType) {

@@ -31,6 +31,8 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
    */
   const vlType = options.find((type) => type.code.toUpperCase() === "VL");
   const elType = options.find((type) => type.code.toUpperCase() === "EL");
+  /** Leave types with no specific credit allocation have no balance to edit here — they're always loggable regardless. */
+  const balanceOptions = options.filter((type) => type.tracksBalance);
   /** Balances for leave types now inactive/ineligible: shown read-only so saving never silently drops them. */
   const staleBalances = employee.leaveBalances.filter((b) => !eligibleIds.has(b.leaveTypeId));
   const leaveSummary = formatLeaveSummary(employee.leaveBalances, leaveTypes);
@@ -144,7 +146,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
     setBalancesError("");
     try {
       const balances: LeaveBalance[] = [
-        ...options.map((type) => ({ leaveTypeId: type.id, balance: valueFor(type.id) })),
+        ...balanceOptions.map((type) => ({ leaveTypeId: type.id, balance: valueFor(type.id) })),
         ...staleBalances,
       ];
       const updated = await employeesClient.updateLeaveBalances(employee.id, balances);
@@ -239,7 +241,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
               onClick={handleSaveBalances}
               isLoading={isSaving}
               loadingText="Saving changes"
-              disabled={options.length === 0}
+              disabled={balanceOptions.length === 0}
             >
               <Save size={14} /> Save changes
             </Button>
@@ -252,14 +254,14 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
             onClose={() => setShowHistory(false)}
           />
         )}
-        {!typesLoading && options.length === 0 ? (
+        {!typesLoading && balanceOptions.length === 0 ? (
           <EmptyState
             title="No leave types available"
             description="Ask an Admin to add leave types in Settings before assigning balances."
           />
         ) : (
           <div className="credit-grid">
-            {options.map((type) => {
+            {balanceOptions.map((type) => {
               const current = valueFor(type.id);
               const currentText = textFor(type.id);
               const original = originalValueFor(type.id);
@@ -434,7 +436,11 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
         <ConfirmDialog
           eyebrow="Remove leave record"
           title={`Delete this ${typeLabel(deleting.leaveTypeId)} record?`}
-          description={`This restores ${deleting.days} day${deleting.days === 1 ? "" : "s"} to the employee's balance and cannot be undone.`}
+          description={
+            leaveTypes.find((type) => type.id === deleting.leaveTypeId)?.tracksBalance ?? true
+              ? `This restores ${deleting.days} day${deleting.days === 1 ? "" : "s"} to the employee's balance and cannot be undone.`
+              : "This permanently removes the record and cannot be undone."
+          }
           confirmLabel="Delete"
           confirmLoadingLabel="Deleting"
           onClose={() => setDeleting(null)}

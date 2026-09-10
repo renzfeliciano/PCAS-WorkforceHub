@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { SelectField, type SelectOption } from "@/components/ui/select-field";
+import { Toggle } from "@/components/ui/toggle";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import type { LeaveEligibility, LeaveType } from "@/types/leave-type";
 
@@ -20,6 +21,7 @@ export type LeaveTypeFormValues = {
   code: string;
   eligibility: LeaveEligibility;
   description?: string;
+  tracksBalance: boolean;
 };
 
 type LeaveTypeFormDialogProps = Readonly<{
@@ -38,6 +40,7 @@ export function LeaveTypeFormDialog({
   const { validate, handleChange, fieldError } = useInlineFormValidation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [tracksBalance, setTracksBalance] = useState(initialValue?.tracksBalance ?? true);
 
   async function handleSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     event.preventDefault();
@@ -52,6 +55,7 @@ export function LeaveTypeFormDialog({
         code: value("code"),
         eligibility: value("eligibility") as LeaveEligibility,
         description: value("description") || undefined,
+        tracksBalance,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -130,6 +134,14 @@ export function LeaveTypeFormDialog({
           placeholder="e.g. For expecting mothers, per RA 11210"
           defaultValue={initialValue?.description}
           error={fieldError("description")}
+        />
+        <Toggle
+          checked={tracksBalance}
+          onChange={setTracksBalance}
+          label="Tracks a leave credit balance"
+          hint="Turn off for leave types with no specific credit allocation, e.g. Authorized Unpaid Leave — it stays selectable regardless of balance."
+          fullWidth
+          testId="toggle-leave-type-tracks-balance"
         />
       </div>
       {error && (
