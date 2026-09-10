@@ -37,7 +37,7 @@ export function LoginBackgroundCarousel() {
       />
       <div className="login-visual-scrim" />
       <div className="login-visual-content">
-        <p className="login-visual-tagline">Empowering your workforce, end to end.</p>
+        <p className="login-visual-tagline">One platform for every stage of workforce management.</p>
         <div className="login-visual-highlights">
           {HIGHLIGHTS.map(({ icon: Icon, label }) => (
             <span className="login-visual-highlight" key={label}>
