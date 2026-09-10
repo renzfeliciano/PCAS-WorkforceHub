@@ -1463,6 +1463,11 @@ thead .col-sticky-2 {
   gap: 14px;
   margin-bottom: 14px;
 }
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .search {
   display: flex;
   align-items: center;

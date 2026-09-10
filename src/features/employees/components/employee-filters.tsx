@@ -96,64 +96,66 @@ export function EmployeeFilters({
           placeholder="Search employees, roles, projects..."
         />
       </div>
-      <select
-        className="project-filter"
-        value={selectedProjectId}
-        onChange={(event) => onSelectedProjectIdChange(event.target.value)}
-        aria-label="Filter by project"
-        data-testid="employee-filter-project"
-      >
-        <option value="">All projects</option>
-        {projects
-          .filter((item) => item.active)
-          .map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-      </select>
-      <div className="status-dropdown" ref={containerRef}>
-        <button
-          type="button"
-          className="status-dropdown-trigger"
-          onClick={() => setOpen((current) => !current)}
-          aria-haspopup="listbox"
-          aria-expanded={open}
+      <div className="toolbar-filters">
+        <select
+          className="project-filter"
+          value={selectedProjectId}
+          onChange={(event) => onSelectedProjectIdChange(event.target.value)}
+          aria-label="Filter by project"
+          data-testid="employee-filter-project"
         >
-          <span>{summaryLabel}</span>
-          <ChevronDown size={14} />
-        </button>
-        {open && (
-          <div className="status-dropdown-panel" role="listbox">
-            <label className="status-dropdown-option">
-              <input type="checkbox" checked={isAllActive} onChange={selectAll} />
-              All
-            </label>
-            {statusOptions.map((option) => (
-              <label className="status-dropdown-option" key={option.id}>
-                <input
-                  type="checkbox"
-                  checked={noStatusFilter || selectedStatuses.includes(option.id)}
-                  onChange={() => toggleStatus(option.id)}
-                />
-                {option.name}
-              </label>
+          <option value="">All projects</option>
+          {projects
+            .filter((item) => item.active)
+            .map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
             ))}
-            {canManage && (
-              <>
-                <div className="status-dropdown-divider" />
-                <label className="status-dropdown-option">
+        </select>
+        <div className="status-dropdown" ref={containerRef}>
+          <button
+            type="button"
+            className="status-dropdown-trigger"
+            onClick={() => setOpen((current) => !current)}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+          >
+            <span>{summaryLabel}</span>
+            <ChevronDown size={14} />
+          </button>
+          {open && (
+            <div className="status-dropdown-panel" role="listbox">
+              <label className="status-dropdown-option">
+                <input type="checkbox" checked={isAllActive} onChange={selectAll} />
+                All
+              </label>
+              {statusOptions.map((option) => (
+                <label className="status-dropdown-option" key={option.id}>
                   <input
                     type="checkbox"
-                    checked={showArchived}
-                    onChange={(event) => onShowArchivedChange(event.target.checked)}
+                    checked={noStatusFilter || selectedStatuses.includes(option.id)}
+                    onChange={() => toggleStatus(option.id)}
                   />
-                  Archived
+                  {option.name}
                 </label>
-              </>
-            )}
-          </div>
-        )}
+              ))}
+              {canManage && (
+                <>
+                  <div className="status-dropdown-divider" />
+                  <label className="status-dropdown-option">
+                    <input
+                      type="checkbox"
+                      checked={showArchived}
+                      onChange={(event) => onShowArchivedChange(event.target.checked)}
+                    />
+                    Archived
+                  </label>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
