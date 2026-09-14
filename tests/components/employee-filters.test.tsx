@@ -6,11 +6,25 @@ import { EmployeeFilters } from "@/features/employees/components/employee-filter
 import type { SettingItem } from "@/types/settings";
 
 function statusItem(overrides: Partial<SettingItem> = {}): SettingItem {
-  return { id: "status-1", name: "Regular", kind: "status", active: true, ...overrides };
+  return {
+    id: "status-1",
+    name: "Regular",
+    kind: "status",
+    active: true,
+    grantsAttendanceSelfService: false,
+    ...overrides,
+  };
 }
 
 function projectItem(overrides: Partial<SettingItem> = {}): SettingItem {
-  return { id: "proj-1", name: "Rufino Tower", kind: "project", active: true, ...overrides };
+  return {
+    id: "proj-1",
+    name: "Rufino Tower",
+    kind: "project",
+    active: true,
+    grantsAttendanceSelfService: false,
+    ...overrides,
+  };
 }
 
 function renderFilters(overrides: Partial<React.ComponentProps<typeof EmployeeFilters>> = {}) {
@@ -26,6 +40,7 @@ function renderFilters(overrides: Partial<React.ComponentProps<typeof EmployeeFi
     statuses: [statusItem()],
     projects: [projectItem()],
     canManage: true,
+    canViewAllProjects: true,
     ...overrides,
   };
   render(<EmployeeFilters {...props} />);
@@ -60,5 +75,10 @@ describe("EmployeeFilters — project filter", () => {
       projects: [projectItem({ id: "proj-1", name: "Rufino Tower" })],
     });
     expect((screen.getByLabelText("Filter by project") as HTMLSelectElement).value).toBe("proj-1");
+  });
+
+  it("hides the project picker when the viewer is already scoped to one project", () => {
+    renderFilters({ canViewAllProjects: false });
+    expect(screen.queryByLabelText("Filter by project")).not.toBeInTheDocument();
   });
 });

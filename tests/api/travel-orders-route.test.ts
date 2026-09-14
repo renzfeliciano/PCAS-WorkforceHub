@@ -60,7 +60,7 @@ describe("GET /api/v1/travel-orders", () => {
     expect(response.status).toBe(401);
   });
 
-  it("returns a paginated shape for any authenticated role", async () => {
+  it("returns a paginated shape for Admin/HR", async () => {
     const employeeId = await makeEmployee();
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     await POST(
@@ -71,7 +71,6 @@ describe("GET /api/v1/travel-orders", () => {
       }),
     );
 
-    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
     const response = await GET(jsonRequest("http://localhost/api/v1/travel-orders?page=1&pageSize=20", "GET"));
     const body = await response.json();
     expect(response.status).toBe(200);
@@ -79,6 +78,12 @@ describe("GET /api/v1/travel-orders", () => {
     expect(body.total).toBe(1);
     expect(body.page).toBe(1);
     expect(body.pageSize).toBe(20);
+  });
+
+  it("returns 403 for Employee — travel orders are Admin/HR only", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/travel-orders?page=1&pageSize=20", "GET"));
+    expect(response.status).toBe(403);
   });
 });
 

@@ -8,7 +8,7 @@ import { PermissionsModule } from "@/features/permissions/permissions-module";
 const PAGE_SIZE = 10;
 
 export default async function PermissionsPage() {
-  await withRoleGuard(["Admin"]);
+  await withRoleGuard(["Admin", "HR"]);
   await connectMongoDB();
   const { items, total } = await listUsers(new MongoUserRepository(), {
     page: 1,

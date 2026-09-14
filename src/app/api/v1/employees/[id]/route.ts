@@ -3,6 +3,7 @@ import { isGuardError, requireApiSession } from "@/lib/api-guard";
 import { apiError, apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
+import { MongoUserRepository } from "@/repositories/user-repository";
 import {
   archiveEmployee,
   deleteEmployeePermanently,
@@ -11,6 +12,7 @@ import {
 } from "@/services/employee-service";
 
 const repository = new MongoEmployeeRepository();
+const userRepository = new MongoUserRepository();
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -35,6 +37,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     await connectMongoDB();
     const employee = await updateEmployee(
       repository,
+      userRepository,
       auditLogger,
       { role: session.user.role, id: session.user.id, requestId },
       id,

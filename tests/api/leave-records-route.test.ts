@@ -20,7 +20,7 @@ function sessionFor(role: Role): Session {
   } as Session;
 }
 
-const { POST } = await import("@/app/api/v1/employees/[id]/leave-records/route");
+const { GET, POST } = await import("@/app/api/v1/employees/[id]/leave-records/route");
 
 function jsonRequest(url: string, method: string, body?: unknown) {
   return new Request(url, {
@@ -128,6 +128,17 @@ describe("POST /api/v1/employees/[id]/leave-records", () => {
       { params: Promise.resolve({ id: employeeId }) },
     );
     expect(response.status).toBe(409);
+  });
+
+  it("returns 403 for Employee trying to view leave records — Admin/HR only", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
+    const { employeeId } = await seedEmployeeWithBalances(1, 0);
+
+    const response = await GET(
+      jsonRequest(`http://localhost/api/v1/employees/${employeeId}/leave-records`, "GET"),
+      { params: Promise.resolve({ id: employeeId }) },
+    );
+    expect(response.status).toBe(403);
   });
 
   it("returns 403 for a role that cannot log leave", async () => {

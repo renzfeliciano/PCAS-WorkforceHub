@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireApiSession(request, ["Admin"]);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { session, requestId, headers } = guard;
   const body = await request.json().catch(() => ({}));

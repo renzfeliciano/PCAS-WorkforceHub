@@ -4,9 +4,11 @@ import { apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
 import { employeeListQuerySchema } from "@/schemas/employee";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
+import { MongoUserRepository } from "@/repositories/user-repository";
 import { createEmployee, listEmployees } from "@/services/employee-service";
 
 const repository = new MongoEmployeeRepository();
+const userRepository = new MongoUserRepository();
 
 export async function GET(request: Request) {
   const guard = await requireApiSession(request);
@@ -18,8 +20,19 @@ export async function GET(request: Request) {
   if (!parsed.success) return mapServiceError(parsed.error, requestId, headers);
   try {
     await connectMongoDB();
-    const result = await listEmployees(repository, parsed.data);
-    return apiJson(result, requestId, headers);
+    const result = await listEmployees(
+      repository,
+      { role: guard.session.user.role, employeeId: guard.session.user.employeeId },
+      parsed.data,
+    );
+    const usernames = await userRepository.findUsernamesByEmployeeIds(
+      result.items.map((employee) => employee.id),
+    );
+    return apiJson(
+      { ...result, items: result.items.map((e) => ({ ...e, username: usernames.get(e.id) })) },
+      requestId,
+      headers,
+    );
   } catch (error) {
     return mapServiceError(error, requestId, headers);
   }
@@ -34,6 +47,7 @@ export async function POST(request: Request) {
     await connectMongoDB();
     const employee = await createEmployee(
       repository,
+      userRepository,
       auditLogger,
       { role: session.user.role, id: session.user.id, requestId },
       body,

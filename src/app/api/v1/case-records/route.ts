@@ -9,7 +9,7 @@ import { createCaseRecord, listCaseRecords } from "@/services/case-record-servic
 const repository = new MongoCaseRecordRepository();
 
 export async function GET(request: Request) {
-  const guard = await requireApiSession(request);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { requestId, headers } = guard;
   const parsed = caseRecordListQuerySchema.safeParse(

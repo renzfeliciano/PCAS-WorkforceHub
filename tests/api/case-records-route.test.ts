@@ -71,17 +71,22 @@ describe("GET /api/v1/case-records", () => {
     expect(response.status).toBe(401);
   });
 
-  it("lists cases for any authenticated role", async () => {
+  it("lists cases for Admin/HR", async () => {
     const ids = await seedCatalogIds();
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     await POST(jsonRequest("http://localhost/api/v1/case-records", "POST", validInput(ids)));
 
-    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
     const response = await GET(jsonRequest("http://localhost/api/v1/case-records?page=1&pageSize=20", "GET"));
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.items).toHaveLength(1);
     expect(body.total).toBe(1);
+  });
+
+  it("returns 403 for Employee — case monitoring is Admin/HR only", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/case-records?page=1&pageSize=20", "GET"));
+    expect(response.status).toBe(403);
   });
 
   it("filters by projectId", async () => {

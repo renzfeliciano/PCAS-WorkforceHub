@@ -9,7 +9,7 @@ import { createUser, listUsers } from "@/services/user-service";
 const repository = new MongoUserRepository();
 
 export async function GET(request: Request) {
-  const guard = await requireApiSession(request, ["Admin"]);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { requestId, headers } = guard;
   const parsed = userListQuerySchema.safeParse(
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireApiSession(request, ["Admin"]);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { session, requestId, headers } = guard;
   const body = await request.json().catch(() => ({}));

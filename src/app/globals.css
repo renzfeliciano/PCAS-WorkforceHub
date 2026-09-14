@@ -57,6 +57,15 @@
     10px Arial,
     sans-serif;
 }
+.inline-success {
+  display: block;
+  flex-basis: 100%;
+  margin-top: 4px;
+  color: var(--green);
+  font:
+    10px Arial,
+    sans-serif;
+}
 .modal-field {
   display: block;
   padding: 22px 0 0;
@@ -1593,7 +1602,7 @@ thead .col-sticky-2 {
   text-align: center;
 }
 .empty > svg {
-  margin-bottom: 20px;
+  margin: 0 auto 20px;
   color: var(--coral);
 }
 .empty h1 {
@@ -1616,6 +1625,116 @@ thead .col-sticky-2 {
   background: #edf7f1;
   font:
     600 11px Arial,
+    sans-serif;
+}
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 17px 19px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.profile-hero .avatar {
+  width: 50px;
+  height: 50px;
+  font-size: 17px;
+}
+.profile-hero h2 {
+  margin: 0 0 3px;
+  font-size: 17px;
+}
+.profile-alert {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font:
+    12px/1.6 Arial,
+    sans-serif;
+}
+.profile-alert svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.profile-alert p {
+  margin: 0;
+}
+.profile-alert b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12.5px;
+}
+.profile-alert-warning,
+.profile-alert-error {
+  border-color: #f0c9c2;
+  color: #a35349;
+  background: #fae9e6;
+}
+.profile-alert-success {
+  border-color: #d7e9df;
+  color: #52866b;
+  background: #edf7f1;
+}
+.profile-card {
+  min-height: 0;
+}
+.form-grid.profile-security-form {
+  grid-template-columns: 1fr;
+  max-width: 420px;
+}
+.password-field {
+  display: block;
+}
+.password-input-group {
+  position: relative;
+  margin-top: 6px;
+}
+.password-input-group input {
+  display: block;
+  width: 100%;
+  padding: 10px 38px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: 0;
+  color: var(--ink);
+  font:
+    12px Arial,
+    sans-serif;
+}
+.password-input-group input:focus {
+  border-color: var(--coral);
+}
+.password-input-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.password-input-toggle:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.field-hint {
+  display: block;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font:
+    10px Arial,
     sans-serif;
 }
 .settings-note {

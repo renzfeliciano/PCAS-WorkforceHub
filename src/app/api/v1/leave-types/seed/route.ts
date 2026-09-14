@@ -9,7 +9,7 @@ import { seedLeaveTypeCatalog } from "@/services/leave-type-service";
 const repository = new MongoLeaveTypeRepository();
 
 export async function POST(request: Request) {
-  const guard = await requireApiSession(request, ["Admin"]);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { session, requestId, headers } = guard;
   if (!isLeaveTypeSeedingEnabled())

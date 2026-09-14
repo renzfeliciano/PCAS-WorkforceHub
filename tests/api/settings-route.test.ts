@@ -77,11 +77,19 @@ describe("GET /api/v1/settings", () => {
 
 describe("POST /api/v1/settings", () => {
   it("returns 403 for a role that cannot manage settings", async () => {
-    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
     const response = await POST(
       jsonRequest("http://localhost/api/v1/settings", "POST", validPositionInput()),
     );
     expect(response.status).toBe(403);
+  });
+
+  it("creates a setting for HR", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    const response = await POST(
+      jsonRequest("http://localhost/api/v1/settings", "POST", validPositionInput()),
+    );
+    expect(response.status).toBe(201);
   });
 
   it("creates a setting for Admin", async () => {
@@ -115,6 +123,16 @@ describe("PATCH/DELETE /api/v1/settings/[id]", () => {
     expect(body.active).toBe(false);
   });
 
+  it("updates a setting for HR", async () => {
+    const id = await seedSetting();
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    const response = await PATCH(
+      jsonRequest(`http://localhost/api/v1/settings/${id}`, "PATCH", { active: false }),
+      { params: Promise.resolve({ id }) },
+    );
+    expect(response.status).toBe(200);
+  });
+
   it("deletes a setting for Admin", async () => {
     const id = await seedSetting();
     const response = await DELETE(
@@ -123,6 +141,16 @@ describe("PATCH/DELETE /api/v1/settings/[id]", () => {
     );
     expect(response.status).toBe(200);
     await expect(SettingModel.findById(id)).resolves.toBeNull();
+  });
+
+  it("returns 403 when HR tries to delete a setting", async () => {
+    const id = await seedSetting();
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    const response = await DELETE(
+      jsonRequest(`http://localhost/api/v1/settings/${id}`, "DELETE"),
+      { params: Promise.resolve({ id }) },
+    );
+    expect(response.status).toBe(403);
   });
 });
 
@@ -138,13 +166,24 @@ describe("POST /api/v1/settings/seed", () => {
     expect(body.error).toBe("SEEDING_DISABLED");
   });
 
-  it("returns 403 for a non-Admin role even with seeding enabled", async () => {
+  it("returns 403 for a role that cannot edit the catalog, even with seeding enabled", async () => {
+    process.env.ENABLE_POSITIONS_SEEDING = "true";
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
+    const response = await SEED(
+      jsonRequest("http://localhost/api/v1/settings/seed", "POST", { kind: "position" }),
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("seeds the default catalog for HR when enabled", async () => {
     process.env.ENABLE_POSITIONS_SEEDING = "true";
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     const response = await SEED(
       jsonRequest("http://localhost/api/v1/settings/seed", "POST", { kind: "position" }),
     );
-    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.inserted).toBeGreaterThan(0);
   });
 
   it("seeds the default catalog for Admin when enabled", async () => {

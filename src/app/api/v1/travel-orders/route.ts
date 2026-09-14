@@ -11,7 +11,7 @@ const repository = new MongoTravelOrderRepository();
 const employeeRepository = new MongoEmployeeRepository();
 
 export async function GET(request: Request) {
-  const guard = await requireApiSession(request);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { requestId, headers } = guard;
   const parsed = travelOrderListQuerySchema.safeParse(

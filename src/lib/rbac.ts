@@ -23,9 +23,12 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
 export const hasPermission = (role: Role, permission: Permission) =>
   ROLE_PERMISSIONS[role].includes(permission);
 
-export const canAccessWorkspace = (role: Role) => role === "Admin" || role === "HR";
+/** Any authenticated role may reach the workspace; the checks below scope what each role can actually do inside it. */
+export const canAccessWorkspace = (role: Role) =>
+  role === "Admin" || role === "HR" || role === "Manager" || role === "Employee";
+
 export const canManageLeaveBalances = (role: Role) => role === "Admin" || role === "HR";
-/** Log/edit attendance; all roles can still view it. */
+/** Admin/HR may log or edit any employee's attendance. Ownership-scoped access (an employee's own record, or an attendance-self-service position's own record) is handled by canManageAttendanceRecord below. */
 export const canManageAttendance = (role: Role) => role === "Admin" || role === "HR";
 /** Create and edit employee records. */
 export const canEditEmployees = (role: Role) => role === "Admin" || role === "HR";
@@ -41,5 +44,43 @@ export const canManageEvents = (role: Role) => role === "Admin" || role === "HR"
 export const canManageCaseMonitoring = (role: Role) => role === "Admin" || role === "HR";
 /** Archive (soft-delete) employee records. */
 export const canDeleteEmployees = (role: Role) => role === "Admin";
-export const canManageSettings = (role: Role) => role === "Admin";
-export const canManageUsers = (role: Role) => role === "Admin";
+
+/** Catalog Management: viewable by everyone, editable by Admin/HR, deletable by Admin only. */
+export const canEditCatalog = (role: Role) => role === "Admin" || role === "HR";
+export const canDeleteCatalog = (role: Role) => role === "Admin";
+
+/** Permissions (user accounts): Admin/HR may create/update any account. */
+export const canManageUsers = (role: Role) => role === "Admin" || role === "HR";
+
+/** Destructive full workspace wipe (employees/settings/leave types) — kept separate from canManageUsers so widening user management to HR doesn't also widen this. */
+export const canResetWorkspace = (role: Role) => role === "Admin";
+
+/** CSV export and print, wherever they exist. */
+export const canExportData = (role: Role) => role === "Admin" || role === "HR";
+
+type AttendanceActorContext = {
+  role: Role;
+  employeeId?: string;
+  /** Set when the actor's current position (any position, not a fixed one — see Setting.grantsAttendanceSelfService) grants the attendance self-service exception. */
+  hasAttendanceSelfService?: boolean;
+};
+
+/** Admin/HR can view any record; everyone else only their own (requires a linked employee record). */
+export function canViewAttendanceRecord(
+  actor: AttendanceActorContext,
+  targetEmployeeId: string,
+): boolean {
+  if (actor.role === "Admin" || actor.role === "HR") return true;
+  return actor.employeeId !== undefined && actor.employeeId === targetEmployeeId;
+}
+
+/** Admin/HR can manage any record; an actor whose position grants attendance self-service can only manage their own. */
+export function canManageAttendanceRecord(
+  actor: AttendanceActorContext,
+  targetEmployeeId: string,
+): boolean {
+  if (actor.role === "Admin" || actor.role === "HR") return true;
+  return Boolean(actor.hasAttendanceSelfService) && actor.employeeId === targetEmployeeId;
+}
+
+export const canDeleteAttendanceRecord = canManageAttendanceRecord;

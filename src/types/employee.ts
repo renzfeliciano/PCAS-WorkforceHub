@@ -6,6 +6,8 @@ export type EmployeeRef = {
 };
 
 export type Gender = "Male" | "Female";
+/** Drives the role of the User account auto-provisioned for this employee. Never "Admin" — that's granted manually. */
+export type EmployeeUserRole = "HR" | "Manager" | "Employee";
 export type LeaveBalance = { leaveTypeId: string; balance: number };
 export type Employee = {
   id: string;
@@ -13,6 +15,7 @@ export type Employee = {
   name: string;
   gender: Gender;
   /** Setting._id (kind "position") this employee currently references. */
+  userRole: EmployeeUserRole;
   positionId: string;
   /** Current name of the referenced position catalog entry, resolved at read time. */
   position: string;
@@ -37,4 +40,6 @@ export type Employee = {
   leaveBalances: LeaveBalance[];
   archived: boolean;
   createdAt: string;
+  /** The linked login account's username, if one has been provisioned — resolved at read time, roster listing only. */
+  username?: string;
 };

@@ -18,6 +18,7 @@ function makeEmployee(id: string, overrides: Partial<Employee> = {}): Employee {
     employeeNumber: id,
     name: `Employee ${id}`,
     gender: "Male",
+    userRole: "Employee",
     positionId: "pos-1",
     position: "Staff",
     projectSiteId: "proj-1",

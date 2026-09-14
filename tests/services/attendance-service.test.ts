@@ -8,7 +8,14 @@ import {
 } from "@/services/attendance-service";
 import type { AttendanceRecordRepository } from "@/repositories/attendance-record-repository";
 import type { AttendanceRecord } from "@/types/attendance";
-import { employeeActor, hrActor, noopAudit } from "../test-utils";
+import {
+  buildingAdministratorActor,
+  employeeActor,
+  hrActor,
+  managerActor,
+  noopAudit,
+  selfEmployeeActor,
+} from "../test-utils";
 
 function makeRecord(overrides: Partial<AttendanceRecord> = {}): AttendanceRecord {
   return {
@@ -54,34 +61,81 @@ function fakeRepository(seed: AttendanceRecord[] = []): AttendanceRecordReposito
 describe("listAttendanceForMonth", () => {
   it("computes the correct from/to range for a 31-day month", async () => {
     const repo = fakeRepository();
-    await listAttendanceForMonth(repo, "emp-1", "2026-01");
+    await listAttendanceForMonth(repo, hrActor, "emp-1", "2026-01");
     expect(repo.findByEmployeeAndRange).toHaveBeenCalledWith("emp-1", "2026-01-01", "2026-01-31");
   });
 
   it("computes the correct from/to range for February in a leap year", async () => {
     const repo = fakeRepository();
     // 2028 is a leap year.
-    await listAttendanceForMonth(repo, "emp-1", "2028-02");
+    await listAttendanceForMonth(repo, hrActor, "emp-1", "2028-02");
     expect(repo.findByEmployeeAndRange).toHaveBeenCalledWith("emp-1", "2028-02-01", "2028-02-29");
   });
 
   it("computes the correct from/to range for February in a non-leap year", async () => {
     const repo = fakeRepository();
-    await listAttendanceForMonth(repo, "emp-1", "2026-02");
+    await listAttendanceForMonth(repo, hrActor, "emp-1", "2026-02");
     expect(repo.findByEmployeeAndRange).toHaveBeenCalledWith("emp-1", "2026-02-01", "2026-02-28");
   });
 
   it("rejects a malformed month string", async () => {
     const repo = fakeRepository();
-    await expect(listAttendanceForMonth(repo, "emp-1", "not-a-month")).rejects.toThrow();
+    await expect(listAttendanceForMonth(repo, hrActor, "emp-1", "not-a-month")).rejects.toThrow();
+  });
+
+  it("lets Admin and HR view any employee's month", async () => {
+    const repo = fakeRepository();
+    await expect(listAttendanceForMonth(repo, hrActor, "emp-1", "2026-01")).resolves.toBeDefined();
+  });
+
+  it("lets an Employee/Manager view only their own record", async () => {
+    const repo = fakeRepository();
+    await expect(
+      listAttendanceForMonth(repo, selfEmployeeActor, "emp-1", "2026-01"),
+    ).resolves.toBeDefined();
+    await expect(
+      listAttendanceForMonth(repo, managerActor, "emp-1", "2026-01"),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("rejects a plain Employee with no linked employee record entirely", async () => {
+    const repo = fakeRepository();
+    await expect(
+      listAttendanceForMonth(repo, employeeActor, "emp-1", "2026-01"),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 });
 
 describe("createAttendanceRecord", () => {
-  it("rejects roles that cannot manage attendance", async () => {
+  it("rejects a plain Employee/Manager, even for their own employeeId", async () => {
     const repo = fakeRepository();
     await expect(
-      createAttendanceRecord(repo, noopAudit, employeeActor, "emp-1", {
+      createAttendanceRecord(repo, noopAudit, selfEmployeeActor, "emp-1", {
+        date: "2026-01-10",
+        statusId: "Present",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
+    await expect(
+      createAttendanceRecord(repo, noopAudit, managerActor, "emp-1", {
+        date: "2026-01-10",
+        statusId: "Present",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("lets a Building Administrator log their own attendance", async () => {
+    const repo = fakeRepository();
+    const record = await createAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "emp-1", {
+      date: "2026-01-10",
+      statusId: "Present",
+    });
+    expect(record.status).toBe("Present");
+  });
+
+  it("rejects a Building Administrator logging attendance for someone else", async () => {
+    const repo = fakeRepository();
+    await expect(
+      createAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "emp-2", {
         date: "2026-01-10",
         statusId: "Present",
       }),
@@ -109,10 +163,27 @@ describe("createAttendanceRecord", () => {
 });
 
 describe("updateAttendanceRecord", () => {
-  it("rejects roles that cannot manage attendance", async () => {
+  it("rejects a plain Employee/Manager, even for their own record", async () => {
     const repo = fakeRepository([makeRecord()]);
     await expect(
-      updateAttendanceRecord(repo, noopAudit, employeeActor, "rec-1", { statusId: "Absent" }),
+      updateAttendanceRecord(repo, noopAudit, selfEmployeeActor, "rec-1", { statusId: "Absent" }),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("lets a Building Administrator edit their own record", async () => {
+    const repo = fakeRepository([makeRecord()]);
+    const updated = await updateAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "rec-1", {
+      statusId: "Late",
+    });
+    expect(updated.status).toBe("Late");
+  });
+
+  it("rejects a Building Administrator editing someone else's record", async () => {
+    const repo = fakeRepository([makeRecord({ employeeId: "emp-2" })]);
+    await expect(
+      updateAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "rec-1", {
+        statusId: "Late",
+      }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
@@ -133,11 +204,18 @@ describe("updateAttendanceRecord", () => {
 });
 
 describe("deleteAttendanceRecord", () => {
-  it("rejects roles that cannot manage attendance", async () => {
+  it("rejects a plain Employee/Manager, even for their own record", async () => {
     const repo = fakeRepository([makeRecord()]);
     await expect(
-      deleteAttendanceRecord(repo, noopAudit, employeeActor, "rec-1"),
+      deleteAttendanceRecord(repo, noopAudit, selfEmployeeActor, "rec-1"),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("lets a Building Administrator delete their own record", async () => {
+    const repo = fakeRepository([makeRecord()]);
+    await expect(
+      deleteAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "rec-1"),
+    ).resolves.toBeUndefined();
   });
 
   it("throws NotFoundError for a missing record", async () => {

@@ -6,7 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useCurrentUser } from "@/context/current-user-context";
-import { canManageAttendance } from "@/lib/rbac";
+import { canManageAttendanceRecord } from "@/lib/rbac";
 import { attendanceStatusTone } from "@/lib/attendance-status-tone";
 import { attendanceClient } from "@/features/attendance/api/attendance-client";
 import { AttendanceDayDialog } from "@/features/attendance/components/attendance-day-dialog";
@@ -40,7 +40,7 @@ function todayIso() {
 
 export function AttendanceCalendar({ employee }: Readonly<{ employee: Employee }>) {
   const user = useCurrentUser();
-  const canManage = canManageAttendance(user.role);
+  const canManage = canManageAttendanceRecord(user, employee.id);
   const { activeItems: statuses } = useCatalogOptions("status", ATTENDANCE_STATUS_CATEGORY);
 
   const [cursor, setCursor] = useState<Cursor>(() => {

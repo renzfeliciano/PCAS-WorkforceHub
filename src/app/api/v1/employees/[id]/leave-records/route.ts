@@ -14,7 +14,7 @@ const leaveTypeRepository = new MongoLeaveTypeRepository();
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, { params }: RouteParams) {
-  const guard = await requireApiSession(request);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { requestId, headers } = guard;
   const { id } = await params;

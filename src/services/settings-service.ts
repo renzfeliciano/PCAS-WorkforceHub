@@ -1,6 +1,6 @@
 import type { AuditLogger } from "@/lib/audit-logger";
 import { ForbiddenActionError } from "@/lib/app-errors";
-import { canManageSettings } from "@/lib/rbac";
+import { canDeleteCatalog, canEditCatalog } from "@/lib/rbac";
 import { createSettingSchema, updateSettingSchema } from "@/schemas/settings";
 import type { SettingListFilters, SettingRepository } from "@/repositories/setting-repository";
 import type { SettingItem } from "@/types/settings";
@@ -21,8 +21,8 @@ export async function createSetting(
   actor: Actor,
   input: unknown,
 ): Promise<SettingItem> {
-  if (!canManageSettings(actor.role))
-    throw new ForbiddenActionError("Only Admin may manage catalog settings");
+  if (!canEditCatalog(actor.role))
+    throw new ForbiddenActionError("Only Admin and HR may manage catalog settings");
   const validInput = createSettingSchema.parse(input);
   const item = await repository.create(validInput);
   await audit.record({
@@ -42,8 +42,8 @@ export async function updateSetting(
   id: string,
   input: unknown,
 ): Promise<SettingItem> {
-  if (!canManageSettings(actor.role))
-    throw new ForbiddenActionError("Only Admin may manage catalog settings");
+  if (!canEditCatalog(actor.role))
+    throw new ForbiddenActionError("Only Admin and HR may manage catalog settings");
   const validInput = updateSettingSchema.parse(input);
   const item = await repository.update(id, validInput);
   await audit.record({
@@ -62,8 +62,8 @@ export async function deleteSetting(
   actor: Actor,
   id: string,
 ): Promise<void> {
-  if (!canManageSettings(actor.role))
-    throw new ForbiddenActionError("Only Admin may manage catalog settings");
+  if (!canDeleteCatalog(actor.role))
+    throw new ForbiddenActionError("Only Admin may delete catalog settings");
   await repository.delete(id);
   await audit.record({
     action: "setting.deleted",

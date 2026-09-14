@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { ConflictError, ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
+import { UnparseableNameError } from "@/lib/username";
 
 type Headers = Record<string, string>;
 
@@ -38,6 +39,8 @@ export function mapServiceError(error: unknown, requestId: string, headers?: Hea
     return apiError("NOT_FOUND", 404, requestId, headers, error.message);
   if (error instanceof ConflictError)
     return apiError("CONFLICT", 409, requestId, headers, error.message);
+  if (error instanceof UnparseableNameError)
+    return apiError("VALIDATION_ERROR", 400, requestId, headers, error.message);
   console.error(error);
   return apiError("INTERNAL_ERROR", 500, requestId, headers);
 }

@@ -17,9 +17,9 @@ vi.mock("next-auth", () => ({
   getServerSession: () => getServerSessionMock(),
 }));
 
-function sessionFor(role: Role): Session {
+function sessionFor(role: Role, employeeId?: string): Session {
   return {
-    user: { id: "actor-1", role, sessionId: "session-1" },
+    user: { id: "actor-1", role, sessionId: "session-1", employeeId },
     expires: new Date(Date.now() + 3_600_000).toISOString(),
   } as Session;
 }
@@ -108,6 +108,43 @@ describe("GET /api/v1/employees", () => {
     const body = await response.json();
     expect(body.items).toHaveLength(1);
     expect(body.items[0].name).toBe("Bob Jones");
+  });
+});
+
+describe("GET /api/v1/employees — project scoping for Manager/Employee", () => {
+  it("scopes a plain Employee/Manager to only their own project, ignoring any requested projectId", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    const own = await POST(
+      jsonRequest("http://localhost/api/v1/employees", "POST", validEmployeeInput({ projectSiteId: "proj-1" })),
+    );
+    const ownId = (await own.json()).id as string;
+    await POST(
+      jsonRequest(
+        "http://localhost/api/v1/employees",
+        "POST",
+        validEmployeeInput({ employeeNumber: "002", name: "Bob Jones", projectSiteId: "proj-2" }),
+      ),
+    );
+
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee", ownId));
+    const response = await GET(
+      jsonRequest("http://localhost/api/v1/employees?projectId=proj-2", "GET"),
+    );
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].name).toBe("Alice Smith");
+  });
+
+  it("returns an empty roster for a Manager/Employee account with no linked employee record", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    await POST(jsonRequest("http://localhost/api/v1/employees", "POST", validEmployeeInput()));
+
+    getServerSessionMock.mockResolvedValue(sessionFor("Manager"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/employees", "GET"));
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.items).toHaveLength(0);
   });
 });
 

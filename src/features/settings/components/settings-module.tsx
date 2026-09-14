@@ -1,6 +1,8 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
+import { useCurrentUser } from "@/context/current-user-context";
+import { canDeleteCatalog, canEditCatalog } from "@/lib/rbac";
 import { useSettingsCatalog } from "@/features/settings/hooks/use-settings-catalog";
 import { useLeaveTypes } from "@/features/settings/hooks/use-leave-types";
 import { SettingsCatalogSection } from "@/features/settings/components/settings-catalog-section";
@@ -94,6 +96,9 @@ export function SettingsModule({
   ];
   const settings = useSettingsCatalog(initialSettings);
   const leaveTypes = useLeaveTypes(initialLeaveTypes);
+  const user = useCurrentUser();
+  const canEdit = canEditCatalog(user.role);
+  const canDelete = canDeleteCatalog(user.role);
 
   return (
     <div className="settings-page">
@@ -102,11 +107,13 @@ export function SettingsModule({
           <p className="eyebrow">Workspace administration</p>
           <h1>Settings</h1>
           <p className="muted">
-            Manage the options used across employee records.
+            {canEdit
+              ? "Manage the options used across employee records."
+              : "The options used across employee records. Contact Admin or HR to make changes."}
           </p>
         </div>
         <span className="role-badge">
-          <ShieldCheck size={15} /> Admin access
+          <ShieldCheck size={15} /> {user.role} access
         </span>
       </div>
       {(settings.error || leaveTypes.error) && (
@@ -130,6 +137,8 @@ export function SettingsModule({
               )}
               category={section.category}
               seedEnabled={section.seedEnabled}
+              canEdit={canEdit}
+              canDelete={canDelete}
               onCreate={async (input) => {
                 await settings.create(input);
               }}
@@ -150,6 +159,8 @@ export function SettingsModule({
           <LeaveTypesSection
             items={leaveTypes.items}
             seedEnabled={leaveTypeSeedEnabled}
+            canEdit={canEdit}
+            canDelete={canDelete}
             onCreate={async (input) => {
               await leaveTypes.create(input);
             }}

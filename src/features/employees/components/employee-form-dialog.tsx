@@ -37,6 +37,12 @@ const GENDER_OPTIONS: SelectOption[] = [
   { value: "Female", label: "Female" },
 ];
 
+const USER_ROLE_OPTIONS: SelectOption[] = [
+  { value: "Employee", label: "Employee" },
+  { value: "Manager", label: "Manager" },
+  { value: "HR", label: "HR" },
+];
+
 export function EmployeeFormDialog({
   mode,
   initialValue,
@@ -148,6 +154,7 @@ export function EmployeeFormDialog({
       employeeNumber: value("employeeNumber") || null,
       name: value("name"),
       gender: value("gender") as EmployeeInput["gender"],
+      userRole: value("userRole") as EmployeeInput["userRole"],
       positionId: value("positionId"),
       projectSiteId: value("projectSiteId"),
       employmentStatusId: value("employmentStatusId"),
@@ -243,10 +250,10 @@ export function EmployeeFormDialog({
         />
         <TextField
           name="name"
-          label="Employee name"
+          label="Employee name (Last, First Middle)"
           required
           maxLength={30}
-          placeholder="e.g. Juan Dela Cruz"
+          placeholder="e.g. Dela Cruz, Juan Miguel"
           defaultValue={initialValue?.name}
           error={fieldError("name")}
         />
@@ -258,6 +265,14 @@ export function EmployeeFormDialog({
           defaultValue={initialValue?.gender ?? ""}
           required
           error={fieldError("gender")}
+        />
+        <SelectField
+          name="userRole"
+          label="Account role"
+          options={USER_ROLE_OPTIONS}
+          defaultValue={initialValue?.userRole ?? "Employee"}
+          required
+          error={fieldError("userRole")}
         />
         <SelectField
           name="positionId"

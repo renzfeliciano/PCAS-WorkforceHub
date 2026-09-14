@@ -26,6 +26,7 @@ type SettingDocument = {
   description?: string;
   sortOrder?: number;
   active: boolean;
+  grantsAttendanceSelfService?: boolean;
 };
 
 function toSettingItem(doc: SettingDocument): SettingItem {
@@ -36,6 +37,9 @@ function toSettingItem(doc: SettingDocument): SettingItem {
     category: doc.category,
     description: doc.description,
     active: doc.active,
+    // Documents saved before this field existed have none on disk — a
+    // .lean() read never applies the schema's default.
+    grantsAttendanceSelfService: doc.grantsAttendanceSelfService ?? false,
   };
 }
 

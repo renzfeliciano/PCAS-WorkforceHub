@@ -5,20 +5,23 @@ import { Plus, Save } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
-import type { SettingItem } from "@/types/settings";
+import { Toggle } from "@/components/ui/toggle";
+import type { SettingItem, SettingKind } from "@/types/settings";
 
 type SettingFormDialogProps = Readonly<{
   mode: "create" | "edit";
+  kind: SettingKind;
   label: string;
   submitLabel?: string;
   placeholder?: string;
   initialValue?: SettingItem;
   onClose: () => void;
-  onSubmit: (input: { name: string }) => Promise<void>;
+  onSubmit: (input: { name: string; grantsAttendanceSelfService?: boolean }) => Promise<void>;
 }>;
 
 export function SettingFormDialog({
   mode,
+  kind,
   label,
   submitLabel,
   placeholder,
@@ -27,6 +30,9 @@ export function SettingFormDialog({
   onSubmit,
 }: SettingFormDialogProps) {
   const [name, setName] = useState(initialValue?.name ?? "");
+  const [grantsAttendanceSelfService, setGrantsAttendanceSelfService] = useState(
+    initialValue?.grantsAttendanceSelfService ?? false,
+  );
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,7 +46,10 @@ export function SettingFormDialog({
     setIsSubmitting(true);
     setError("");
     try {
-      await onSubmit({ name: value });
+      await onSubmit({
+        name: value,
+        ...(kind === "position" ? { grantsAttendanceSelfService } : {}),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setIsSubmitting(false);
@@ -104,6 +113,16 @@ export function SettingFormDialog({
         standalone
         error={error}
       />
+      {kind === "position" && (
+        <Toggle
+          name="grantsAttendanceSelfService"
+          label="Grants attendance self-service"
+          hint="Anyone holding this position can create, edit, and delete their own attendance record (Admin/HR can still do this for anyone regardless)."
+          checked={grantsAttendanceSelfService}
+          onChange={setGrantsAttendanceSelfService}
+          fullWidth
+        />
+      )}
     </Modal>
   );
 }

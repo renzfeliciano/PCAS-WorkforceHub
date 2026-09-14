@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
-import { createUser, deactivateUser, updateUser } from "@/services/user-service";
+import {
+  changeOwnPassword,
+  createUser,
+  deactivateUser,
+  provisionEmployeeAccount,
+  updateUser,
+} from "@/services/user-service";
 import type { UserRepository } from "@/repositories/user-repository";
 import type { AppUser } from "@/types/user";
-import { adminActor, hrActor, noopAudit } from "../test-utils";
+import { adminActor, employeeActor, hrActor, noopAudit } from "../test-utils";
 
 function makeUser(overrides: Partial<AppUser> = {}): AppUser {
   return {
@@ -12,6 +18,7 @@ function makeUser(overrides: Partial<AppUser> = {}): AppUser {
     name: "Jane Doe",
     role: "HR",
     active: true,
+    mustChangePassword: true,
     createdAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
@@ -22,6 +29,17 @@ function fakeRepository(seed: AppUser[] = []): UserRepository {
   return {
     findAll: async () => ({ items: [...users.values()], total: users.size, page: 1, pageSize: 20 }),
     findById: async (id) => users.get(id) ?? null,
+    findByEmployeeId: async (employeeId) =>
+      [...users.values()].find((u) => u.employeeId === employeeId) ?? null,
+    listAllUsernames: async () => [...users.values()].map((u) => u.username),
+    findUsernamesByEmployeeIds: async (employeeIds) =>
+      new Map(
+        [...users.values()]
+          .filter((u) => u.employeeId && employeeIds.includes(u.employeeId))
+          .map((u) => [u.employeeId!, u.username]),
+      ),
+    verifyPassword: async (id, password) =>
+      users.has(id) && password === "correct-current-password",
     create: async (input) => {
       const user = makeUser({ id: "user-new", ...input, active: true });
       users.set(user.id, user);
@@ -38,16 +56,27 @@ function fakeRepository(seed: AppUser[] = []): UserRepository {
 }
 
 describe("createUser", () => {
-  it("is Admin-only", async () => {
+  it("is Admin/HR only", async () => {
     const repo = fakeRepository();
     await expect(
-      createUser(repo, noopAudit, hrActor, {
+      createUser(repo, noopAudit, employeeActor, {
         username: "newuser",
         name: "New User",
         password: "supersecret1",
         role: "HR",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("creates a user for HR", async () => {
+    const repo = fakeRepository();
+    const user = await createUser(repo, noopAudit, hrActor, {
+      username: "newuser",
+      name: "New User",
+      password: "supersecret1",
+      role: "Employee",
+    });
+    expect(user.username).toBe("newuser");
   });
 
   it("rejects a password shorter than 8 characters", async () => {
@@ -75,11 +104,17 @@ describe("createUser", () => {
 });
 
 describe("updateUser", () => {
-  it("is Admin-only", async () => {
+  it("is Admin/HR only", async () => {
     const repo = fakeRepository([makeUser()]);
     await expect(
-      updateUser(repo, noopAudit, hrActor, "user-1", { name: "Renamed" }),
+      updateUser(repo, noopAudit, employeeActor, "user-1", { name: "Renamed" }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("lets HR update another user", async () => {
+    const repo = fakeRepository([makeUser()]);
+    const updated = await updateUser(repo, noopAudit, hrActor, "user-1", { name: "Renamed" });
+    expect(updated.name).toBe("Renamed");
   });
 
   it("lets Admin change another user's role", async () => {
@@ -110,6 +145,57 @@ describe("updateUser", () => {
       name: "New Name",
     });
     expect(updated.name).toBe("New Name");
+  });
+});
+
+describe("provisionEmployeeAccount", () => {
+  it("creates an account whose role matches the employee's userRole, linked to the employee", async () => {
+    const repo = fakeRepository();
+    const user = await provisionEmployeeAccount(
+      repo,
+      noopAudit,
+      hrActor,
+      { id: "emp-1", name: "Tondo, Ryan June", userRole: "Employee" },
+      new Set(),
+    );
+    expect(user.username).toBe("tondo_ryan");
+    expect(user.role).toBe("Employee");
+    expect(user.employeeId).toBe("emp-1");
+  });
+
+  it("avoids a username collision against the existing set, and records the new username in it", async () => {
+    const repo = fakeRepository();
+    const existing = new Set(["tondo_ryan"]);
+    const user = await provisionEmployeeAccount(
+      repo,
+      noopAudit,
+      hrActor,
+      { id: "emp-2", name: "Tondo, Ryan Miguel", userRole: "Employee" },
+      existing,
+    );
+    expect(user.username).toBe("tondo_ryan_m");
+    expect(existing.has("tondo_ryan_m")).toBe(true);
+  });
+});
+
+describe("changeOwnPassword", () => {
+  it("rejects an incorrect current password", async () => {
+    const repo = fakeRepository([makeUser()]);
+    await expect(
+      changeOwnPassword(repo, noopAudit, { ...hrActor, id: "user-1" }, "wrong", "newpassword1"),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("changes the password and clears mustChangePassword when the current password is correct", async () => {
+    const repo = fakeRepository([makeUser({ id: "user-1", mustChangePassword: true })]);
+    const updated = await changeOwnPassword(
+      repo,
+      noopAudit,
+      { ...hrActor, id: "user-1" },
+      "correct-current-password",
+      "newpassword1",
+    );
+    expect(updated.mustChangePassword).toBe(false);
   });
 });
 

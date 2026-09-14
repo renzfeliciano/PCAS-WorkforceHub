@@ -18,6 +18,9 @@ const employeeSchema = new Schema(
     gender: { type: String, enum: ["Male", "Female"], required: true },
     positionId: { type: String, required: true },
     projectSiteId: { type: String, required: true },
+    // Drives the role of the User account auto-provisioned for this employee
+    // (never "Admin" — that's granted manually, not through the roster).
+    userRole: { type: String, enum: ["HR", "Manager", "Employee"], required: true, default: "Employee" },
     dateHired: { type: String, required: true },
     birthDate: { type: String },
     endOfContract: { type: String },

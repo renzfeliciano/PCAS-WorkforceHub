@@ -1,6 +1,10 @@
 import type { AuditLogger } from "@/lib/audit-logger";
 import { ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
-import { canManageAttendance } from "@/lib/rbac";
+import {
+  canDeleteAttendanceRecord,
+  canManageAttendanceRecord,
+  canViewAttendanceRecord,
+} from "@/lib/rbac";
 import {
   attendanceMonthSchema,
   createAttendanceRecordSchema,
@@ -10,7 +14,13 @@ import type { AttendanceRecordRepository } from "@/repositories/attendance-recor
 import type { AttendanceRecord } from "@/types/attendance";
 import type { Role } from "@/types/user";
 
-type Actor = { role: Role; id: string; requestId: string };
+type Actor = {
+  role: Role;
+  id: string;
+  requestId: string;
+  employeeId?: string;
+  hasAttendanceSelfService?: boolean;
+};
 
 /** "YYYY-MM" -> ["YYYY-MM-01", "YYYY-MM-<lastDay>"] */
 function monthRange(month: string): { from: string; to: string } {
@@ -21,9 +31,12 @@ function monthRange(month: string): { from: string; to: string } {
 
 export async function listAttendanceForMonth(
   repository: AttendanceRecordRepository,
+  actor: Actor,
   employeeId: string,
   month: unknown,
 ): Promise<AttendanceRecord[]> {
+  if (!canViewAttendanceRecord(actor, employeeId))
+    throw new ForbiddenActionError("You may only view your own attendance");
   const validMonth = attendanceMonthSchema.parse(month);
   const { from, to } = monthRange(validMonth);
   return repository.findByEmployeeAndRange(employeeId, from, to);
@@ -36,8 +49,8 @@ export async function createAttendanceRecord(
   employeeId: string,
   input: unknown,
 ): Promise<AttendanceRecord> {
-  if (!canManageAttendance(actor.role))
-    throw new ForbiddenActionError("Only Admin and HR may log attendance");
+  if (!canManageAttendanceRecord(actor, employeeId))
+    throw new ForbiddenActionError("You may not log attendance for this employee");
   const valid = createAttendanceRecordSchema.parse(input);
   const record = await repository.create(employeeId, valid);
   await audit.record({
@@ -57,10 +70,10 @@ export async function updateAttendanceRecord(
   id: string,
   input: unknown,
 ): Promise<AttendanceRecord> {
-  if (!canManageAttendance(actor.role))
-    throw new ForbiddenActionError("Only Admin and HR may edit attendance");
   const existing = await repository.findById(id);
   if (!existing) throw new NotFoundError("Attendance record not found");
+  if (!canManageAttendanceRecord(actor, existing.employeeId))
+    throw new ForbiddenActionError("You may not edit this attendance record");
   const valid = updateAttendanceRecordSchema.parse(input);
   const record = await repository.update(id, valid);
   await audit.record({
@@ -79,10 +92,10 @@ export async function deleteAttendanceRecord(
   actor: Actor,
   id: string,
 ): Promise<void> {
-  if (!canManageAttendance(actor.role))
-    throw new ForbiddenActionError("Only Admin and HR may delete attendance records");
   const existing = await repository.findById(id);
   if (!existing) throw new NotFoundError("Attendance record not found");
+  if (!canDeleteAttendanceRecord(actor, existing.employeeId))
+    throw new ForbiddenActionError("You may not delete this attendance record");
   await repository.delete(id);
   await audit.record({
     action: "attendance.deleted",

@@ -39,6 +39,7 @@ function makeEmployee(balances: LeaveBalance[]): Employee {
     employeeNumber: "001",
     name: "Test Employee",
     gender: "Male",
+    userRole: "Employee",
     positionId: "pos-1",
     position: "Staff",
     projectSiteId: "proj-1",

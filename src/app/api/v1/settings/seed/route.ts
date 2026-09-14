@@ -10,7 +10,7 @@ import {
   seedRecruitmentStages,
   seedSettingsCatalog,
 } from "@/services/settings-seed-service";
-import { canManageSettings } from "@/lib/rbac";
+import { canEditCatalog } from "@/lib/rbac";
 import {
   ATTENDANCE_STATUS_CATEGORY,
   CASE_CLASSIFICATION_CATEGORY,
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       { error: "UNAUTHENTICATED", requestId },
       { status: 401, headers },
     );
-  if (!canManageSettings(session.user.role))
+  if (!canEditCatalog(session.user.role))
     return NextResponse.json(
       { error: "FORBIDDEN", requestId },
       { status: 403, headers },

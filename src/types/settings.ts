@@ -14,4 +14,6 @@ export type SettingItem = {
   category?: string;
   description?: string;
   active: boolean;
+  /** Position entries only: grants the attendance self-service exception to anyone holding this position. */
+  grantsAttendanceSelfService: boolean;
 };

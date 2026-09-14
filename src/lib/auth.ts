@@ -108,6 +108,8 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           role: user.role,
           sessionId,
+          employeeId: user.employeeId,
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -119,6 +121,9 @@ export const authOptions: NextAuthOptions = {
         token.userId = user.id;
         token.role = user.role;
         token.sessionId = user.sessionId;
+        token.employeeId = user.employeeId;
+        token.username = user.username;
+        token.mustChangePassword = user.mustChangePassword;
         token.lastActivityAt = Date.now();
       }
 
@@ -151,6 +156,11 @@ export const authOptions: NextAuthOptions = {
             expiredReason: currentUser ? "concurrent_session" : "idle_timeout",
           };
         }
+
+        // Keeps mustChangePassword current without requiring a re-login —
+        // e.g. right after the user changes their password, or an Admin
+        // resets it and flips the flag back on.
+        token.mustChangePassword = currentUser.mustChangePassword;
       }
 
       token.lastActivityAt = Date.now();
@@ -176,6 +186,9 @@ export const authOptions: NextAuthOptions = {
       session.user.id = token.userId;
       session.user.role = token.role;
       session.user.sessionId = token.sessionId;
+      session.user.employeeId = token.employeeId;
+      session.user.username = token.username;
+      session.user.mustChangePassword = token.mustChangePassword;
 
       return session;
     },

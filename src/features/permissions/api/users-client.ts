@@ -1,6 +1,6 @@
 import { apiRequest } from "@/lib/api-client";
 import type { CreateUserInput, UpdateUserInput } from "@/schemas/user";
-import type { AppUser } from "@/types/user";
+import type { AppUser, Role } from "@/types/user";
 import type { SortDir } from "@/types/list-query";
 
 export type UserListParams = {
@@ -8,6 +8,9 @@ export type UserListParams = {
   pageSize?: number;
   sortBy?: string;
   sortDir?: SortDir;
+  query?: string;
+  role?: Role;
+  status?: "active" | "inactive";
 };
 export type UserListResponse = {
   items: AppUser[];
@@ -22,6 +25,9 @@ function buildQuery(params: UserListParams) {
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
   if (params.sortBy) search.set("sortBy", params.sortBy);
   if (params.sortDir) search.set("sortDir", params.sortDir);
+  if (params.query) search.set("query", params.query);
+  if (params.role) search.set("role", params.role);
+  if (params.status) search.set("status", params.status);
   return search.toString();
 }
 

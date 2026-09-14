@@ -8,7 +8,7 @@ import { createJobApplication, listJobApplications } from "@/services/job-applic
 const repository = new MongoJobApplicationRepository();
 
 export async function GET(request: Request) {
-  const guard = await requireApiSession(request);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { requestId, headers } = guard;
   try {

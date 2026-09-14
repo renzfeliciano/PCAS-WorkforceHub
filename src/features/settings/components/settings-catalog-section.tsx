@@ -14,12 +14,18 @@ type SettingsCatalogSectionProps = Readonly<{
   items: SettingItem[];
   category?: string;
   seedEnabled: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   onCreate: (input: {
     name: string;
     kind: SettingKind;
     category?: string;
+    grantsAttendanceSelfService?: boolean;
   }) => Promise<void>;
-  onUpdate: (id: string, input: { name: string }) => Promise<void>;
+  onUpdate: (
+    id: string,
+    input: { name: string; grantsAttendanceSelfService?: boolean },
+  ) => Promise<void>;
   onToggle: (id: string, active: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onSeed: () => Promise<void>;
@@ -31,6 +37,8 @@ export function SettingsCatalogSection({
   items,
   category,
   seedEnabled,
+  canEdit,
+  canDelete,
   onCreate,
   onUpdate,
   onToggle,
@@ -94,7 +102,7 @@ export function SettingsCatalogSection({
           </p>
         </div>
         <div className="settings-card-tools">
-          {seedEnabled && (
+          {canEdit && seedEnabled && (
             <button
               className="seed-button"
               type="button"
@@ -104,14 +112,16 @@ export function SettingsCatalogSection({
               {isSeeding ? <Spinner size={11} /> : "Seed defaults"}
             </button>
           )}
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => setAdding(true)}
-            data-testid={`add-catalog-${kind}${category ? `-${category}` : ""}`}
-          >
-            <Plus size={14} /> Add
-          </Button>
+          {canEdit && (
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => setAdding(true)}
+              data-testid={`add-catalog-${kind}${category ? `-${category}` : ""}`}
+            >
+              <Plus size={14} /> Add
+            </Button>
+          )}
         </div>
       </div>
       <ul className="setting-list">
@@ -121,46 +131,61 @@ export function SettingsCatalogSection({
               <span className="setting-dot" />
               <div>
                 <b>{item.name}</b>
+                {item.grantsAttendanceSelfService && (
+                  <small title="Anyone holding this position can create, edit, and delete their own attendance record.">
+                    Attendance self-service
+                  </small>
+                )}
                 {item.description && <small>{item.description}</small>}
               </div>
             </div>
             <div className="setting-row-actions">
-              <button
-                type="button"
-                className={`setting-state ${item.active ? "enabled" : "disabled"}`}
-                onClick={() => handleToggle(item)}
-                disabled={togglingId === item.id}
-                aria-label={`Mark ${item.name} ${item.active ? "inactive" : "active"}`}
-                data-testid={`toggle-catalog-${kind}-${item.id}`}
-              >
-                {togglingId === item.id ? (
-                  <Spinner size={11} />
-                ) : item.active ? (
-                  "Active"
-                ) : (
-                  "Inactive"
-                )}
-              </button>
-              <button
-                type="button"
-                className="edit-setting"
-                onClick={() => setEditing(item)}
-                aria-label={`Edit ${item.name}`}
-                title="Edit"
-                data-testid={`edit-catalog-${kind}-${item.id}`}
-              >
-                <Pencil size={13} />
-              </button>
-              <button
-                type="button"
-                className="delete-setting"
-                onClick={() => setDeleting(item)}
-                aria-label={`Delete ${item.name}`}
-                title="Delete"
-                data-testid={`delete-catalog-${kind}-${item.id}`}
-              >
-                ×
-              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className={`setting-state ${item.active ? "enabled" : "disabled"}`}
+                  onClick={() => handleToggle(item)}
+                  disabled={togglingId === item.id}
+                  aria-label={`Mark ${item.name} ${item.active ? "inactive" : "active"}`}
+                  data-testid={`toggle-catalog-${kind}-${item.id}`}
+                >
+                  {togglingId === item.id ? (
+                    <Spinner size={11} />
+                  ) : item.active ? (
+                    "Active"
+                  ) : (
+                    "Inactive"
+                  )}
+                </button>
+              ) : (
+                <span className={`setting-state ${item.active ? "enabled" : "disabled"}`}>
+                  {item.active ? "Active" : "Inactive"}
+                </span>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  className="edit-setting"
+                  onClick={() => setEditing(item)}
+                  aria-label={`Edit ${item.name}`}
+                  title="Edit"
+                  data-testid={`edit-catalog-${kind}-${item.id}`}
+                >
+                  <Pencil size={13} />
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  className="delete-setting"
+                  onClick={() => setDeleting(item)}
+                  aria-label={`Delete ${item.name}`}
+                  title="Delete"
+                  data-testid={`delete-catalog-${kind}-${item.id}`}
+                >
+                  ×
+                </button>
+              )}
             </div>
           </li>
         ))}
@@ -168,17 +193,18 @@ export function SettingsCatalogSection({
       {adding && (
         <SettingFormDialog
           mode="create"
+          kind={kind}
           label={singularLabel}
           placeholder={namePlaceholder}
           onClose={() => setAdding(false)}
-          onSubmit={async ({ name }) => {
+          onSubmit={async ({ name, grantsAttendanceSelfService }) => {
             if (
               items.some(
                 (item) => item.name.toLowerCase() === name.toLowerCase(),
               )
             )
               throw new Error("This option already exists.");
-            await onCreate({ name, kind, category });
+            await onCreate({ name, kind, category, grantsAttendanceSelfService });
             setAdding(false);
           }}
           submitLabel={`Add ${kind}`}
@@ -187,6 +213,7 @@ export function SettingsCatalogSection({
       {editing && (
         <SettingFormDialog
           mode="edit"
+          kind={kind}
           label={singularLabel}
           placeholder={namePlaceholder}
           initialValue={editing}

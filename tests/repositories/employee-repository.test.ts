@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectMongoDB } from "@/lib/mongodb";
 import { ConflictError } from "@/lib/app-errors";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
+import { EmployeeModel } from "@/repositories/models/employee-model";
 import { MongoSettingRepository } from "@/repositories/setting-repository";
 import type { EmployeeInput } from "@/schemas/employee";
 
@@ -32,6 +33,7 @@ function makeInput(overrides: Partial<EmployeeInput> = {}): EmployeeInput {
     employeeNumber: "001",
     name: "Alice Smith",
     gender: "Female",
+    userRole: "Employee",
     positionId: "",
     projectSiteId: "",
     dateHired: "2020-01-01",
@@ -51,6 +53,33 @@ beforeEach(async () => {
 afterAll(async () => {
   await repository.deleteAll();
   await settings.deleteAll();
+});
+
+describe("MongoEmployeeRepository reading a legacy document with no userRole field", () => {
+  it("defaults userRole to Employee for a document saved before that field existed", async () => {
+    const positionId = await makePosition("Engineer");
+    const projectSiteId = await makeProject("HO");
+    // Bypasses the Mongoose schema (which would apply the default) to
+    // reproduce a document written before userRole was added — the exact
+    // shape .lean() returns for every pre-existing roster employee.
+    const { insertedId } = await EmployeeModel.collection.insertOne({
+      name: "Legacy Employee",
+      gender: "Female",
+      positionId,
+      projectSiteId,
+      dateHired: "2020-01-01",
+      employmentStatusId: "status-1",
+      leaveBalances: [],
+      archived: false,
+      createdAt: new Date(),
+    });
+
+    const found = await repository.findById(insertedId.toString());
+    expect(found?.userRole).toBe("Employee");
+
+    const { items } = await repository.findAll({ includeArchived: false });
+    expect(items.find((e) => e.id === insertedId.toString())?.userRole).toBe("Employee");
+  });
 });
 
 describe("MongoEmployeeRepository.create", () => {

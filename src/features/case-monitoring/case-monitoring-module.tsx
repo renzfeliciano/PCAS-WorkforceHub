@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { useCurrentUser } from "@/context/current-user-context";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
-import { canManageCaseMonitoring } from "@/lib/rbac";
+import { canExportData, canManageCaseMonitoring } from "@/lib/rbac";
 import {
   caseRecordsClient,
   type CaseRecordListResponse,
@@ -30,6 +30,7 @@ export function CaseMonitoringModule({
 }: Readonly<{ initialData?: CaseRecordListResponse }>) {
   const user = useCurrentUser();
   const canManage = canManageCaseMonitoring(user.role);
+  const canExport = canExportData(user.role);
 
   const { activeItems: projects } = useCatalogOptions("project");
   const { activeItems: classifications } = useCatalogOptions("status", CASE_CLASSIFICATION_CATEGORY);
@@ -149,26 +150,30 @@ export function CaseMonitoringModule({
             </p>
           </div>
           <div className="actions">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleExportCsv}
-              isLoading={isExporting}
-              loadingText="Exporting CSV"
-              disabled={total === 0}
-            >
-              <Download size={14} /> Export CSV
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handlePrint}
-              isLoading={isPrinting}
-              loadingText="Preparing print"
-              disabled={total === 0}
-            >
-              <Printer size={14} /> Print
-            </Button>
+            {canExport && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleExportCsv}
+                isLoading={isExporting}
+                loadingText="Exporting CSV"
+                disabled={total === 0}
+              >
+                <Download size={14} /> Export CSV
+              </Button>
+            )}
+            {canExport && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handlePrint}
+                isLoading={isPrinting}
+                loadingText="Preparing print"
+                disabled={total === 0}
+              >
+                <Printer size={14} /> Print
+              </Button>
+            )}
             {canManage && (
               <Button
                 type="button"

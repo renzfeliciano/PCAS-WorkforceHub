@@ -4,13 +4,16 @@ import {
   archiveEmployee,
   createEmployee,
   deleteEmployeePermanently,
+  listEmployees,
   updateEmployee,
   updateEmployeeLeaveBalances,
 } from "@/services/employee-service";
 import type { EmployeeListResult, EmployeeRepository } from "@/repositories/employee-repository";
 import type { LeaveBalanceChangeFields, LeaveBalanceChangeRepository } from "@/repositories/leave-balance-change-repository";
+import type { UserRepository } from "@/repositories/user-repository";
 import type { Employee, LeaveBalance } from "@/types/employee";
-import { adminActor, employeeActor, hrActor, noopAudit } from "../test-utils";
+import type { AppUser } from "@/types/user";
+import { adminActor, employeeActor, hrActor, managerActor, noopAudit } from "../test-utils";
 
 function makeEmployee(overrides: Partial<Employee> = {}): Employee {
   return {
@@ -18,6 +21,7 @@ function makeEmployee(overrides: Partial<Employee> = {}): Employee {
     employeeNumber: "001",
     name: "Test Employee",
     gender: "Male",
+    userRole: "Employee",
     positionId: "pos-1",
     position: "Staff",
     projectSiteId: "proj-1",
@@ -32,7 +36,7 @@ function makeEmployee(overrides: Partial<Employee> = {}): Employee {
   };
 }
 
-function validCreateInput() {
+function validCreateInput(overrides: Record<string, unknown> = {}) {
   return {
     employeeNumber: "002",
     name: "New Employee",
@@ -42,6 +46,7 @@ function validCreateInput() {
     dateHired: "2026-01-01",
     employmentStatusId: "status-1",
     employmentStatusName: "Regular",
+    ...overrides,
   };
 }
 
@@ -81,6 +86,46 @@ function fakeEmployeeRepository(initial: Employee): EmployeeRepository {
   };
 }
 
+function fakeUserRepository(seed: AppUser[] = []): UserRepository {
+  const users = new Map(seed.map((u) => [u.id, u]));
+  let nextId = 1;
+  return {
+    findAll: async () => ({ items: [...users.values()], total: users.size, page: 1, pageSize: 20 }),
+    findById: async (id) => users.get(id) ?? null,
+    findByEmployeeId: async (employeeId) =>
+      [...users.values()].find((u) => u.employeeId === employeeId) ?? null,
+    listAllUsernames: async () => [...users.values()].map((u) => u.username),
+    findUsernamesByEmployeeIds: async (employeeIds) =>
+      new Map(
+        [...users.values()]
+          .filter((u) => u.employeeId && employeeIds.includes(u.employeeId))
+          .map((u) => [u.employeeId!, u.username]),
+      ),
+    verifyPassword: async () => true,
+    create: async (input) => {
+      const user: AppUser = {
+        id: `user-new-${nextId++}`,
+        username: input.username,
+        name: input.name,
+        role: input.role,
+        active: true,
+        mustChangePassword: true,
+        employeeId: input.employeeId,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      };
+      users.set(user.id, user);
+      return user;
+    },
+    update: async (id, patch) => {
+      const existing = users.get(id);
+      if (!existing) throw new NotFoundError("User not found");
+      const updated = { ...existing, ...patch };
+      users.set(id, updated);
+      return updated;
+    },
+  };
+}
+
 function fakeLeaveBalanceChangeRepository(): LeaveBalanceChangeRepository & { recorded: LeaveBalanceChangeFields[] } {
   const recorded: LeaveBalanceChangeFields[] = [];
   return {
@@ -92,18 +137,117 @@ function fakeLeaveBalanceChangeRepository(): LeaveBalanceChangeRepository & { re
   };
 }
 
+function multiEmployeeRepository(employees: Employee[]): EmployeeRepository {
+  return {
+    findAll: async (filters) => {
+      const items = filters.projectId
+        ? employees.filter((e) => e.projectSiteId === filters.projectId)
+        : employees;
+      return { items, total: items.length, page: 1, pageSize: 20 };
+    },
+    findActiveForDashboard: async () => employees,
+    findById: async (id) => employees.find((e) => e.id === id) ?? null,
+    create: async () => {
+      throw new Error("not used");
+    },
+    update: async () => {
+      throw new Error("not used");
+    },
+    archive: async () => {
+      throw new Error("not used");
+    },
+    deletePermanently: async () => {},
+    updateLeaveBalances: async () => {
+      throw new Error("not used");
+    },
+    deleteAll: async () => {},
+  };
+}
+
+describe("listEmployees", () => {
+  it("returns every employee for Admin/HR, regardless of project", async () => {
+    const repo = multiEmployeeRepository([
+      makeEmployee({ id: "emp-1", projectSiteId: "proj-a" }),
+      makeEmployee({ id: "emp-2", projectSiteId: "proj-b" }),
+    ]);
+    const result = await listEmployees(repo, hrActor, {});
+    expect(result.items).toHaveLength(2);
+  });
+
+  it("scopes a Manager/Employee to only their own project", async () => {
+    const repo = multiEmployeeRepository([
+      makeEmployee({ id: "emp-1", projectSiteId: "proj-a" }),
+      makeEmployee({ id: "emp-2", projectSiteId: "proj-b" }),
+    ]);
+    const result = await listEmployees(repo, { ...employeeActor, employeeId: "emp-1" }, {});
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe("emp-1");
+  });
+
+  it("scopes a Manager the same way as an Employee", async () => {
+    const repo = multiEmployeeRepository([
+      makeEmployee({ id: "emp-1", projectSiteId: "proj-a" }),
+      makeEmployee({ id: "emp-2", projectSiteId: "proj-b" }),
+    ]);
+    const result = await listEmployees(repo, { ...managerActor, employeeId: "emp-2" }, {});
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe("emp-2");
+  });
+
+  it("ignores a requested projectId filter and uses the actor's own project instead", async () => {
+    const repo = multiEmployeeRepository([
+      makeEmployee({ id: "emp-1", projectSiteId: "proj-a" }),
+      makeEmployee({ id: "emp-2", projectSiteId: "proj-b" }),
+    ]);
+    const result = await listEmployees(
+      repo,
+      { ...employeeActor, employeeId: "emp-1" },
+      { projectId: "proj-b" },
+    );
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe("emp-1");
+  });
+
+  it("returns nothing for a Manager/Employee with no linked employee record", async () => {
+    const repo = multiEmployeeRepository([makeEmployee({ id: "emp-1", projectSiteId: "proj-a" })]);
+    const result = await listEmployees(repo, managerActor, {});
+    expect(result.items).toHaveLength(0);
+  });
+});
+
 describe("createEmployee", () => {
   it("rejects roles that cannot edit employees", async () => {
     const repo = fakeEmployeeRepository(makeEmployee());
     await expect(
-      createEmployee(repo, noopAudit, employeeActor, validCreateInput()),
+      createEmployee(repo, fakeUserRepository(), noopAudit, employeeActor, validCreateInput()),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("creates an employee for HR", async () => {
     const repo = fakeEmployeeRepository(makeEmployee());
-    const created = await createEmployee(repo, noopAudit, hrActor, validCreateInput());
+    const created = await createEmployee(
+      repo,
+      fakeUserRepository(),
+      noopAudit,
+      hrActor,
+      validCreateInput(),
+    );
     expect(created.employeeNumber).toBe("002");
+  });
+
+  it("provisions a linked login account using the employee's name and userRole", async () => {
+    const repo = fakeEmployeeRepository(makeEmployee());
+    const users = fakeUserRepository();
+    await createEmployee(
+      repo,
+      users,
+      noopAudit,
+      hrActor,
+      validCreateInput({ name: "Tondo, Ryan June", userRole: "Manager" }),
+    );
+    const created = await users.findAll({});
+    expect(created.items).toHaveLength(1);
+    expect(created.items[0]).toMatchObject({ username: "tondo_ryan", role: "Manager" });
   });
 });
 
@@ -111,25 +255,46 @@ describe("updateEmployee", () => {
   it("rejects roles that cannot edit employees", async () => {
     const repo = fakeEmployeeRepository(makeEmployee());
     await expect(
-      updateEmployee(repo, noopAudit, employeeActor, "emp-1", { name: "Renamed" }),
+      updateEmployee(repo, fakeUserRepository(), noopAudit, employeeActor, "emp-1", {
+        name: "Renamed",
+      }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("lets HR update ordinary fields but not toggle the archived flag", async () => {
     const repo = fakeEmployeeRepository(makeEmployee());
     await expect(
-      updateEmployee(repo, noopAudit, hrActor, "emp-1", { archived: true }),
+      updateEmployee(repo, fakeUserRepository(), noopAudit, hrActor, "emp-1", { archived: true }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("lets Admin update ordinary fields and archive in the same call", async () => {
     const repo = fakeEmployeeRepository(makeEmployee());
-    const updated = await updateEmployee(repo, noopAudit, adminActor, "emp-1", {
+    const updated = await updateEmployee(repo, fakeUserRepository(), noopAudit, adminActor, "emp-1", {
       name: "Renamed",
       archived: true,
     });
     expect(updated.name).toBe("Renamed");
     expect(updated.archived).toBe(true);
+  });
+
+  it("syncs the linked account's role when userRole changes", async () => {
+    const repo = fakeEmployeeRepository(makeEmployee());
+    const users = fakeUserRepository([
+      {
+        id: "user-1",
+        username: "test_employee",
+        name: "Test Employee",
+        role: "Employee",
+        active: true,
+        mustChangePassword: false,
+        employeeId: "emp-1",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    await updateEmployee(repo, users, noopAudit, adminActor, "emp-1", { userRole: "Manager" });
+    const linked = await users.findByEmployeeId("emp-1");
+    expect(linked?.role).toBe("Manager");
   });
 });
 

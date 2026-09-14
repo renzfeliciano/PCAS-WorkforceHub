@@ -1,6 +1,7 @@
-import { hash } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { isValidObjectId } from "mongoose";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
+import { escapeRegex } from "@/lib/regex";
 import { UserModel } from "@/repositories/models/user-model";
 import { resolveSort } from "@/repositories/sort";
 import type { CreateUserInput, UpdateUserInput } from "@/schemas/user";
@@ -19,11 +20,20 @@ export type UserListFilters = {
   pageSize?: number;
   sortBy?: string;
   sortDir?: SortDir;
+  query?: string;
+  role?: Role;
+  status?: "active" | "inactive";
 };
 
 export interface UserRepository {
   findAll(filters: UserListFilters): Promise<ListResult<AppUser>>;
   findById(id: string): Promise<AppUser | null>;
+  findByEmployeeId(employeeId: string): Promise<AppUser | null>;
+  /** Every username currently in use — for generating a new roster-driven username that can't collide. */
+  listAllUsernames(): Promise<string[]>;
+  /** Batch resolves employeeId -> username for a roster listing, mirroring the catalog-name-resolution pattern. */
+  findUsernamesByEmployeeIds(employeeIds: string[]): Promise<Map<string, string>>;
+  verifyPassword(id: string, password: string): Promise<boolean>;
   create(input: CreateUserInput): Promise<AppUser>;
   update(id: string, patch: UpdateUserInput): Promise<AppUser>;
 }
@@ -35,6 +45,8 @@ type UserDocument = {
   name: string;
   role: Role;
   active: boolean;
+  employeeId?: string;
+  mustChangePassword: boolean;
   createdAt: Date;
 };
 
@@ -46,6 +58,8 @@ function toAppUser(doc: UserDocument): AppUser {
     name: doc.name,
     role: doc.role,
     active: doc.active,
+    employeeId: doc.employeeId,
+    mustChangePassword: doc.mustChangePassword,
     createdAt: doc.createdAt.toISOString(),
   };
 }
@@ -63,13 +77,20 @@ export class MongoUserRepository implements UserRepository {
     const sort = resolveSort(filters.sortBy, filters.sortDir, USER_SORT_FIELD_MAP, {
       createdAt: -1,
     });
+    const match: Record<string, unknown> = {};
+    if (filters.role) match.role = filters.role;
+    if (filters.status) match.active = filters.status === "active";
+    if (filters.query?.trim()) {
+      const pattern = new RegExp(escapeRegex(filters.query.trim()), "i");
+      match.$or = [{ name: pattern }, { username: pattern }, { email: pattern }];
+    }
     const [docs, total] = await Promise.all([
-      UserModel.find()
+      UserModel.find(match)
         .sort(sort)
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .lean<UserDocument[]>(),
-      UserModel.countDocuments(),
+      UserModel.countDocuments(match),
     ]);
     return { items: docs.map(toAppUser), total, page, pageSize };
   }
@@ -80,6 +101,31 @@ export class MongoUserRepository implements UserRepository {
     return doc ? toAppUser(doc) : null;
   }
 
+  async findByEmployeeId(employeeId: string): Promise<AppUser | null> {
+    const doc = await UserModel.findOne({ employeeId }).lean<UserDocument | null>();
+    return doc ? toAppUser(doc) : null;
+  }
+
+  async listAllUsernames(): Promise<string[]> {
+    const docs = await UserModel.find().select("username").lean<{ username: string }[]>();
+    return docs.map((doc) => doc.username);
+  }
+
+  async findUsernamesByEmployeeIds(employeeIds: string[]): Promise<Map<string, string>> {
+    if (employeeIds.length === 0) return new Map();
+    const docs = await UserModel.find({ employeeId: { $in: employeeIds } })
+      .select("employeeId username")
+      .lean<{ employeeId: string; username: string }[]>();
+    return new Map(docs.map((doc) => [doc.employeeId, doc.username]));
+  }
+
+  async verifyPassword(id: string, password: string): Promise<boolean> {
+    if (!isValidObjectId(id)) return false;
+    const doc = await UserModel.findById(id).select("+passwordHash").lean<{ passwordHash: string } | null>();
+    if (!doc) return false;
+    return compare(password, doc.passwordHash);
+  }
+
   async create(input: CreateUserInput): Promise<AppUser> {
     const passwordHash = await hash(input.password, 12);
     try {
@@ -88,6 +134,7 @@ export class MongoUserRepository implements UserRepository {
         email: input.email?.trim().toLowerCase(),
         name: input.name,
         role: input.role,
+        employeeId: input.employeeId,
         passwordHash,
         active: true,
       });

@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/context/current-user-context";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useLeaveTypeOptions } from "@/hooks/use-leave-type-options";
 import { useSortState } from "@/hooks/use-sort-state";
-import { canDeleteEmployees, canEditEmployees } from "@/lib/rbac";
+import { canDeleteEmployees, canEditEmployees, canExportData } from "@/lib/rbac";
 import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
 import { EmployeeTable } from "@/features/employees/components/employee-table";
 import { EmployeeFilters } from "@/features/employees/components/employee-filters";
@@ -32,7 +32,9 @@ export function EmployeesModule({
 }: Readonly<{ initialData?: EmployeeListInitialData }>) {
   const user = useCurrentUser();
   const canEdit = canEditEmployees(user.role);
+  const canExport = canExportData(user.role);
   const canDelete = canDeleteEmployees(user.role);
+  const canViewAllProjects = user.role === "Admin" || user.role === "HR";
 
   const [rawQuery, setRawQuery] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -162,40 +164,44 @@ export function EmployeesModule({
             </p>
           </div>
           <div className="actions">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={handleExportCsv}
-              isLoading={isExporting}
-              loadingText="Exporting CSV"
-              disabled={total === 0 || showArchived}
-              title={
-                total === 0
-                  ? "No records to export"
-                  : showArchived
-                    ? "Archived records cannot be exported"
-                    : undefined
-              }
-            >
-              <Download size={14} /> Export CSV
-            </Button>
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={handlePrint}
-              isLoading={isPrinting}
-              loadingText="Preparing print"
-              disabled={total === 0 || showArchived}
-              title={
-                total === 0
-                  ? "No records to print"
-                  : showArchived
-                    ? "Archived records cannot be printed"
-                    : undefined
-              }
-            >
-              <Printer size={14} /> Print
-            </Button>
+            {canExport && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={handleExportCsv}
+                isLoading={isExporting}
+                loadingText="Exporting CSV"
+                disabled={total === 0 || showArchived}
+                title={
+                  total === 0
+                    ? "No records to export"
+                    : showArchived
+                      ? "Archived records cannot be exported"
+                      : undefined
+                }
+              >
+                <Download size={14} /> Export CSV
+              </Button>
+            )}
+            {canExport && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={handlePrint}
+                isLoading={isPrinting}
+                loadingText="Preparing print"
+                disabled={total === 0 || showArchived}
+                title={
+                  total === 0
+                    ? "No records to print"
+                    : showArchived
+                      ? "Archived records cannot be printed"
+                      : undefined
+                }
+              >
+                <Printer size={14} /> Print
+              </Button>
+            )}
             {canEdit && (
               <Button
                 variant="primary"
@@ -227,6 +233,7 @@ export function EmployeesModule({
           }}
           statuses={statuses}
           projects={projects}
+          canViewAllProjects={canViewAllProjects}
           showArchived={showArchived}
           onShowArchivedChange={(value) => {
             setShowArchived(value);

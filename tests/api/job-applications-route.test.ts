@@ -65,15 +65,20 @@ describe("GET /api/v1/job-applications", () => {
     expect(response.status).toBe(401);
   });
 
-  it("lists every application, unbounded, for any authenticated role", async () => {
+  it("lists every application, unbounded, for Admin/HR", async () => {
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     await POST(jsonRequest("http://localhost/api/v1/job-applications", "POST", validApplicationInput()));
 
-    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
     const response = await GET(jsonRequest("http://localhost/api/v1/job-applications", "GET"));
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.items).toHaveLength(1);
+  });
+
+  it("returns 403 for Employee — recruitment is Admin/HR only", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/job-applications", "GET"));
+    expect(response.status).toBe(403);
   });
 });
 

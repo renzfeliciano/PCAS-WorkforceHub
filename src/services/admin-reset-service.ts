@@ -1,6 +1,6 @@
 import type { AuditLogger } from "@/lib/audit-logger";
 import { ForbiddenActionError } from "@/lib/app-errors";
-import { canManageUsers } from "@/lib/rbac";
+import { canResetWorkspace } from "@/lib/rbac";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { SettingRepository } from "@/repositories/setting-repository";
 import type { LeaveTypeRepository } from "@/repositories/leave-type-repository";
@@ -17,7 +17,7 @@ export async function resetWorkspaceData(
   audit: AuditLogger,
   actor: Actor,
 ): Promise<void> {
-  if (!canManageUsers(actor.role))
+  if (!canResetWorkspace(actor.role))
     throw new ForbiddenActionError("Only Admin may reset workspace data");
   await Promise.all([
     repositories.employeeRepository.deleteAll(),

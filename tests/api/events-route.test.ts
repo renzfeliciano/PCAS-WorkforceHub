@@ -54,7 +54,17 @@ describe("GET /api/v1/events", () => {
     expect(response.status).toBe(401);
   });
 
-  it("lists events within the requested month for any authenticated role", async () => {
+  it("lists events within the requested month for Admin/HR", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    await POST(jsonRequest("http://localhost/api/v1/events", "POST", validEventInput()));
+
+    const response = await GET(jsonRequest("http://localhost/api/v1/events?month=2026-09", "GET"));
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.items).toHaveLength(1);
+  });
+
+  it("lets an Employee view events — Employees can view but not manage", async () => {
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     await POST(jsonRequest("http://localhost/api/v1/events", "POST", validEventInput()));
 

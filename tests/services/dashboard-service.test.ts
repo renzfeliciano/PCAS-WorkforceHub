@@ -10,6 +10,7 @@ function makeEmployee(overrides: Partial<Employee> = {}): Employee {
     id: `emp-${Math.random()}`,
     name: "Test Employee",
     gender: "Male",
+    userRole: "Employee",
     positionId: "pos-1",
     position: "Staff",
     projectSiteId: "proj-1",

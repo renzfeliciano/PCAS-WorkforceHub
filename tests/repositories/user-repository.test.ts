@@ -80,6 +80,73 @@ describe("MongoUserRepository.update", () => {
   });
 });
 
+describe("MongoUserRepository.create with employeeId", () => {
+  it("links the account to the employee and rejects a second link to the same employee", async () => {
+    const created = await repository.create(makeInput({ username: "linked1", employeeId: "emp-1" }));
+    expect(created.employeeId).toBe("emp-1");
+
+    await expect(
+      repository.create(makeInput({ username: "linked2", employeeId: "emp-1" })),
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("allows any number of accounts with no employeeId at all", async () => {
+    await repository.create(makeInput({ username: "unlinked1" }));
+    await expect(repository.create(makeInput({ username: "unlinked2" }))).resolves.toBeDefined();
+  });
+});
+
+describe("MongoUserRepository.findByEmployeeId", () => {
+  it("finds the account linked to an employee", async () => {
+    const created = await repository.create(makeInput({ username: "linked3", employeeId: "emp-2" }));
+    const found = await repository.findByEmployeeId("emp-2");
+    expect(found?.id).toBe(created.id);
+  });
+
+  it("returns null when no account is linked to that employee", async () => {
+    const found = await repository.findByEmployeeId("no-such-employee");
+    expect(found).toBeNull();
+  });
+});
+
+describe("MongoUserRepository.listAllUsernames", () => {
+  it("returns every username currently in use", async () => {
+    await repository.create(makeInput({ username: "alpha" }));
+    await repository.create(makeInput({ username: "beta" }));
+    const usernames = await repository.listAllUsernames();
+    expect(usernames.sort()).toEqual(["alpha", "beta"]);
+  });
+});
+
+describe("MongoUserRepository.verifyPassword", () => {
+  it("returns true for the correct password", async () => {
+    const created = await repository.create(makeInput({ password: "correct-password1" }));
+    await expect(repository.verifyPassword(created.id, "correct-password1")).resolves.toBe(true);
+  });
+
+  it("returns false for an incorrect password", async () => {
+    const created = await repository.create(makeInput({ password: "correct-password1" }));
+    await expect(repository.verifyPassword(created.id, "wrong-password")).resolves.toBe(false);
+  });
+});
+
+describe("MongoUserRepository.findUsernamesByEmployeeIds", () => {
+  it("resolves a map of employeeId -> username for the given ids only", async () => {
+    const a = await repository.create(makeInput({ username: "linked-a", employeeId: "emp-a" }));
+    await repository.create(makeInput({ username: "linked-b", employeeId: "emp-b" }));
+    await repository.create(makeInput({ username: "unlinked" }));
+
+    const usernames = await repository.findUsernamesByEmployeeIds(["emp-a", "emp-missing"]);
+    expect(usernames.get("emp-a")).toBe(a.username);
+    expect(usernames.has("emp-b")).toBe(false);
+    expect(usernames.has("emp-missing")).toBe(false);
+  });
+
+  it("returns an empty map for an empty id list", async () => {
+    await expect(repository.findUsernamesByEmployeeIds([])).resolves.toEqual(new Map());
+  });
+});
+
 describe("MongoUserRepository.findAll", () => {
   it("paginates results", async () => {
     for (let i = 0; i < 3; i += 1) {
@@ -91,5 +158,36 @@ describe("MongoUserRepository.findAll", () => {
 
     const page2 = await repository.findAll({ page: 2, pageSize: 2 });
     expect(page2.items).toHaveLength(1);
+  });
+
+  it("filters by a free-text query matching name, username, or email", async () => {
+    await repository.create(makeInput({ username: "tondo_ryan", name: "Ryan June Tondo" }));
+    await repository.create(makeInput({ username: "hankins_pat", name: "Patrick Hankins" }));
+
+    const byName = await repository.findAll({ query: "ryan" });
+    expect(byName.items.map((u) => u.username)).toEqual(["tondo_ryan"]);
+
+    const byUsername = await repository.findAll({ query: "hankins_pat" });
+    expect(byUsername.items.map((u) => u.username)).toEqual(["hankins_pat"]);
+  });
+
+  it("filters by role", async () => {
+    await repository.create(makeInput({ username: "admin1", role: "Admin" }));
+    await repository.create(makeInput({ username: "hr1", role: "HR" }));
+
+    const admins = await repository.findAll({ role: "Admin" });
+    expect(admins.items.map((u) => u.username)).toEqual(["admin1"]);
+  });
+
+  it("filters by active/inactive status", async () => {
+    const active = await repository.create(makeInput({ username: "active1" }));
+    const toDeactivate = await repository.create(makeInput({ username: "inactive1" }));
+    await repository.update(toDeactivate.id, { active: false });
+
+    const activeOnly = await repository.findAll({ status: "active" });
+    expect(activeOnly.items.map((u) => u.id)).toEqual([active.id]);
+
+    const inactiveOnly = await repository.findAll({ status: "inactive" });
+    expect(inactiveOnly.items.map((u) => u.id)).toEqual([toDeactivate.id]);
   });
 });

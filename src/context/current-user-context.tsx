@@ -3,7 +3,13 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { Role } from "@/types/user";
 
-export type CurrentUser = { id: string; name: string; role: Role };
+export type CurrentUser = {
+  id: string;
+  name: string;
+  role: Role;
+  employeeId?: string;
+  hasAttendanceSelfService: boolean;
+};
 
 const CurrentUserContext = createContext<CurrentUser | null>(null);
 

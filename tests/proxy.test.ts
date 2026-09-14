@@ -17,7 +17,12 @@ vi.mock("next-auth/middleware", () => ({
   withAuth: () => authMiddlewareMock,
 }));
 
-const { default: middleware, isApiPath, rateLimitKindFor } = await import("../middleware");
+const getTokenMock = vi.fn(async () => null as Record<string, unknown> | null);
+vi.mock("next-auth/jwt", () => ({
+  getToken: () => getTokenMock(),
+}));
+
+const { default: middleware, isApiPath, rateLimitKindFor } = await import("../src/proxy");
 
 const fakeEvent = {} as NextFetchEvent;
 
@@ -80,5 +85,55 @@ describe("middleware rate limiting", () => {
     expect(response?.status).toBe(403);
     expect(checkApiRateLimitMock).not.toHaveBeenCalled();
     expect(authMiddlewareMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("middleware mustChangePassword redirect", () => {
+  it("redirects a page request to /settings/profile when mustChangePassword is set", async () => {
+    getTokenMock.mockResolvedValueOnce({
+      userId: "user-1",
+      role: "Employee",
+      mustChangePassword: true,
+      lastActivityAt: Date.now(),
+    });
+    const response = await middleware(makeRequest("/employees/roster"), fakeEvent);
+    expect(response?.status).toBe(307);
+    expect(response?.headers.get("location")).toBe("http://localhost:3000/settings/profile");
+    expect(authMiddlewareMock).not.toHaveBeenCalled();
+  });
+
+  it("does not redirect once already on /settings/profile (short-circuits before even checking the token)", async () => {
+    await middleware(makeRequest("/settings/profile"), fakeEvent);
+    expect(getTokenMock).not.toHaveBeenCalled();
+    expect(authMiddlewareMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not redirect API requests, even with mustChangePassword set (short-circuits before even checking the token)", async () => {
+    const response = await middleware(makeRequest("/api/v1/employees"), fakeEvent);
+    expect(getTokenMock).not.toHaveBeenCalled();
+    expect(response?.status).not.toBe(307);
+    expect(authMiddlewareMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not redirect when mustChangePassword is false", async () => {
+    getTokenMock.mockResolvedValueOnce({
+      userId: "user-1",
+      role: "Employee",
+      mustChangePassword: false,
+      lastActivityAt: Date.now(),
+    });
+    await middleware(makeRequest("/employees/roster"), fakeEvent);
+    expect(authMiddlewareMock).toHaveBeenCalledOnce();
+  });
+
+  it("leaves an idle-timed-out token to the normal auth flow instead of forcing the profile redirect", async () => {
+    getTokenMock.mockResolvedValueOnce({
+      userId: "user-1",
+      role: "Employee",
+      mustChangePassword: true,
+      lastActivityAt: Date.now() - 999_999_999,
+    });
+    await middleware(makeRequest("/employees/roster"), fakeEvent);
+    expect(authMiddlewareMock).toHaveBeenCalledOnce();
   });
 });

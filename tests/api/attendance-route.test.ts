@@ -3,6 +3,7 @@ import type { Session } from "next-auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import { AttendanceRecordModel } from "@/repositories/models/attendance-record-model";
 import { EmployeeModel } from "@/repositories/models/employee-model";
+import { SettingModel } from "@/repositories/models/setting-model";
 import type { Role } from "@/types/user";
 
 // See tests/api/employees-route.test.ts for why mocking next-auth's
@@ -12,9 +13,9 @@ vi.mock("next-auth", () => ({
   getServerSession: () => getServerSessionMock(),
 }));
 
-function sessionFor(role: Role): Session {
+function sessionFor(role: Role, employeeId?: string): Session {
   return {
-    user: { id: "actor-1", role, sessionId: "session-1" },
+    user: { id: "actor-1", role, sessionId: "session-1", employeeId },
     expires: new Date(Date.now() + 3_600_000).toISOString(),
   } as Session;
 }
@@ -30,14 +31,24 @@ function jsonRequest(url: string, method: string, body?: unknown) {
   });
 }
 
-async function makeEmployee() {
+async function makeEmployee(positionId = "pos-1") {
   const doc = await EmployeeModel.create({
     name: "Alice Reyes",
     gender: "Female",
-    positionId: "pos-1",
+    positionId,
     projectSiteId: "proj-1",
     dateHired: "2020-01-01",
     employmentStatusId: "status-1",
+  });
+  return doc._id.toString();
+}
+
+async function makeBuildingAdministratorPosition() {
+  const doc = await SettingModel.create({
+    kind: "position",
+    name: "Building Administrator/Property Manager",
+    active: true,
+    grantsAttendanceSelfService: true,
   });
   return doc._id.toString();
 }
@@ -46,11 +57,13 @@ beforeEach(async () => {
   await connectMongoDB();
   await AttendanceRecordModel.deleteMany({});
   await EmployeeModel.deleteMany({});
+  await SettingModel.deleteMany({});
 });
 
 afterAll(async () => {
   await AttendanceRecordModel.deleteMany({});
   await EmployeeModel.deleteMany({});
+  await SettingModel.deleteMany({});
 });
 
 describe("GET/POST /api/v1/employees/[id]/attendance", () => {
@@ -136,5 +149,79 @@ describe("PATCH/DELETE /api/v1/employees/[id]/attendance/[recordId]", () => {
     );
     expect(response.status).toBe(200);
     await expect(AttendanceRecordModel.findById(recordId)).resolves.toBeNull();
+  });
+});
+
+describe("attendance ownership scoping", () => {
+  it("lets an Employee view only their own record, not a coworker's", async () => {
+    const employeeId = await makeEmployee();
+    const otherId = await makeEmployee();
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee", employeeId));
+
+    const own = await GET(
+      jsonRequest(`http://localhost/api/v1/employees/${employeeId}/attendance?month=2026-01`, "GET"),
+      { params: Promise.resolve({ id: employeeId }) },
+    );
+    expect(own.status).toBe(200);
+
+    const coworker = await GET(
+      jsonRequest(`http://localhost/api/v1/employees/${otherId}/attendance?month=2026-01`, "GET"),
+      { params: Promise.resolve({ id: otherId }) },
+    );
+    expect(coworker.status).toBe(403);
+  });
+
+  it("rejects a plain Employee logging their own attendance (no Building Administrator position)", async () => {
+    const employeeId = await makeEmployee();
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee", employeeId));
+
+    const response = await POST(
+      jsonRequest(`http://localhost/api/v1/employees/${employeeId}/attendance`, "POST", {
+        date: "2026-01-10",
+        statusId: "status-present",
+      }),
+      { params: Promise.resolve({ id: employeeId }) },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("lets a Building Administrator log, edit, and delete their own attendance, but not a coworker's", async () => {
+    const positionId = await makeBuildingAdministratorPosition();
+    const employeeId = await makeEmployee(positionId);
+    const otherId = await makeEmployee();
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee", employeeId));
+
+    const created = await POST(
+      jsonRequest(`http://localhost/api/v1/employees/${employeeId}/attendance`, "POST", {
+        date: "2026-01-10",
+        statusId: "status-present",
+      }),
+      { params: Promise.resolve({ id: employeeId }) },
+    );
+    expect(created.status).toBe(201);
+    const recordId = (await created.json()).id as string;
+
+    const updated = await PATCH(
+      jsonRequest(`http://localhost/api/v1/employees/${employeeId}/attendance/${recordId}`, "PATCH", {
+        statusId: "status-absent",
+      }),
+      { params: Promise.resolve({ id: employeeId, recordId }) },
+    );
+    expect(updated.status).toBe(200);
+
+    const forOther = await POST(
+      jsonRequest(`http://localhost/api/v1/employees/${otherId}/attendance`, "POST", {
+        date: "2026-01-11",
+        statusId: "status-present",
+      }),
+      { params: Promise.resolve({ id: otherId }) },
+    );
+    expect(forOther.status).toBe(403);
+
+    const deleted = await DELETE(
+      jsonRequest(`http://localhost/api/v1/employees/${employeeId}/attendance/${recordId}`, "DELETE"),
+      { params: Promise.resolve({ id: employeeId, recordId }) },
+    );
+    expect(deleted.status).toBe(200);
   });
 });

@@ -37,11 +37,17 @@ afterAll(async () => {
   await UserModel.deleteMany({});
 });
 
-describe("GET/POST /api/v1/users — Admin-only at the guard level", () => {
-  it("returns 403 for HR — rejected before the route even calls the service layer", async () => {
-    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+describe("GET/POST /api/v1/users — Admin/HR at the guard level", () => {
+  it("returns 403 for Manager — rejected before the route even calls the service layer", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("Manager"));
     const response = await GET(jsonRequest("http://localhost/api/v1/users", "GET"));
     expect(response.status).toBe(403);
+  });
+
+  it("lists users for HR", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/users", "GET"));
+    expect(response.status).toBe(200);
   });
 
   it("returns 401 with no session at all", async () => {
@@ -91,5 +97,35 @@ describe("GET/POST /api/v1/users — Admin-only at the guard level", () => {
 
     expect(response.status).toBe(200);
     expect(body.items).toHaveLength(1);
+  });
+
+  it("filters the list by role and free-text search", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("Admin"));
+    await POST(
+      jsonRequest("http://localhost/api/v1/users", "POST", {
+        username: "tondo_ryan",
+        name: "Ryan June Tondo",
+        password: "supersecret1",
+        role: "Employee",
+      }),
+    );
+    await POST(
+      jsonRequest("http://localhost/api/v1/users", "POST", {
+        username: "hr_admin",
+        name: "HR Admin",
+        password: "supersecret1",
+        role: "HR",
+      }),
+    );
+
+    const byRole = await GET(jsonRequest("http://localhost/api/v1/users?role=HR", "GET"));
+    const byRoleBody = await byRole.json();
+    expect(byRoleBody.items).toHaveLength(1);
+    expect(byRoleBody.items[0].username).toBe("hr_admin");
+
+    const byQuery = await GET(jsonRequest("http://localhost/api/v1/users?query=ryan", "GET"));
+    const byQueryBody = await byQuery.json();
+    expect(byQueryBody.items).toHaveLength(1);
+    expect(byQueryBody.items[0].username).toBe("tondo_ryan");
   });
 });

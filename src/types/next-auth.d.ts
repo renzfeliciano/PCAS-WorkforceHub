@@ -9,12 +9,19 @@ declare module "next-auth" {
       id: string;
       role: Role;
       sessionId: string;
+      /** The Employee this account was provisioned from, if any. */
+      employeeId?: string;
+      username: string;
+      mustChangePassword: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: Role;
     sessionId: string;
+    employeeId?: string;
+    username: string;
+    mustChangePassword: boolean;
   }
 }
 
@@ -23,6 +30,9 @@ declare module "next-auth/jwt" {
     userId: string;
     role: Role;
     sessionId: string;
+    employeeId?: string;
+    username: string;
+    mustChangePassword: boolean;
     lastActivityAt: number;
     expired?: boolean;
     /** Why `expired` was set — lets the client tell "signed in elsewhere" apart from a plain idle timeout. */

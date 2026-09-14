@@ -34,7 +34,11 @@ vi.mock("@/lib/rate-limit", () => ({
   getClientIp: () => "203.0.113.5",
 }));
 
-function mockCurrentUser(doc: { activeSessionId: string | null } | null) {
+function mockCurrentUser(
+  doc:
+    | ({ activeSessionId: string | null } & Record<string, unknown>)
+    | null,
+) {
   findOneMock.mockReturnValue({
     select: () => ({
       lean: async () => doc,
@@ -64,6 +68,9 @@ type FakeToken = {
   userId?: string;
   role?: string;
   sessionId?: string;
+  employeeId?: string;
+  username?: string;
+  mustChangePassword?: boolean;
   lastActivityAt?: number;
   expired?: boolean;
   expiredReason?: string;
@@ -120,6 +127,44 @@ describe("auth.ts jwt callback", () => {
 
     expect(result.expired).toBeUndefined();
   });
+
+  it("copies employeeId, username, and mustChangePassword onto the token on initial sign-in", async () => {
+    mockCurrentUser({ activeSessionId: "session-1", mustChangePassword: true });
+    const result = (await jwtCallback({
+      token: { lastActivityAt: Date.now() } as FakeToken,
+      user: {
+        id: "user-2",
+        role: "Employee",
+        sessionId: "session-1",
+        employeeId: "emp-42",
+        username: "tondo_ryan",
+        mustChangePassword: true,
+      },
+    } as unknown as Parameters<typeof jwtCallback>[0])) as FakeToken;
+
+    expect(result.employeeId).toBe("emp-42");
+    expect(result.username).toBe("tondo_ryan");
+    expect(result.mustChangePassword).toBe(true);
+  });
+
+  it("refreshes mustChangePassword from the database on periodic revalidation", async () => {
+    // The DB now says the password was changed since this token was issued.
+    mockCurrentUser({ activeSessionId: "session-1", mustChangePassword: false, employeeId: "emp-42" });
+    const token: FakeToken = {
+      userId: "user-2",
+      role: "Employee",
+      sessionId: "session-1",
+      employeeId: "emp-42",
+      mustChangePassword: true,
+      lastActivityAt: Date.now(),
+    };
+
+    const result = (await jwtCallback({
+      token,
+    } as Parameters<typeof jwtCallback>[0])) as FakeToken;
+
+    expect(result.mustChangePassword).toBe(false);
+  });
 });
 
 describe("auth.ts authorize (login)", () => {
@@ -157,7 +202,6 @@ describe("auth.ts authorize (login)", () => {
 
   it("proceeds to sign in normally once the rate limit passes", async () => {
     mockCurrentUser({
-      // @ts-expect-error test fixture — only the fields authorize() reads.
       _id: { toString: () => "user-1" },
       username: "demo-admin",
       email: "demo-admin@example.com",
@@ -165,6 +209,8 @@ describe("auth.ts authorize (login)", () => {
       role: "Admin",
       passwordHash: "hashed",
       activeSessionId: "old-session",
+      employeeId: undefined,
+      mustChangePassword: false,
     });
 
     const result = await authorize(
@@ -175,7 +221,28 @@ describe("auth.ts authorize (login)", () => {
     expect(result).not.toBeNull();
     expect(result?.id).toBe("user-1");
     expect(result?.role).toBe("Admin");
+    expect((result as unknown as { username?: string })?.username).toBe("demo-admin");
     expect(updateOneMock).toHaveBeenCalled();
+  });
+
+  it("carries employeeId and mustChangePassword through to the authorize result", async () => {
+    mockCurrentUser({
+      _id: { toString: () => "user-2" },
+      username: "tondo_ryan",
+      name: "Ryan June Tondo",
+      role: "Employee",
+      passwordHash: "hashed",
+      activeSessionId: null,
+      employeeId: "emp-42",
+      mustChangePassword: true,
+    });
+
+    const result = await authorize(
+      { username: "tondo_ryan", password: "pcas_2026" },
+      { headers: {} },
+    );
+
+    expect(result).toMatchObject({ employeeId: "emp-42", mustChangePassword: true });
   });
 
   it("rejects malformed credential shapes even when the rate limit passes (NoSQL-injection guard)", async () => {
@@ -247,6 +314,7 @@ describe("auth.ts session callback", () => {
       userId: "user-1",
       role: "HR",
       sessionId: "session-1",
+      mustChangePassword: false,
     };
     const session = { user: {} } as Parameters<typeof sessionCallback>[0]["session"];
 
@@ -258,5 +326,26 @@ describe("auth.ts session callback", () => {
     expect(result.error).toBeUndefined();
     expect(result.user.id).toBe("user-1");
     expect(result.user.role).toBe("HR");
+  });
+
+  it("carries employeeId, username, and mustChangePassword onto the session", async () => {
+    const token: FakeToken = {
+      userId: "user-2",
+      role: "Employee",
+      sessionId: "session-1",
+      employeeId: "emp-42",
+      username: "tondo_ryan",
+      mustChangePassword: true,
+    };
+    const session = { user: {} } as Parameters<typeof sessionCallback>[0]["session"];
+
+    const result = (await sessionCallback({
+      session,
+      token,
+    } as Parameters<typeof sessionCallback>[0])) as Session;
+
+    expect(result.user.employeeId).toBe("emp-42");
+    expect(result.user.username).toBe("tondo_ryan");
+    expect(result.user.mustChangePassword).toBe(true);
   });
 });

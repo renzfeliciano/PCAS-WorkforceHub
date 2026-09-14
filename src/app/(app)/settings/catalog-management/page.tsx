@@ -16,7 +16,7 @@ import { listLeaveTypes } from "@/services/leave-type-service";
 import { SettingsModule } from "@/features/settings/components/settings-module";
 
 export default async function CatalogManagementPage() {
-  await withRoleGuard(["Admin"]);
+  await withRoleGuard(["Admin", "HR"]);
   await connectMongoDB();
   const [initialSettings, initialLeaveTypes] = await Promise.all([
     listSettings(new MongoSettingRepository()),

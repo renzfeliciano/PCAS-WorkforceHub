@@ -20,6 +20,7 @@ import {
   Settings2,
   ShieldCheck,
   Table2,
+  User,
   Users,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -64,26 +65,33 @@ type SidebarProps = Readonly<{
   onToggleCollapse: () => void;
 }>;
 
-const employeeGroup: NavGroup = {
-  key: "employees",
-  label: "Employees",
-  icon: Users,
-  items: [
-    { href: "/employees/roster", label: "Roster", icon: Table2, exact: true },
-    { href: "/employees/attendance", label: "Attendance", icon: CalendarDays },
-    {
-      href: "/employees/leave-management",
-      label: "Leave management",
-      icon: CalendarRange,
-    },
-    {
-      href: "/employees/asset-issuance",
-      label: "Asset issuance",
-      icon: Package,
-    },
-    { href: "/employees/travel-orders", label: "Travel orders", icon: Plane },
-  ],
-};
+/** Roster and Attendance are open to every role; Leave/Asset/Travel are Admin/HR only. */
+function buildEmployeeGroup(canManage: boolean): NavGroup {
+  return {
+    key: "employees",
+    label: "Employees",
+    icon: Users,
+    items: [
+      { href: "/employees/roster", label: "Roster", icon: Table2, exact: true },
+      { href: "/employees/attendance", label: "Attendance", icon: CalendarDays },
+      ...(canManage
+        ? [
+            {
+              href: "/employees/leave-management",
+              label: "Leave management",
+              icon: CalendarRange,
+            },
+            {
+              href: "/employees/asset-issuance",
+              label: "Asset issuance",
+              icon: Package,
+            },
+            { href: "/employees/travel-orders", label: "Travel orders", icon: Plane },
+          ]
+        : []),
+    ],
+  };
+}
 
 const recruitmentGroup: NavGroup = {
   key: "recruitment",
@@ -99,29 +107,28 @@ const recruitmentGroup: NavGroup = {
   ],
 };
 
-const settingsGroup: NavGroup = {
-  key: "settings",
-  label: "Settings",
-  icon: Settings2,
-  items: [
-    {
-      href: "/settings/catalog-management",
-      label: "Catalog management",
-      icon: Layers,
-      exact: true,
-    },
-    {
-      href: "/settings/permissions",
-      label: "User management",
-      icon: ShieldCheck,
-    },
-  ],
-};
-
-// Every accordion group in the sidebar, in display order. Adding a new
-// module's group here is enough for the open-group-closes-the-rest
-// behavior below to pick it up automatically.
-const NAV_GROUPS: NavGroup[] = [employeeGroup, recruitmentGroup, settingsGroup];
+/** My Profile is open to every role; Catalog Management and User management (the Permissions table) are Admin/HR only. */
+function buildSettingsGroup(canManage: boolean): NavGroup {
+  return {
+    key: "settings",
+    label: "Settings",
+    icon: Settings2,
+    items: [
+      ...(canManage
+        ? [
+            {
+              href: "/settings/catalog-management",
+              label: "Catalog management",
+              icon: Layers,
+              exact: true,
+            },
+            { href: "/settings/permissions", label: "User management", icon: ShieldCheck },
+          ]
+        : []),
+      { href: "/settings/profile", label: "My profile", icon: User, exact: true },
+    ],
+  };
+}
 
 export function Sidebar({
   open,
@@ -131,7 +138,14 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const user = useCurrentUser();
-  const isAdmin = user.role === "Admin";
+  const canManage = user.role === "Admin" || user.role === "HR";
+  const employeeGroup = buildEmployeeGroup(canManage);
+  const settingsGroup = buildSettingsGroup(canManage);
+  const NAV_GROUPS: NavGroup[] = [
+    employeeGroup,
+    ...(canManage ? [recruitmentGroup] : []),
+    settingsGroup,
+  ];
   // The collapsed icon-rail is a desktop-only affordance (see .sidebar.collapsed
   // in globals.css, gated the same way) — below that width the mobile drawer
   // always renders full-width, so a leftover "collapsed" preference from an
@@ -259,30 +273,34 @@ export function Sidebar({
       </div>
       <nav aria-label="Main navigation">
         <div className="nav-top">
-          <Link
-            href="/"
-            className={pathname === "/" ? "active" : ""}
-            aria-current={pathname === "/" ? "page" : undefined}
-            onClick={onNavigate}
-            title="Dashboard"
-            data-testid="nav-link-/"
-          >
-            <LayoutDashboard size={17} />
-            <span>Dashboard</span>
-          </Link>
+          {canManage && (
+            <Link
+              href="/"
+              className={pathname === "/" ? "active" : ""}
+              aria-current={pathname === "/" ? "page" : undefined}
+              onClick={onNavigate}
+              title="Dashboard"
+              data-testid="nav-link-/"
+            >
+              <LayoutDashboard size={17} />
+              <span>Dashboard</span>
+            </Link>
+          )}
           {renderGroup(employeeGroup)}
-          {renderGroup(recruitmentGroup)}
-          <Link
-            href="/case-monitoring"
-            className={pathname.startsWith("/case-monitoring") ? "active" : ""}
-            aria-current={pathname.startsWith("/case-monitoring") ? "page" : undefined}
-            onClick={onNavigate}
-            title="Case monitoring"
-            data-testid="nav-link-/case-monitoring"
-          >
-            <Scale size={17} />
-            <span>Case monitoring</span>
-          </Link>
+          {canManage && renderGroup(recruitmentGroup)}
+          {canManage && (
+            <Link
+              href="/case-monitoring"
+              className={pathname.startsWith("/case-monitoring") ? "active" : ""}
+              aria-current={pathname.startsWith("/case-monitoring") ? "page" : undefined}
+              onClick={onNavigate}
+              title="Case monitoring"
+              data-testid="nav-link-/case-monitoring"
+            >
+              <Scale size={17} />
+              <span>Case monitoring</span>
+            </Link>
+          )}
           <Link
             href="/events"
             className={pathname.startsWith("/events") ? "active" : ""}
@@ -295,9 +313,7 @@ export function Sidebar({
             <span>Events</span>
           </Link>
         </div>
-        {isAdmin && (
-          <div className="nav-bottom">{renderGroup(settingsGroup)}</div>
-        )}
+        <div className="nav-bottom">{renderGroup(settingsGroup)}</div>
       </nav>
       <div className="user">
         <Avatar name={user.name} tone="coral" />

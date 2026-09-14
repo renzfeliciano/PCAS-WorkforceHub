@@ -1,5 +1,6 @@
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { withAuth } from "next-auth/middleware";
+import { getToken } from "next-auth/jwt";
 import { getInactivityMs } from "@/lib/duration";
 import { checkApiRateLimit, getClientIdentifier, type RateLimitKind } from "@/lib/rate-limit";
 
@@ -74,15 +75,35 @@ async function enforceApiRateLimit(req: NextRequest): Promise<NextResponse | nul
   );
 }
 
-export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+/**
+ * Blocks page navigation (not API calls — those stay governed by each
+ * service's own RBAC) until a mustChangePassword account visits
+ * /settings/profile and changes its password. Re-derives the same
+ * validity window as the `authorized` callback above so an idle-timed-out
+ * or otherwise invalid token falls through to the normal login redirect
+ * instead of being forced here.
+ */
+async function mustChangePasswordRedirect(req: NextRequest): Promise<NextResponse | null> {
+  if (isApiPath(req.nextUrl.pathname)) return null;
+  if (req.nextUrl.pathname === "/settings/profile") return null;
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  if (!token?.userId || !token.role || token.expired) return null;
+  if (Date.now() - (token.lastActivityAt ?? 0) > inactivityMs) return null;
+  if (!token.mustChangePassword) return null;
+  return NextResponse.redirect(new URL("/settings/profile", req.url));
+}
+
+export default async function proxy(req: NextRequest, event: NextFetchEvent) {
   if (isCrossOriginApiWrite(req)) {
     return NextResponse.json({ error: "CROSS_ORIGIN_REQUEST_BLOCKED" }, { status: 403 });
   }
   const rateLimited = await enforceApiRateLimit(req);
   if (rateLimited) return rateLimited;
+  const forcedToProfile = await mustChangePasswordRedirect(req);
+  if (forcedToProfile) return forcedToProfile;
   // withAuth's middleware type expects NextRequestWithAuth (a NextRequest
   // plus a `nextauth` field it injects internally at runtime) — this
-  // function is the actual Next.js middleware entry point, so it only ever
+  // function is the actual Next.js proxy entry point, so it only ever
   // receives a plain NextRequest from the framework.
   return authMiddleware(req as Parameters<typeof authMiddleware>[0], event);
 }

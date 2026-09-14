@@ -12,6 +12,9 @@ import type {
   EmployeeRepository,
 } from "@/repositories/employee-repository";
 import type { LeaveBalanceChangeRepository } from "@/repositories/leave-balance-change-repository";
+import type { UserRepository } from "@/repositories/user-repository";
+import { UnparseableNameError } from "@/lib/username";
+import { provisionEmployeeAccount } from "@/services/user-service";
 import type { Employee, LeaveBalance } from "@/types/employee";
 import type { LeaveBalanceChange } from "@/types/leave-balance-change";
 import type { Role } from "@/types/user";
@@ -19,12 +22,28 @@ import type { Role } from "@/types/user";
 export type { EmployeeRepository, AuditLogger };
 
 type Actor = { role: Role; id: string; name?: string; requestId: string };
+type ListEmployeesActor = { role: Role; employeeId?: string };
 
+function emptyResult(filters: EmployeeListFilters): EmployeeListResult {
+  return { items: [], total: 0, page: filters.page ?? 1, pageSize: filters.pageSize ?? 20 };
+}
+
+/**
+ * Admin/HR see the full roster; everyone else (Manager, Employee, including
+ * a Building Administrator) only ever sees their own project's roster —
+ * resolved from their own linked employee record, not from whatever
+ * projectId the client happened to request.
+ */
 export async function listEmployees(
   repository: EmployeeRepository,
+  actor: ListEmployeesActor,
   filters: EmployeeListFilters,
 ): Promise<EmployeeListResult> {
-  return repository.findAll(filters);
+  if (actor.role === "Admin" || actor.role === "HR") return repository.findAll(filters);
+  if (!actor.employeeId) return emptyResult(filters);
+  const self = await repository.findById(actor.employeeId);
+  if (!self) return emptyResult(filters);
+  return repository.findAll({ ...filters, projectId: self.projectSiteId });
 }
 
 export async function getEmployee(
@@ -36,6 +55,7 @@ export async function getEmployee(
 
 export async function createEmployee(
   repository: EmployeeRepository,
+  userRepository: UserRepository,
   audit: AuditLogger,
   actor: Actor,
   input: unknown,
@@ -51,11 +71,29 @@ export async function createEmployee(
     actorId: actor.id,
     requestId: actor.requestId,
   });
+  // A name that doesn't fit "Last, First Middle" can't yield a username —
+  // that's a reason to skip account provisioning, not to fail the whole
+  // roster entry HR just filled out. The employee is left unlinked; fixing
+  // the name and re-saving (or the backfill script) provisions it later.
+  try {
+    const existingUsernames = new Set(await userRepository.listAllUsernames());
+    await provisionEmployeeAccount(userRepository, audit, actor, employee, existingUsernames);
+  } catch (error) {
+    if (!(error instanceof UnparseableNameError)) throw error;
+    await audit.record({
+      action: "employee.account_provisioning_skipped",
+      entityId: employee.id,
+      actorRole: actor.role,
+      actorId: actor.id,
+      requestId: actor.requestId,
+    });
+  }
   return employee;
 }
 
 export async function updateEmployee(
   repository: EmployeeRepository,
+  userRepository: UserRepository,
   audit: AuditLogger,
   actor: Actor,
   id: string,
@@ -67,6 +105,14 @@ export async function updateEmployee(
   if (validInput.archived !== undefined && !canDeleteEmployees(actor.role))
     throw new ForbiddenActionError("Only Admin may archive or restore employees");
   const employee = await repository.update(id, validInput);
+  // Keep the linked account's role in sync with the roster's — the account
+  // is a projection of userRole, not an independent setting.
+  if (validInput.userRole !== undefined) {
+    const linkedAccount = await userRepository.findByEmployeeId(id);
+    if (linkedAccount && linkedAccount.role !== validInput.userRole) {
+      await userRepository.update(linkedAccount.id, { role: validInput.userRole });
+    }
+  }
   await audit.record({
     action: "employee.updated",
     entityId: id,

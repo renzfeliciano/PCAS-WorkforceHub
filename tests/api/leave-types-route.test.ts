@@ -70,12 +70,20 @@ describe("GET /api/v1/leave-types", () => {
 });
 
 describe("POST /api/v1/leave-types", () => {
-  it("returns 403 for HR — only Admin may manage leave types", async () => {
-    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+  it("returns 403 for Employee — only Admin/HR may manage leave types", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
     const response = await POST(
       jsonRequest("http://localhost/api/v1/leave-types", "POST", validLeaveTypeInput()),
     );
     expect(response.status).toBe(403);
+  });
+
+  it("creates a leave type for HR", async () => {
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    const response = await POST(
+      jsonRequest("http://localhost/api/v1/leave-types", "POST", validLeaveTypeInput()),
+    );
+    expect(response.status).toBe(201);
   });
 
   it("creates a leave type, tracking balance by default, for Admin", async () => {
@@ -117,6 +125,16 @@ describe("PATCH/DELETE /api/v1/leave-types/[id]", () => {
     );
     expect(response.status).toBe(200);
     await expect(LeaveTypeModel.findById(id)).resolves.toBeNull();
+  });
+
+  it("returns 403 when HR tries to delete a leave type", async () => {
+    const id = await seedLeaveType();
+    getServerSessionMock.mockResolvedValue(sessionFor("HR"));
+    const response = await DELETE(
+      jsonRequest(`http://localhost/api/v1/leave-types/${id}`, "DELETE"),
+      { params: Promise.resolve({ id }) },
+    );
+    expect(response.status).toBe(403);
   });
 });
 

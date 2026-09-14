@@ -1,6 +1,6 @@
 import type { AuditLogger } from "@/lib/audit-logger";
 import { ForbiddenActionError } from "@/lib/app-errors";
-import { canManageSettings } from "@/lib/rbac";
+import { canDeleteCatalog, canEditCatalog } from "@/lib/rbac";
 import { leaveTypeCatalog } from "@/lib/seed-catalog";
 import { createLeaveTypeSchema, updateLeaveTypeSchema } from "@/schemas/leave-type";
 import type { LeaveTypeRepository } from "@/repositories/leave-type-repository";
@@ -19,8 +19,8 @@ export async function createLeaveType(
   actor: Actor,
   input: unknown,
 ): Promise<LeaveType> {
-  if (!canManageSettings(actor.role))
-    throw new ForbiddenActionError("Only Admin may manage leave types");
+  if (!canEditCatalog(actor.role))
+    throw new ForbiddenActionError("Only Admin and HR may manage leave types");
   const validInput = createLeaveTypeSchema.parse(input);
   const leaveType = await repository.create(validInput);
   await audit.record({
@@ -40,8 +40,8 @@ export async function updateLeaveType(
   id: string,
   input: unknown,
 ): Promise<LeaveType> {
-  if (!canManageSettings(actor.role))
-    throw new ForbiddenActionError("Only Admin may manage leave types");
+  if (!canEditCatalog(actor.role))
+    throw new ForbiddenActionError("Only Admin and HR may manage leave types");
   const validInput = updateLeaveTypeSchema.parse(input);
   const leaveType = await repository.update(id, validInput);
   await audit.record({
@@ -59,8 +59,8 @@ export async function seedLeaveTypeCatalog(
   audit: AuditLogger,
   actor: Actor,
 ): Promise<number> {
-  if (!canManageSettings(actor.role))
-    throw new ForbiddenActionError("Only Admin may manage leave types");
+  if (!canEditCatalog(actor.role))
+    throw new ForbiddenActionError("Only Admin and HR may manage leave types");
   const inserted = await repository.seedDefaults(leaveTypeCatalog);
   await audit.record({
     action: "leave_type.seeded",
@@ -78,8 +78,8 @@ export async function deleteLeaveType(
   actor: Actor,
   id: string,
 ): Promise<void> {
-  if (!canManageSettings(actor.role))
-    throw new ForbiddenActionError("Only Admin may manage leave types");
+  if (!canDeleteCatalog(actor.role))
+    throw new ForbiddenActionError("Only Admin may delete leave types");
   await repository.delete(id);
   await audit.record({
     action: "leave_type.deleted",

@@ -14,6 +14,8 @@ import type { LeaveType } from "@/types/leave-type";
 type LeaveTypesSectionProps = Readonly<{
   items: LeaveType[];
   seedEnabled: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   onCreate: (input: LeaveTypeFormValues) => Promise<void>;
   onUpdate: (id: string, input: Partial<LeaveTypeFormValues> & { active?: boolean }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -23,6 +25,8 @@ type LeaveTypesSectionProps = Readonly<{
 export function LeaveTypesSection({
   items,
   seedEnabled,
+  canEdit,
+  canDelete,
   onCreate,
   onUpdate,
   onDelete,
@@ -60,7 +64,7 @@ export function LeaveTypesSection({
           <p className="muted">Offsets, maternity, paternity, and other leave categories.</p>
         </div>
         <div className="settings-card-tools">
-          {seedEnabled && (
+          {canEdit && seedEnabled && (
             <button
               className="seed-button"
               type="button"
@@ -70,9 +74,11 @@ export function LeaveTypesSection({
               {isSeeding ? <Spinner size={11} /> : "Seed defaults"}
             </button>
           )}
-          <Button type="button" variant="primary" onClick={() => setAdding(true)} data-testid="add-leave-type">
-            <Plus size={14} /> Add
-          </Button>
+          {canEdit && (
+            <Button type="button" variant="primary" onClick={() => setAdding(true)} data-testid="add-leave-type">
+              <Plus size={14} /> Add
+            </Button>
+          )}
         </div>
       </div>
       <ul className="setting-list">
@@ -89,42 +95,52 @@ export function LeaveTypesSection({
               </div>
             </div>
             <div className="setting-row-actions">
-              <button
-                type="button"
-                className={`setting-state ${item.active ? "enabled" : "disabled"}`}
-                onClick={() => handleToggle(item)}
-                disabled={togglingId === item.id}
-                aria-label={`Mark ${item.name} ${item.active ? "inactive" : "active"}`}
-                data-testid={`toggle-leave-type-${item.id}`}
-              >
-                {togglingId === item.id ? (
-                  <Spinner size={11} />
-                ) : item.active ? (
-                  "Active"
-                ) : (
-                  "Inactive"
-                )}
-              </button>
-              <button
-                type="button"
-                className="edit-setting"
-                onClick={() => setEditing(item)}
-                aria-label={`Edit ${item.name}`}
-                title="Edit"
-                data-testid={`edit-leave-type-${item.id}`}
-              >
-                <Pencil size={13} />
-              </button>
-              <button
-                type="button"
-                className="delete-setting"
-                onClick={() => setDeleting(item)}
-                aria-label={`Delete ${item.name}`}
-                title="Delete"
-                data-testid={`delete-leave-type-${item.id}`}
-              >
-                ×
-              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className={`setting-state ${item.active ? "enabled" : "disabled"}`}
+                  onClick={() => handleToggle(item)}
+                  disabled={togglingId === item.id}
+                  aria-label={`Mark ${item.name} ${item.active ? "inactive" : "active"}`}
+                  data-testid={`toggle-leave-type-${item.id}`}
+                >
+                  {togglingId === item.id ? (
+                    <Spinner size={11} />
+                  ) : item.active ? (
+                    "Active"
+                  ) : (
+                    "Inactive"
+                  )}
+                </button>
+              ) : (
+                <span className={`setting-state ${item.active ? "enabled" : "disabled"}`}>
+                  {item.active ? "Active" : "Inactive"}
+                </span>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  className="edit-setting"
+                  onClick={() => setEditing(item)}
+                  aria-label={`Edit ${item.name}`}
+                  title="Edit"
+                  data-testid={`edit-leave-type-${item.id}`}
+                >
+                  <Pencil size={13} />
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  className="delete-setting"
+                  onClick={() => setDeleting(item)}
+                  aria-label={`Delete ${item.name}`}
+                  title="Delete"
+                  data-testid={`delete-leave-type-${item.id}`}
+                >
+                  ×
+                </button>
+              )}
             </div>
           </li>
         ))}

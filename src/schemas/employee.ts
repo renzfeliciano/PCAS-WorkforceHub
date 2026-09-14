@@ -13,6 +13,7 @@ export const employeeSortFields = [
   "projectSite",
 ] as const;
 export const genderSchema = z.enum(["Male", "Female"]);
+export const employeeUserRoleSchema = z.enum(["HR", "Manager", "Employee"]);
 
 /** SSS: XX-XXXXXXX-X (10 digits) */
 export const sssNumberSchema = z
@@ -51,6 +52,7 @@ const employeeObjectSchema = z.object({
   employeeNumber: z.string().trim().max(20).optional().nullable(),
   name: requiredText.max(30, "Must be 30 characters or fewer"),
   gender: genderSchema,
+  userRole: employeeUserRoleSchema.default("Employee"),
   positionId: requiredText,
   projectSiteId: requiredText,
   dateHired: isoDate,

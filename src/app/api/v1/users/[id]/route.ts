@@ -10,7 +10,7 @@ const repository = new MongoUserRepository();
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const guard = await requireApiSession(request, ["Admin"]);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { session, requestId, headers } = guard;
   const { id } = await params;
@@ -31,7 +31,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
-  const guard = await requireApiSession(request, ["Admin"]);
+  const guard = await requireApiSession(request, ["Admin", "HR"]);
   if (isGuardError(guard)) return guard;
   const { session, requestId, headers } = guard;
   const { id } = await params;

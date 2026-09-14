@@ -83,6 +83,16 @@ describe("GET/POST /api/v1/employees/[id]/asset-issuances", () => {
     expect(response.status).toBe(403);
   });
 
+  it("returns 403 for Employee trying to view asset issuances — Admin/HR only", async () => {
+    const employeeId = await makeEmployee();
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
+    const response = await GET(
+      jsonRequest(`http://localhost/api/v1/employees/${employeeId}/asset-issuances`, "GET"),
+      { params: Promise.resolve({ id: employeeId }) },
+    );
+    expect(response.status).toBe(403);
+  });
+
   it("logs an asset issuance for HR and lists it back", async () => {
     const employeeId = await makeEmployee();
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));

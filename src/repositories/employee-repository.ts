@@ -1,10 +1,11 @@
 import { isValidObjectId, type PipelineStage } from "mongoose";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
+import { escapeRegex } from "@/lib/regex";
 import { lookupCatalogNameStage, resolveCatalogNames } from "@/repositories/catalog-lookup";
 import { EmployeeModel } from "@/repositories/models/employee-model";
 import { resolveSort } from "@/repositories/sort";
 import type { EmployeeInput, EmployeeUpdateInput } from "@/schemas/employee";
-import type { Employee, Gender, LeaveBalance } from "@/types/employee";
+import type { Employee, EmployeeUserRole, Gender, LeaveBalance } from "@/types/employee";
 import type { SortDir } from "@/types/list-query";
 
 const EMPLOYEE_SORT_FIELD_MAP = {
@@ -48,6 +49,7 @@ type EmployeeDocument = {
   employeeNumber?: string;
   name: string;
   gender: Gender;
+  userRole: EmployeeUserRole;
   positionId: string;
   projectSiteId: string;
   dateHired: string;
@@ -79,6 +81,10 @@ function toEmployee(doc: ResolvedEmployeeDocument): Employee {
     employeeNumber: doc.employeeNumber,
     name: doc.name,
     gender: doc.gender,
+    // A .lean() read never applies the schema's field default, so a
+    // document saved before userRole existed has no such field on disk at
+    // all — fall back the same way the schema itself defaults new writes.
+    userRole: doc.userRole ?? "Employee",
     positionId: doc.positionId,
     position: doc.position,
     projectSiteId: doc.projectSiteId,
@@ -134,10 +140,6 @@ function isDuplicateKeyError(error: unknown): boolean {
   return Boolean(
     error && typeof error === "object" && "code" in error && (error as { code: unknown }).code === 11000,
   );
-}
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**

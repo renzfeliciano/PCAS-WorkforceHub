@@ -17,6 +17,8 @@ type EmployeeFiltersProps = Readonly<{
   statuses: SettingItem[];
   projects: SettingItem[];
   canManage: boolean;
+  /** Admin/HR can browse every project; everyone else is already scoped server-side to their own, so the picker would be misleading. */
+  canViewAllProjects: boolean;
   isFetching?: boolean;
 }>;
 
@@ -32,6 +34,7 @@ export function EmployeeFilters({
   statuses,
   projects,
   canManage,
+  canViewAllProjects,
   isFetching,
 }: EmployeeFiltersProps) {
   const [open, setOpen] = useState(false);
@@ -97,22 +100,24 @@ export function EmployeeFilters({
         />
       </div>
       <div className="toolbar-filters">
-        <select
-          className="project-filter"
-          value={selectedProjectId}
-          onChange={(event) => onSelectedProjectIdChange(event.target.value)}
-          aria-label="Filter by project"
-          data-testid="employee-filter-project"
-        >
-          <option value="">All projects</option>
-          {projects
-            .filter((item) => item.active)
-            .map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-        </select>
+        {canViewAllProjects && (
+          <select
+            className="project-filter"
+            value={selectedProjectId}
+            onChange={(event) => onSelectedProjectIdChange(event.target.value)}
+            aria-label="Filter by project"
+            data-testid="employee-filter-project"
+          >
+            <option value="">All projects</option>
+            {projects
+              .filter((item) => item.active)
+              .map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+          </select>
+        )}
         <div className="status-dropdown" ref={containerRef}>
           <button
             type="button"
