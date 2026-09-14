@@ -10,6 +10,7 @@ export type TestActor = {
   name?: string;
   requestId: string;
   employeeId?: string;
+  projectSiteId?: string;
   hasAttendanceSelfService?: boolean;
 };
 
@@ -28,12 +29,14 @@ export const selfEmployeeActor: TestActor = {
   ...makeActor("Employee"),
   id: "employee-self",
   employeeId: "emp-1",
+  projectSiteId: "proj-1",
 };
 
-/** An Employee-role actor whose position grants the attendance self-service exception (any position can carry this flag — see Setting.grantsAttendanceSelfService). */
+/** An Employee-role actor whose position grants the attendance self-service exception (any position can carry this flag — see Setting.grantsAttendanceSelfService), scoped to project "proj-1". */
 export const buildingAdministratorActor: TestActor = {
   ...makeActor("Employee"),
   id: "employee-building-admin",
   employeeId: "emp-1",
+  projectSiteId: "proj-1",
   hasAttendanceSelfService: true,
 };

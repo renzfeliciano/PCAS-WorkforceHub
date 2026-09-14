@@ -7,6 +7,8 @@ export type AttendanceActor = {
   id: string;
   requestId: string;
   employeeId?: string;
+  /** The actor's own project site — resolved alongside hasAttendanceSelfService, since a self-service actor's write access is scoped to it. */
+  projectSiteId?: string;
   hasAttendanceSelfService: boolean;
 };
 
@@ -24,9 +26,11 @@ export async function buildAttendanceActor(
   requestId: string,
 ): Promise<AttendanceActor> {
   let hasAttendanceSelfService = false;
+  let projectSiteId: string | undefined;
   if (session.role === "Employee" && session.employeeId) {
     const employee = await repositories.employeeRepository.findById(session.employeeId);
     if (employee) {
+      projectSiteId = employee.projectSiteId;
       const position = await repositories.settingRepository.findById(employee.positionId);
       hasAttendanceSelfService = position?.grantsAttendanceSelfService ?? false;
     }
@@ -36,6 +40,7 @@ export async function buildAttendanceActor(
     id: session.id,
     requestId,
     employeeId: session.employeeId,
+    projectSiteId,
     hasAttendanceSelfService,
   };
 }

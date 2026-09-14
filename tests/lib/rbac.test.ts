@@ -46,41 +46,107 @@ describe("rbac", () => {
 
 describe("canViewAttendanceRecord", () => {
   it("lets Admin and HR view any employee's record", () => {
-    expect(canViewAttendanceRecord({ role: "Admin" }, "emp-1")).toBe(true);
-    expect(canViewAttendanceRecord({ role: "HR" }, "emp-1")).toBe(true);
+    expect(canViewAttendanceRecord({ role: "Admin" }, { employeeId: "emp-1" })).toBe(true);
+    expect(canViewAttendanceRecord({ role: "HR" }, { employeeId: "emp-1" })).toBe(true);
   });
 
   it("lets an Employee/Manager view only their own record", () => {
-    expect(canViewAttendanceRecord({ role: "Employee", employeeId: "emp-1" }, "emp-1")).toBe(true);
-    expect(canViewAttendanceRecord({ role: "Employee", employeeId: "emp-1" }, "emp-2")).toBe(false);
-    expect(canViewAttendanceRecord({ role: "Manager", employeeId: "emp-1" }, "emp-2")).toBe(false);
+    expect(
+      canViewAttendanceRecord({ role: "Employee", employeeId: "emp-1" }, { employeeId: "emp-1" }),
+    ).toBe(true);
+    expect(
+      canViewAttendanceRecord({ role: "Employee", employeeId: "emp-1" }, { employeeId: "emp-2" }),
+    ).toBe(false);
+    expect(
+      canViewAttendanceRecord({ role: "Manager", employeeId: "emp-1" }, { employeeId: "emp-2" }),
+    ).toBe(false);
   });
 
   it("denies an actor with no linked employee record", () => {
-    expect(canViewAttendanceRecord({ role: "Employee" }, "emp-1")).toBe(false);
+    expect(canViewAttendanceRecord({ role: "Employee" }, { employeeId: "emp-1" })).toBe(false);
+  });
+
+  it("lets a self-service actor view any record within their own project site", () => {
+    const actor = {
+      role: "Employee" as const,
+      employeeId: "emp-1",
+      projectSiteId: "proj-1",
+      hasAttendanceSelfService: true,
+    };
+    expect(
+      canViewAttendanceRecord(actor, { employeeId: "emp-2", projectSiteId: "proj-1" }),
+    ).toBe(true);
+    expect(
+      canViewAttendanceRecord(actor, { employeeId: "emp-3", projectSiteId: "proj-2" }),
+    ).toBe(false);
+  });
+
+  it("denies a self-service actor whose own project is unresolved (e.g. no linked employee)", () => {
+    const actor = { role: "Employee" as const, hasAttendanceSelfService: true };
+    expect(
+      canViewAttendanceRecord(actor, { employeeId: "emp-2", projectSiteId: "proj-1" }),
+    ).toBe(false);
   });
 });
 
 describe("canManageAttendanceRecord / canDeleteAttendanceRecord", () => {
   it("lets Admin and HR manage any employee's record", () => {
-    expect(canManageAttendanceRecord({ role: "Admin" }, "emp-1")).toBe(true);
-    expect(canManageAttendanceRecord({ role: "HR" }, "emp-1")).toBe(true);
-    expect(canDeleteAttendanceRecord({ role: "HR" }, "emp-1")).toBe(true);
+    expect(canManageAttendanceRecord({ role: "Admin" }, { employeeId: "emp-1" })).toBe(true);
+    expect(canManageAttendanceRecord({ role: "HR" }, { employeeId: "emp-1" })).toBe(true);
+    expect(canDeleteAttendanceRecord({ role: "HR" }, { employeeId: "emp-1" })).toBe(true);
   });
 
-  it("lets an actor whose position grants attendance self-service manage only their own record", () => {
-    const actor = { role: "Employee" as const, employeeId: "emp-1", hasAttendanceSelfService: true };
-    expect(canManageAttendanceRecord(actor, "emp-1")).toBe(true);
-    expect(canManageAttendanceRecord(actor, "emp-2")).toBe(false);
-    expect(canDeleteAttendanceRecord(actor, "emp-1")).toBe(true);
+  it("lets a self-service actor manage their own record", () => {
+    const actor = {
+      role: "Employee" as const,
+      employeeId: "emp-1",
+      projectSiteId: "proj-1",
+      hasAttendanceSelfService: true,
+    };
+    expect(canManageAttendanceRecord(actor, { employeeId: "emp-1", projectSiteId: "proj-1" })).toBe(
+      true,
+    );
+    expect(canDeleteAttendanceRecord(actor, { employeeId: "emp-1", projectSiteId: "proj-1" })).toBe(
+      true,
+    );
+  });
+
+  it("lets a self-service actor manage a co-worker's record within their own project site", () => {
+    const actor = {
+      role: "Employee" as const,
+      employeeId: "emp-1",
+      projectSiteId: "proj-1",
+      hasAttendanceSelfService: true,
+    };
+    expect(
+      canManageAttendanceRecord(actor, { employeeId: "emp-2", projectSiteId: "proj-1" }),
+    ).toBe(true);
+  });
+
+  it("denies a self-service actor managing a record outside their own project site", () => {
+    const actor = {
+      role: "Employee" as const,
+      employeeId: "emp-1",
+      projectSiteId: "proj-1",
+      hasAttendanceSelfService: true,
+    };
+    expect(
+      canManageAttendanceRecord(actor, { employeeId: "emp-2", projectSiteId: "proj-2" }),
+    ).toBe(false);
   });
 
   it("denies a plain Employee or Manager, even on their own record", () => {
     expect(
-      canManageAttendanceRecord({ role: "Employee", employeeId: "emp-1" }, "emp-1"),
+      canManageAttendanceRecord(
+        { role: "Employee", employeeId: "emp-1", projectSiteId: "proj-1" },
+        { employeeId: "emp-1", projectSiteId: "proj-1" },
+      ),
     ).toBe(false);
     expect(
-      canManageAttendanceRecord({ role: "Manager", employeeId: "emp-1" }, "emp-1"),
+      canManageAttendanceRecord(
+        { role: "Manager", employeeId: "emp-1", projectSiteId: "proj-1" },
+        { employeeId: "emp-1", projectSiteId: "proj-1" },
+      ),
     ).toBe(false);
   });
 });

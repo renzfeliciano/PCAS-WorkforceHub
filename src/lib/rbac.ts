@@ -61,26 +61,53 @@ export const canExportData = (role: Role) => role === "Admin" || role === "HR";
 type AttendanceActorContext = {
   role: Role;
   employeeId?: string;
+  /** The actor's own project site — used to scope the attendance self-service exception to their project. */
+  projectSiteId?: string;
   /** Set when the actor's current position (any position, not a fixed one — see Setting.grantsAttendanceSelfService) grants the attendance self-service exception. */
   hasAttendanceSelfService?: boolean;
 };
 
-/** Admin/HR can view any record; everyone else only their own (requires a linked employee record). */
+type AttendanceTarget = {
+  employeeId: string;
+  /** The target employee's project site — undefined when it couldn't be resolved (e.g. the employee no longer exists). */
+  projectSiteId?: string;
+};
+
+/**
+ * Admin/HR can view any record. Everyone else can always view their own
+ * (requires a linked employee record); an actor whose position grants
+ * attendance self-service can additionally view any record within their own
+ * project site.
+ */
 export function canViewAttendanceRecord(
   actor: AttendanceActorContext,
-  targetEmployeeId: string,
+  target: AttendanceTarget,
 ): boolean {
   if (actor.role === "Admin" || actor.role === "HR") return true;
-  return actor.employeeId !== undefined && actor.employeeId === targetEmployeeId;
+  if (actor.employeeId !== undefined && actor.employeeId === target.employeeId) return true;
+  return (
+    Boolean(actor.hasAttendanceSelfService) &&
+    actor.projectSiteId !== undefined &&
+    actor.projectSiteId === target.projectSiteId
+  );
 }
 
-/** Admin/HR can manage any record; an actor whose position grants attendance self-service can only manage their own. */
+/**
+ * Admin/HR can manage any record. An actor whose position grants attendance
+ * self-service can manage any record within their own project site (which
+ * covers their own record too, since it's trivially in the same project) —
+ * a plain Employee/Manager without the flag can never manage attendance.
+ */
 export function canManageAttendanceRecord(
   actor: AttendanceActorContext,
-  targetEmployeeId: string,
+  target: AttendanceTarget,
 ): boolean {
   if (actor.role === "Admin" || actor.role === "HR") return true;
-  return Boolean(actor.hasAttendanceSelfService) && actor.employeeId === targetEmployeeId;
+  return (
+    Boolean(actor.hasAttendanceSelfService) &&
+    actor.projectSiteId !== undefined &&
+    actor.projectSiteId === target.projectSiteId
+  );
 }
 
 export const canDeleteAttendanceRecord = canManageAttendanceRecord;

@@ -114,6 +114,7 @@ describe("buildAttendanceActor", () => {
     );
     expect(actor.hasAttendanceSelfService).toBe(true);
     expect(actor.employeeId).toBe("emp-1");
+    expect(actor.projectSiteId).toBe("proj-1");
   });
 
   it("resolves true for a *different* position that also grants the flag — not tied to one fixed position", async () => {
@@ -174,5 +175,6 @@ describe("buildAttendanceActor", () => {
     );
     expect(actor.hasAttendanceSelfService).toBe(false);
     expect(actor.employeeId).toBeUndefined();
+    expect(actor.projectSiteId).toBeUndefined();
   });
 });

@@ -8,6 +8,7 @@ export type CurrentUser = {
   name: string;
   role: Role;
   employeeId?: string;
+  projectSiteId?: string;
   hasAttendanceSelfService: boolean;
 };
 

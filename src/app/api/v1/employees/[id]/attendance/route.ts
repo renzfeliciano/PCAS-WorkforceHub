@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   try {
     await connectMongoDB();
     const actor = await buildAttendanceActor({ employeeRepository, settingRepository }, session.user, requestId);
-    const items = await listAttendanceForMonth(repository, actor, id, month);
+    const items = await listAttendanceForMonth(repository, employeeRepository, actor, id, month);
     return apiJson({ items }, requestId, headers);
   } catch (error) {
     return mapServiceError(error, requestId, headers);
@@ -39,7 +39,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     await connectMongoDB();
     const actor = await buildAttendanceActor({ employeeRepository, settingRepository }, session.user, requestId);
-    const record = await createAttendanceRecord(repository, auditLogger, actor, id, body);
+    const record = await createAttendanceRecord(repository, employeeRepository, auditLogger, actor, id, body);
     return apiJson(record, requestId, headers, 201);
   } catch (error) {
     return mapServiceError(error, requestId, headers);

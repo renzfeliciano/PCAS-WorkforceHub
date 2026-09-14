@@ -11,6 +11,7 @@ import {
   updateAttendanceRecordSchema,
 } from "@/schemas/attendance";
 import type { AttendanceRecordRepository } from "@/repositories/attendance-record-repository";
+import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { AttendanceRecord } from "@/types/attendance";
 import type { Role } from "@/types/user";
 
@@ -19,8 +20,18 @@ type Actor = {
   id: string;
   requestId: string;
   employeeId?: string;
+  projectSiteId?: string;
   hasAttendanceSelfService?: boolean;
 };
+
+/** Resolves the project site of the employee an attendance action targets, so ownership checks can scope a self-service actor to their own project. Undefined when the employee no longer exists — the rbac check then simply fails that branch. */
+async function resolveTargetProjectSiteId(
+  employeeRepository: EmployeeRepository,
+  employeeId: string,
+): Promise<string | undefined> {
+  const employee = await employeeRepository.findById(employeeId);
+  return employee?.projectSiteId;
+}
 
 /** "YYYY-MM" -> ["YYYY-MM-01", "YYYY-MM-<lastDay>"] */
 function monthRange(month: string): { from: string; to: string } {
@@ -31,11 +42,13 @@ function monthRange(month: string): { from: string; to: string } {
 
 export async function listAttendanceForMonth(
   repository: AttendanceRecordRepository,
+  employeeRepository: EmployeeRepository,
   actor: Actor,
   employeeId: string,
   month: unknown,
 ): Promise<AttendanceRecord[]> {
-  if (!canViewAttendanceRecord(actor, employeeId))
+  const projectSiteId = await resolveTargetProjectSiteId(employeeRepository, employeeId);
+  if (!canViewAttendanceRecord(actor, { employeeId, projectSiteId }))
     throw new ForbiddenActionError("You may only view your own attendance");
   const validMonth = attendanceMonthSchema.parse(month);
   const { from, to } = monthRange(validMonth);
@@ -44,12 +57,14 @@ export async function listAttendanceForMonth(
 
 export async function createAttendanceRecord(
   repository: AttendanceRecordRepository,
+  employeeRepository: EmployeeRepository,
   audit: AuditLogger,
   actor: Actor,
   employeeId: string,
   input: unknown,
 ): Promise<AttendanceRecord> {
-  if (!canManageAttendanceRecord(actor, employeeId))
+  const projectSiteId = await resolveTargetProjectSiteId(employeeRepository, employeeId);
+  if (!canManageAttendanceRecord(actor, { employeeId, projectSiteId }))
     throw new ForbiddenActionError("You may not log attendance for this employee");
   const valid = createAttendanceRecordSchema.parse(input);
   const record = await repository.create(employeeId, valid);
@@ -65,6 +80,7 @@ export async function createAttendanceRecord(
 
 export async function updateAttendanceRecord(
   repository: AttendanceRecordRepository,
+  employeeRepository: EmployeeRepository,
   audit: AuditLogger,
   actor: Actor,
   id: string,
@@ -72,7 +88,8 @@ export async function updateAttendanceRecord(
 ): Promise<AttendanceRecord> {
   const existing = await repository.findById(id);
   if (!existing) throw new NotFoundError("Attendance record not found");
-  if (!canManageAttendanceRecord(actor, existing.employeeId))
+  const projectSiteId = await resolveTargetProjectSiteId(employeeRepository, existing.employeeId);
+  if (!canManageAttendanceRecord(actor, { employeeId: existing.employeeId, projectSiteId }))
     throw new ForbiddenActionError("You may not edit this attendance record");
   const valid = updateAttendanceRecordSchema.parse(input);
   const record = await repository.update(id, valid);
@@ -88,13 +105,15 @@ export async function updateAttendanceRecord(
 
 export async function deleteAttendanceRecord(
   repository: AttendanceRecordRepository,
+  employeeRepository: EmployeeRepository,
   audit: AuditLogger,
   actor: Actor,
   id: string,
 ): Promise<void> {
   const existing = await repository.findById(id);
   if (!existing) throw new NotFoundError("Attendance record not found");
-  if (!canDeleteAttendanceRecord(actor, existing.employeeId))
+  const projectSiteId = await resolveTargetProjectSiteId(employeeRepository, existing.employeeId);
+  if (!canDeleteAttendanceRecord(actor, { employeeId: existing.employeeId, projectSiteId }))
     throw new ForbiddenActionError("You may not delete this attendance record");
   await repository.delete(id);
   await audit.record({

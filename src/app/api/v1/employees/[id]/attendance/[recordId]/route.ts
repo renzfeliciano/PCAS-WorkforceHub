@@ -23,7 +23,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     await connectMongoDB();
     const actor = await buildAttendanceActor({ employeeRepository, settingRepository }, session.user, requestId);
-    const record = await updateAttendanceRecord(repository, auditLogger, actor, recordId, body);
+    const record = await updateAttendanceRecord(repository, employeeRepository, auditLogger, actor, recordId, body);
     return apiJson(record, requestId, headers);
   } catch (error) {
     return mapServiceError(error, requestId, headers);
@@ -38,7 +38,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     await connectMongoDB();
     const actor = await buildAttendanceActor({ employeeRepository, settingRepository }, session.user, requestId);
-    await deleteAttendanceRecord(repository, auditLogger, actor, recordId);
+    await deleteAttendanceRecord(repository, employeeRepository, auditLogger, actor, recordId);
     return apiJson({ id: recordId }, requestId, headers);
   } catch (error) {
     return mapServiceError(error, requestId, headers);

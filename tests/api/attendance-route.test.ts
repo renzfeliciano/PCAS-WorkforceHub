@@ -31,12 +31,12 @@ function jsonRequest(url: string, method: string, body?: unknown) {
   });
 }
 
-async function makeEmployee(positionId = "pos-1") {
+async function makeEmployee(positionId = "pos-1", projectSiteId = "proj-1") {
   const doc = await EmployeeModel.create({
     name: "Alice Reyes",
     gender: "Female",
     positionId,
-    projectSiteId: "proj-1",
+    projectSiteId,
     dateHired: "2020-01-01",
     employmentStatusId: "status-1",
   });
@@ -185,10 +185,10 @@ describe("attendance ownership scoping", () => {
     expect(response.status).toBe(403);
   });
 
-  it("lets a Building Administrator log, edit, and delete their own attendance, but not a coworker's", async () => {
+  it("lets a Building Administrator log, edit, and delete their own attendance, but not an employee outside their project", async () => {
     const positionId = await makeBuildingAdministratorPosition();
-    const employeeId = await makeEmployee(positionId);
-    const otherId = await makeEmployee();
+    const employeeId = await makeEmployee(positionId, "proj-1");
+    const otherProjectId = await makeEmployee("pos-1", "proj-2");
     getServerSessionMock.mockResolvedValue(sessionFor("Employee", employeeId));
 
     const created = await POST(
@@ -209,18 +209,49 @@ describe("attendance ownership scoping", () => {
     );
     expect(updated.status).toBe(200);
 
-    const forOther = await POST(
-      jsonRequest(`http://localhost/api/v1/employees/${otherId}/attendance`, "POST", {
+    const forOtherProject = await POST(
+      jsonRequest(`http://localhost/api/v1/employees/${otherProjectId}/attendance`, "POST", {
         date: "2026-01-11",
         statusId: "status-present",
       }),
-      { params: Promise.resolve({ id: otherId }) },
+      { params: Promise.resolve({ id: otherProjectId }) },
     );
-    expect(forOther.status).toBe(403);
+    expect(forOtherProject.status).toBe(403);
 
     const deleted = await DELETE(
       jsonRequest(`http://localhost/api/v1/employees/${employeeId}/attendance/${recordId}`, "DELETE"),
       { params: Promise.resolve({ id: employeeId, recordId }) },
+    );
+    expect(deleted.status).toBe(200);
+  });
+
+  it("lets a Building Administrator log, edit, and delete attendance for a co-worker within their own project site", async () => {
+    const positionId = await makeBuildingAdministratorPosition();
+    const employeeId = await makeEmployee(positionId, "proj-1");
+    const coworkerId = await makeEmployee("pos-1", "proj-1");
+    getServerSessionMock.mockResolvedValue(sessionFor("Employee", employeeId));
+
+    const created = await POST(
+      jsonRequest(`http://localhost/api/v1/employees/${coworkerId}/attendance`, "POST", {
+        date: "2026-01-10",
+        statusId: "status-present",
+      }),
+      { params: Promise.resolve({ id: coworkerId }) },
+    );
+    expect(created.status).toBe(201);
+    const recordId = (await created.json()).id as string;
+
+    const updated = await PATCH(
+      jsonRequest(`http://localhost/api/v1/employees/${coworkerId}/attendance/${recordId}`, "PATCH", {
+        statusId: "status-absent",
+      }),
+      { params: Promise.resolve({ id: coworkerId, recordId }) },
+    );
+    expect(updated.status).toBe(200);
+
+    const deleted = await DELETE(
+      jsonRequest(`http://localhost/api/v1/employees/${coworkerId}/attendance/${recordId}`, "DELETE"),
+      { params: Promise.resolve({ id: coworkerId, recordId }) },
     );
     expect(deleted.status).toBe(200);
   });

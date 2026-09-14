@@ -42,6 +42,7 @@ export default async function AppLayout({
           name: session.user.name ?? "User",
           role: session.user.role,
           employeeId: session.user.employeeId,
+          projectSiteId: actorContext.projectSiteId,
           hasAttendanceSelfService: actorContext.hasAttendanceSelfService,
         }}
       >

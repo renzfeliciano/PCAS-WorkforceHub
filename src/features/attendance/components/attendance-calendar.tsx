@@ -40,7 +40,10 @@ function todayIso() {
 
 export function AttendanceCalendar({ employee }: Readonly<{ employee: Employee }>) {
   const user = useCurrentUser();
-  const canManage = canManageAttendanceRecord(user, employee.id);
+  const canManage = canManageAttendanceRecord(user, {
+    employeeId: employee.id,
+    projectSiteId: employee.projectSiteId,
+  });
   const { activeItems: statuses } = useCatalogOptions("status", ATTENDANCE_STATUS_CATEGORY);
 
   const [cursor, setCursor] = useState<Cursor>(() => {

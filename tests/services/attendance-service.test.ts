@@ -7,7 +7,9 @@ import {
   updateAttendanceRecord,
 } from "@/services/attendance-service";
 import type { AttendanceRecordRepository } from "@/repositories/attendance-record-repository";
+import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { AttendanceRecord } from "@/types/attendance";
+import type { Employee } from "@/types/employee";
 import {
   buildingAdministratorActor,
   employeeActor,
@@ -58,50 +60,110 @@ function fakeRepository(seed: AttendanceRecord[] = []): AttendanceRecordReposito
   };
 }
 
+function makeEmployee(id: string, projectSiteId: string): Employee {
+  return {
+    id,
+    name: "Test Employee",
+    gender: "Male",
+    userRole: "Employee",
+    positionId: "pos-1",
+    position: "Staff",
+    projectSiteId,
+    projectSite: "Site",
+    dateHired: "2020-01-01",
+    employmentStatusId: "status-1",
+    employmentStatus: "Regular",
+    leaveBalances: [],
+    archived: false,
+    createdAt: "2020-01-01T00:00:00.000Z",
+  };
+}
+
+/** Maps employeeId -> projectSiteId; an id not present resolves to "not found" (undefined project). */
+function fakeEmployeeRepository(projectsByEmployeeId: Record<string, string>): EmployeeRepository {
+  return {
+    findAll: async () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
+    findActiveForDashboard: async () => [],
+    findById: async (id) =>
+      id in projectsByEmployeeId ? makeEmployee(id, projectsByEmployeeId[id]) : null,
+    create: async () => {
+      throw new Error("not used");
+    },
+    update: async () => {
+      throw new Error("not used");
+    },
+    archive: async () => {
+      throw new Error("not used");
+    },
+    deletePermanently: async () => {},
+    updateLeaveBalances: async () => {
+      throw new Error("not used");
+    },
+    deleteAll: async () => {},
+  };
+}
+
+// emp-1 and emp-3 share "proj-1" (the Building Administrator's own project); emp-2 is on "proj-2".
+const employees = fakeEmployeeRepository({ "emp-1": "proj-1", "emp-2": "proj-2", "emp-3": "proj-1" });
+
 describe("listAttendanceForMonth", () => {
   it("computes the correct from/to range for a 31-day month", async () => {
     const repo = fakeRepository();
-    await listAttendanceForMonth(repo, hrActor, "emp-1", "2026-01");
+    await listAttendanceForMonth(repo, employees, hrActor, "emp-1", "2026-01");
     expect(repo.findByEmployeeAndRange).toHaveBeenCalledWith("emp-1", "2026-01-01", "2026-01-31");
   });
 
   it("computes the correct from/to range for February in a leap year", async () => {
     const repo = fakeRepository();
     // 2028 is a leap year.
-    await listAttendanceForMonth(repo, hrActor, "emp-1", "2028-02");
+    await listAttendanceForMonth(repo, employees, hrActor, "emp-1", "2028-02");
     expect(repo.findByEmployeeAndRange).toHaveBeenCalledWith("emp-1", "2028-02-01", "2028-02-29");
   });
 
   it("computes the correct from/to range for February in a non-leap year", async () => {
     const repo = fakeRepository();
-    await listAttendanceForMonth(repo, hrActor, "emp-1", "2026-02");
+    await listAttendanceForMonth(repo, employees, hrActor, "emp-1", "2026-02");
     expect(repo.findByEmployeeAndRange).toHaveBeenCalledWith("emp-1", "2026-02-01", "2026-02-28");
   });
 
   it("rejects a malformed month string", async () => {
     const repo = fakeRepository();
-    await expect(listAttendanceForMonth(repo, hrActor, "emp-1", "not-a-month")).rejects.toThrow();
+    await expect(listAttendanceForMonth(repo, employees, hrActor, "emp-1", "not-a-month")).rejects.toThrow();
   });
 
   it("lets Admin and HR view any employee's month", async () => {
     const repo = fakeRepository();
-    await expect(listAttendanceForMonth(repo, hrActor, "emp-1", "2026-01")).resolves.toBeDefined();
+    await expect(listAttendanceForMonth(repo, employees, hrActor, "emp-1", "2026-01")).resolves.toBeDefined();
   });
 
   it("lets an Employee/Manager view only their own record", async () => {
     const repo = fakeRepository();
     await expect(
-      listAttendanceForMonth(repo, selfEmployeeActor, "emp-1", "2026-01"),
+      listAttendanceForMonth(repo, employees, selfEmployeeActor, "emp-1", "2026-01"),
     ).resolves.toBeDefined();
     await expect(
-      listAttendanceForMonth(repo, managerActor, "emp-1", "2026-01"),
+      listAttendanceForMonth(repo, employees, managerActor, "emp-1", "2026-01"),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("rejects a plain Employee with no linked employee record entirely", async () => {
     const repo = fakeRepository();
     await expect(
-      listAttendanceForMonth(repo, employeeActor, "emp-1", "2026-01"),
+      listAttendanceForMonth(repo, employees, employeeActor, "emp-1", "2026-01"),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
+  });
+
+  it("lets a Building Administrator view a co-worker's record within their own project site", async () => {
+    const repo = fakeRepository();
+    await expect(
+      listAttendanceForMonth(repo, employees, buildingAdministratorActor, "emp-3", "2026-01"),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects a Building Administrator viewing a record outside their own project site", async () => {
+    const repo = fakeRepository();
+    await expect(
+      listAttendanceForMonth(repo, employees, buildingAdministratorActor, "emp-2", "2026-01"),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 });
@@ -110,13 +172,13 @@ describe("createAttendanceRecord", () => {
   it("rejects a plain Employee/Manager, even for their own employeeId", async () => {
     const repo = fakeRepository();
     await expect(
-      createAttendanceRecord(repo, noopAudit, selfEmployeeActor, "emp-1", {
+      createAttendanceRecord(repo, employees, noopAudit, selfEmployeeActor, "emp-1", {
         date: "2026-01-10",
         statusId: "Present",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
     await expect(
-      createAttendanceRecord(repo, noopAudit, managerActor, "emp-1", {
+      createAttendanceRecord(repo, employees, noopAudit, managerActor, "emp-1", {
         date: "2026-01-10",
         statusId: "Present",
       }),
@@ -125,17 +187,26 @@ describe("createAttendanceRecord", () => {
 
   it("lets a Building Administrator log their own attendance", async () => {
     const repo = fakeRepository();
-    const record = await createAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "emp-1", {
+    const record = await createAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "emp-1", {
       date: "2026-01-10",
       statusId: "Present",
     });
     expect(record.status).toBe("Present");
   });
 
-  it("rejects a Building Administrator logging attendance for someone else", async () => {
+  it("lets a Building Administrator log attendance for a co-worker in the same project", async () => {
+    const repo = fakeRepository();
+    const record = await createAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "emp-3", {
+      date: "2026-01-10",
+      statusId: "Present",
+    });
+    expect(record.status).toBe("Present");
+  });
+
+  it("rejects a Building Administrator logging attendance for someone outside their project", async () => {
     const repo = fakeRepository();
     await expect(
-      createAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "emp-2", {
+      createAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "emp-2", {
         date: "2026-01-10",
         statusId: "Present",
       }),
@@ -145,7 +216,7 @@ describe("createAttendanceRecord", () => {
   it("rejects a future-dated attendance record", async () => {
     const repo = fakeRepository();
     await expect(
-      createAttendanceRecord(repo, noopAudit, hrActor, "emp-1", {
+      createAttendanceRecord(repo, employees, noopAudit, hrActor, "emp-1", {
         date: "2099-01-01",
         statusId: "Present",
       }),
@@ -154,7 +225,7 @@ describe("createAttendanceRecord", () => {
 
   it("creates a record for HR", async () => {
     const repo = fakeRepository();
-    const record = await createAttendanceRecord(repo, noopAudit, hrActor, "emp-1", {
+    const record = await createAttendanceRecord(repo, employees, noopAudit, hrActor, "emp-1", {
       date: "2026-01-10",
       statusId: "Present",
     });
@@ -166,22 +237,30 @@ describe("updateAttendanceRecord", () => {
   it("rejects a plain Employee/Manager, even for their own record", async () => {
     const repo = fakeRepository([makeRecord()]);
     await expect(
-      updateAttendanceRecord(repo, noopAudit, selfEmployeeActor, "rec-1", { statusId: "Absent" }),
+      updateAttendanceRecord(repo, employees, noopAudit, selfEmployeeActor, "rec-1", { statusId: "Absent" }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("lets a Building Administrator edit their own record", async () => {
     const repo = fakeRepository([makeRecord()]);
-    const updated = await updateAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "rec-1", {
+    const updated = await updateAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "rec-1", {
       statusId: "Late",
     });
     expect(updated.status).toBe("Late");
   });
 
-  it("rejects a Building Administrator editing someone else's record", async () => {
+  it("lets a Building Administrator edit a co-worker's record within their own project", async () => {
+    const repo = fakeRepository([makeRecord({ employeeId: "emp-3" })]);
+    const updated = await updateAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "rec-1", {
+      statusId: "Late",
+    });
+    expect(updated.status).toBe("Late");
+  });
+
+  it("rejects a Building Administrator editing a record outside their project", async () => {
     const repo = fakeRepository([makeRecord({ employeeId: "emp-2" })]);
     await expect(
-      updateAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "rec-1", {
+      updateAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "rec-1", {
         statusId: "Late",
       }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
@@ -190,13 +269,13 @@ describe("updateAttendanceRecord", () => {
   it("throws NotFoundError for a missing record", async () => {
     const repo = fakeRepository([]);
     await expect(
-      updateAttendanceRecord(repo, noopAudit, hrActor, "missing", { statusId: "Absent" }),
+      updateAttendanceRecord(repo, employees, noopAudit, hrActor, "missing", { statusId: "Absent" }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("updates the status for HR", async () => {
     const repo = fakeRepository([makeRecord()]);
-    const updated = await updateAttendanceRecord(repo, noopAudit, hrActor, "rec-1", {
+    const updated = await updateAttendanceRecord(repo, employees, noopAudit, hrActor, "rec-1", {
       statusId: "Late",
     });
     expect(updated.status).toBe("Late");
@@ -207,26 +286,33 @@ describe("deleteAttendanceRecord", () => {
   it("rejects a plain Employee/Manager, even for their own record", async () => {
     const repo = fakeRepository([makeRecord()]);
     await expect(
-      deleteAttendanceRecord(repo, noopAudit, selfEmployeeActor, "rec-1"),
+      deleteAttendanceRecord(repo, employees, noopAudit, selfEmployeeActor, "rec-1"),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("lets a Building Administrator delete their own record", async () => {
     const repo = fakeRepository([makeRecord()]);
     await expect(
-      deleteAttendanceRecord(repo, noopAudit, buildingAdministratorActor, "rec-1"),
+      deleteAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "rec-1"),
     ).resolves.toBeUndefined();
+  });
+
+  it("rejects a Building Administrator deleting a record outside their project", async () => {
+    const repo = fakeRepository([makeRecord({ employeeId: "emp-2" })]);
+    await expect(
+      deleteAttendanceRecord(repo, employees, noopAudit, buildingAdministratorActor, "rec-1"),
+    ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("throws NotFoundError for a missing record", async () => {
     const repo = fakeRepository([]);
-    await expect(deleteAttendanceRecord(repo, noopAudit, hrActor, "missing")).rejects.toBeInstanceOf(
+    await expect(deleteAttendanceRecord(repo, employees, noopAudit, hrActor, "missing")).rejects.toBeInstanceOf(
       NotFoundError,
     );
   });
 
   it("deletes for HR", async () => {
     const repo = fakeRepository([makeRecord()]);
-    await expect(deleteAttendanceRecord(repo, noopAudit, hrActor, "rec-1")).resolves.toBeUndefined();
+    await expect(deleteAttendanceRecord(repo, employees, noopAudit, hrActor, "rec-1")).resolves.toBeUndefined();
   });
 });

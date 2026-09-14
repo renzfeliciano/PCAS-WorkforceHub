@@ -86,7 +86,11 @@ export function MyProfileModule({ name, username, role, mustChangePassword }: My
       setSuccess(true);
       setVisibleFields(new Set());
       form.reset();
-      if (mustChangePassword) router.replace("/");
+      // Land directly on each role's real home page — Dashboard ("/") is
+      // Admin/HR only and server-redirects everyone else to the roster
+      // anyway, so routing everyone through "/" first caused a visible
+      // flash of the (hidden-for-them) Dashboard shell before landing here.
+      if (mustChangePassword) router.replace(role === "Admin" || role === "HR" ? "/" : "/employees/roster");
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Something went wrong.");
     } finally {
