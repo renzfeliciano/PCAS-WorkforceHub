@@ -51,8 +51,20 @@ type UserDocument = {
   active: boolean;
   employeeId?: string;
   mustChangePassword: boolean;
-  createdAt: Date;
+  createdAt?: Date | string;
 };
+
+/**
+ * A document written before `timestamps: true` took effect, or edited by
+ * hand outside the app (e.g. directly in Atlas), can have `createdAt`
+ * missing entirely or stored as something other than a real BSON Date —
+ * `.toISOString()` on either throws and 500s the whole list. Falls back to
+ * the epoch, the same spirit as defaulting a missing `userRole` elsewhere.
+ */
+function toIsoString(value: Date | string | undefined): string {
+  const date = value instanceof Date ? value : new Date(value ?? 0);
+  return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
+}
 
 function toAppUser(doc: UserDocument): AppUser {
   return {
@@ -64,7 +76,7 @@ function toAppUser(doc: UserDocument): AppUser {
     active: doc.active,
     employeeId: doc.employeeId,
     mustChangePassword: doc.mustChangePassword,
-    createdAt: doc.createdAt.toISOString(),
+    createdAt: toIsoString(doc.createdAt),
   };
 }
 

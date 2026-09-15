@@ -269,6 +269,28 @@ describe("MongoUserRepository.findAll", () => {
     expect(descending.items.map((u) => u.username)).toEqual(["sort-b", "sort-a"]);
   });
 
+  it("doesn't 500 on a legacy/hand-edited document with no createdAt at all", async () => {
+    // Bypasses Mongoose (insertOne, not repository.create()) to simulate a
+    // document written before `timestamps: true`, or hand-edited directly in
+    // Atlas without a proper BSON Date — exactly what broke this in
+    // production: toAppUser() called `.toISOString()` on a value that wasn't
+    // a real Date, 500-ing the entire list for every account, not just this
+    // one row.
+    await UserModel.collection.insertOne({
+      username: "legacy-admin",
+      name: "Legacy Admin",
+      role: "Admin",
+      active: true,
+      passwordHash: "irrelevant",
+      mustChangePassword: false,
+    } as never);
+
+    const result = await repository.findAll({ role: "Admin" });
+    const item = result.items.find((u) => u.username === "legacy-admin");
+    expect(item).toBeDefined();
+    expect(() => new Date(item!.createdAt).toISOString()).not.toThrow();
+  });
+
   it("sorts by the resolved project name", async () => {
     const projB = await SettingModel.create({ kind: "project", name: "Sunrise Towers" });
     const projA = await SettingModel.create({ kind: "project", name: "Ayala Center" });
