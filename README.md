@@ -147,14 +147,6 @@ npm run db:seed
 
 The seed creates or preserves 13 positions, 15 projects/sites, and the six initial employment statuses. It is safe to run repeatedly: records are upserted by `kind` and `name`, while MongoDB generates the `_id` automatically. Existing active/inactive state is not overwritten and existing records are not deleted.
 
-If `DEMO_ADMIN_USERNAME` and `DEMO_ADMIN_PASSWORD` contain real values, the same command creates a demo Super Admin account with the `Admin` role and a bcrypt password hash. The user is created only when the username does not already exist; rerunning the command preserves the existing account and password. `DEMO_ADMIN_EMAIL` is optional metadata for future account-recovery features.
-
-```bash
-npm run db:seed
-```
-
-Then sign in at `/login` using `DEMO_ADMIN_USERNAME` and `DEMO_ADMIN_PASSWORD` from your private `.env.local`. Do not place demo passwords in source control, README files, or `.env.example`.
-
 ## Environment Management
 
 Commit only `.env.example`. Keep actual credentials in `.env.local` or the hosting provider's encrypted environment store. Never commit a connection string, API key, API secret, password, or Auth.js secret, even in an example file.
