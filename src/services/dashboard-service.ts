@@ -2,8 +2,10 @@ import { calculateAge, isBirthdayThisMonth } from "@/lib/employee-dates";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { EventRepository } from "@/repositories/event-repository";
 import type { JobApplicationRepository } from "@/repositories/job-application-repository";
+import type { CaseRecordRepository } from "@/repositories/case-record-repository";
 import type { Employee } from "@/types/employee";
 import type { WorkforceEvent } from "@/types/event";
+import type { CaseRecord } from "@/types/case-record";
 
 export type DistributionBucket = { label: string; count: number };
 export type HiringTrendPoint = { month: string; label: string; count: number };
@@ -22,12 +24,14 @@ export type DashboardSummary = {
   upcomingEvents: WorkforceEvent[];
   recruitmentPipeline: PipelineStageCount[];
   totalApplications: number;
+  activeCases: CaseRecord[];
 };
 
 export type DashboardRepositories = {
   employeeRepository: EmployeeRepository;
   eventRepository: EventRepository;
   jobApplicationRepository: JobApplicationRepository;
+  caseRecordRepository: CaseRecordRepository;
 };
 
 const UPCOMING_WINDOW_DAYS = 30;
@@ -85,6 +89,7 @@ export async function getDashboardSummary({
   employeeRepository,
   eventRepository,
   jobApplicationRepository,
+  caseRecordRepository,
 }: DashboardRepositories): Promise<DashboardSummary> {
   const employees = await employeeRepository.findActiveForDashboard();
   const statusCounts = new Map<string, number>();
@@ -147,6 +152,8 @@ export async function getDashboardSummary({
     await eventRepository.findByRange(toIsoDate(asOfDate), toIsoDate(new Date(windowEnd)))
   ).slice(0, 5);
 
+  const activeCases = await caseRecordRepository.findActiveForDashboard();
+
   const applications = await jobApplicationRepository.findAll();
   const stageCounts = new Map<string, number>();
   for (const application of applications)
@@ -172,5 +179,6 @@ export async function getDashboardSummary({
     totalApplications: applications.length,
     upcomingEvents,
     recruitmentPipeline,
+    activeCases,
   };
 }

@@ -2,7 +2,11 @@ import { isValidObjectId } from "mongoose";
 import { NotFoundError } from "@/lib/app-errors";
 import { resolveCatalogNames } from "@/repositories/catalog-lookup";
 import { CaseRecordModel } from "@/repositories/models/case-record-model";
+import { SettingModel } from "@/repositories/models/setting-model";
+import { CASE_STATUS_CATEGORY } from "@/types/settings";
 import type { CaseRecord } from "@/types/case-record";
+
+const ACTIVE_CASE_DASHBOARD_LIMIT = 5;
 
 export type CaseRecordPatch = {
   projectId: string;
@@ -31,6 +35,8 @@ export type CaseRecordListResult = {
 export interface CaseRecordRepository {
   findAll(filters: CaseRecordListFilters): Promise<CaseRecordListResult>;
   findById(id: string): Promise<CaseRecord | null>;
+  /** The most recent "Ongoing" cases, for the dashboard's Active cases widget. */
+  findActiveForDashboard(): Promise<CaseRecord[]>;
   create(input: CaseRecordPatch): Promise<CaseRecord>;
   update(id: string, patch: CaseRecordPatch): Promise<CaseRecord>;
   delete(id: string): Promise<void>;
@@ -103,6 +109,28 @@ export class MongoCaseRecordRepository implements CaseRecordRepository {
     if (!isValidObjectId(id)) return null;
     const doc = await CaseRecordModel.findById(id).lean<CaseRecordDocument | null>();
     return doc ? resolveOne(doc) : null;
+  }
+
+  async findActiveForDashboard(): Promise<CaseRecord[]> {
+    // "Active" is hardcoded to the "Ongoing" case-status catalog entry by
+    // name, not id — there's no stable id/code to pin this to yet (the same
+    // gap STANDARDS.md already documents for employmentStatusId's
+    // needsEndOfContract check). Renaming "Ongoing" in Catalog Management
+    // would silently stop matching here.
+    const ongoingStatus = await SettingModel.findOne({
+      kind: "status",
+      category: CASE_STATUS_CATEGORY,
+      name: "Ongoing",
+    })
+      .select({ _id: 1 })
+      .lean<{ _id: { toString(): string } } | null>();
+    if (!ongoingStatus) return [];
+
+    const docs = await CaseRecordModel.find({ statusId: ongoingStatus._id.toString() })
+      .sort({ createdAt: -1 })
+      .limit(ACTIVE_CASE_DASHBOARD_LIMIT)
+      .lean<CaseRecordDocument[]>();
+    return resolveMany(docs);
   }
 
   async create(input: CaseRecordPatch): Promise<CaseRecord> {

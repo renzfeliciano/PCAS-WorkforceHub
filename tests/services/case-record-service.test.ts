@@ -33,6 +33,7 @@ function fakeRepository(seed: CaseRecord[] = []): CaseRecordRepository {
   return {
     findAll: async () => ({ items: [...records.values()], total: records.size, page: 1, pageSize: 20 }),
     findById: async (id) => records.get(id) ?? null,
+    findActiveForDashboard: async () => [...records.values()].filter((r) => r.status === "Ongoing"),
     create: async (patch) => {
       const record = resolve(`case-${nextId++}`, patch);
       records.set(record.id, record);

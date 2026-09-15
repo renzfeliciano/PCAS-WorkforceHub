@@ -134,3 +134,46 @@ describe("MongoCaseRecordRepository.update / delete", () => {
     await expect(repository.delete("507f1f77bcf86cd799439099")).rejects.toBeInstanceOf(NotFoundError);
   });
 });
+
+describe("MongoCaseRecordRepository.findActiveForDashboard", () => {
+  it("returns only cases with the Ongoing status, most recent first", async () => {
+    const projectId = await makeSetting("project", "EGI Rufino");
+    const classificationId = await makeSetting("status", "Civil Case", "case-classification");
+    const ongoingId = await makeSetting("status", "Ongoing", "case-status");
+    const dismissedId = await makeSetting("status", "Dismissed", "case-status");
+
+    await repository.create(
+      validInput({ caseNumber: "CASE-DISMISSED" }, { projectId, classificationId, statusId: dismissedId }),
+    );
+    const first = await repository.create(
+      validInput({ caseNumber: "CASE-OLDER" }, { projectId, classificationId, statusId: ongoingId }),
+    );
+    const second = await repository.create(
+      validInput({ caseNumber: "CASE-NEWER" }, { projectId, classificationId, statusId: ongoingId }),
+    );
+
+    const active = await repository.findActiveForDashboard();
+    expect(active.map((c) => c.caseNumber)).toEqual(["CASE-NEWER", "CASE-OLDER"]);
+    expect(active.every((c) => c.status === "Ongoing")).toBe(true);
+    void first;
+    void second;
+  });
+
+  it("caps the result at 5 cases", async () => {
+    const projectId = await makeSetting("project", "EGI Rufino");
+    const classificationId = await makeSetting("status", "Civil Case", "case-classification");
+    const ongoingId = await makeSetting("status", "Ongoing", "case-status");
+    for (let i = 0; i < 7; i += 1) {
+      await repository.create(
+        validInput({ caseNumber: `CASE-${i}` }, { projectId, classificationId, statusId: ongoingId }),
+      );
+    }
+
+    const active = await repository.findActiveForDashboard();
+    expect(active).toHaveLength(5);
+  });
+
+  it("returns an empty array when no Ongoing status catalog entry exists at all", async () => {
+    await expect(repository.findActiveForDashboard()).resolves.toEqual([]);
+  });
+});

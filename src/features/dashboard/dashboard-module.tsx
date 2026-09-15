@@ -1,10 +1,12 @@
 "use client";
 
-import { Briefcase, CalendarClock, UserPlus, Users } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Briefcase, CalendarClock, UserPlus, Users } from "lucide-react";
 import { useDashboardSummary } from "@/features/dashboard/hooks/use-dashboard-summary";
 import { StatCard } from "@/features/dashboard/components/stat-card";
 import { RecentEmployeesList } from "@/features/dashboard/components/recent-employees-list";
 import { UpcomingEventsList } from "@/features/dashboard/components/upcoming-events-list";
+import { ActiveCasesList } from "@/features/dashboard/components/active-cases-list";
 import { BirthdayList } from "@/features/dashboard/components/birthday-list";
 import { StatusBreakdownChart } from "@/features/dashboard/components/status-breakdown-chart";
 import { DistributionChart } from "@/features/dashboard/components/distribution-chart";
@@ -133,6 +135,18 @@ export function DashboardModule({
             <h2>Upcoming contract endings</h2>
           </div>
           <UpcomingEventsList employees={data.upcomingContractEndings} />
+        </section>
+        <section className="panel">
+          <div className="section-head">
+            <div>
+              <h2>Active cases</h2>
+              <p className="muted">Cases currently marked Ongoing.</p>
+            </div>
+            <Link href="/case-monitoring" className="link-button">
+              View all <ArrowRight size={12} />
+            </Link>
+          </div>
+          <ActiveCasesList cases={data.activeCases} />
         </section>
         <section className="panel">
           <div className="section-head">

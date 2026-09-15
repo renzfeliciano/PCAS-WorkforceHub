@@ -3,7 +3,9 @@ import { getDashboardSummary } from "@/services/dashboard-service";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { EventRepository } from "@/repositories/event-repository";
 import type { JobApplicationRepository } from "@/repositories/job-application-repository";
+import type { CaseRecordRepository } from "@/repositories/case-record-repository";
 import type { Employee } from "@/types/employee";
+import type { CaseRecord } from "@/types/case-record";
 
 function makeEmployee(overrides: Partial<Employee> = {}): Employee {
   return {
@@ -66,12 +68,44 @@ const fakeJobApplicationRepository: JobApplicationRepository = {
   delete: async () => {},
 };
 
-function makeSummary(employees: Employee[]) {
+function makeCaseRecordRepository(activeCases: CaseRecord[] = []): CaseRecordRepository {
+  return {
+    findAll: async () => ({ items: activeCases, total: activeCases.length, page: 1, pageSize: 20 }),
+    findById: async (id) => activeCases.find((c) => c.id === id) ?? null,
+    findActiveForDashboard: async () => activeCases,
+    create: async () => {
+      throw new Error("not implemented");
+    },
+    update: async () => {
+      throw new Error("not implemented");
+    },
+    delete: async () => {},
+  };
+}
+
+function makeSummary(employees: Employee[], activeCases: CaseRecord[] = []) {
   return getDashboardSummary({
     employeeRepository: fakeEmployeeRepository(employees),
     eventRepository: fakeEventRepository,
     jobApplicationRepository: fakeJobApplicationRepository,
+    caseRecordRepository: makeCaseRecordRepository(activeCases),
   });
+}
+
+function makeCaseRecord(overrides: Partial<CaseRecord> = {}): CaseRecord {
+  return {
+    id: `case-${Math.random()}`,
+    projectId: "proj-1",
+    project: "EGI Rufino",
+    caseName: "Dela Cruz vs. PCAS Corp",
+    caseNumber: "NLRC-NCR-01-00123-26",
+    classificationId: "class-1",
+    classification: "Civil Case",
+    statusId: "status-1",
+    status: "Ongoing",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
 }
 
 // getDashboardSummary computes tenure/age against the real current time, so
@@ -143,5 +177,18 @@ describe("getDashboardSummary tenure/age breakdown", () => {
       { label: "Male", count: 2 },
       { label: "Female", count: 1 },
     ]);
+  });
+});
+
+describe("getDashboardSummary activeCases", () => {
+  it("passes through the repository's active cases as-is", async () => {
+    const activeCases = [makeCaseRecord({ caseNumber: "CASE-1" }), makeCaseRecord({ caseNumber: "CASE-2" })];
+    const summary = await makeSummary([], activeCases);
+    expect(summary.activeCases).toEqual(activeCases);
+  });
+
+  it("is empty when the repository has no active cases", async () => {
+    const summary = await makeSummary([]);
+    expect(summary.activeCases).toEqual([]);
   });
 });

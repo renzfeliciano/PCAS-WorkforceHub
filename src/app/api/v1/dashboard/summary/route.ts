@@ -4,11 +4,13 @@ import { apiJson, mapServiceError } from "@/lib/api-response";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
 import { MongoEventRepository } from "@/repositories/event-repository";
 import { MongoJobApplicationRepository } from "@/repositories/job-application-repository";
+import { MongoCaseRecordRepository } from "@/repositories/case-record-repository";
 import { getDashboardSummary } from "@/services/dashboard-service";
 
 const employeeRepository = new MongoEmployeeRepository();
 const eventRepository = new MongoEventRepository();
 const jobApplicationRepository = new MongoJobApplicationRepository();
+const caseRecordRepository = new MongoCaseRecordRepository();
 
 export async function GET(request: Request) {
   const guard = await requireApiSession(request);
@@ -20,6 +22,7 @@ export async function GET(request: Request) {
       employeeRepository,
       eventRepository,
       jobApplicationRepository,
+      caseRecordRepository,
     });
     return apiJson(summary, requestId, headers);
   } catch (error) {
