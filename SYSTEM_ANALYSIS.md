@@ -75,7 +75,7 @@ A workspace-wide snapshot: total employee count, headcount by employment status 
 
 ### 4.5 Settings
 - **Catalog management** (`/settings/catalog-management`) — the single place Admin/HR configure the option lists used everywhere else in the system: positions, project/work sites, employment statuses, attendance statuses, recruitment stages, and leave types. Every catalog entry is active/inactive rather than hard-deleted by default, so historical records that reference a retired option remain intact and readable.
-- **User management** (`/settings/permissions`) — Admin-only: create, edit, deactivate/reactivate application user accounts and assign roles. Includes an optional, explicitly flagged "reset workspace data" tool for pre-launch testing (disabled by default, environment-gated).
+- **User management** (`/settings/user-management`) — Admin-only: create, edit, deactivate/reactivate application user accounts and assign roles. Includes an optional, explicitly flagged "reset workspace data" tool for pre-launch testing (disabled by default, environment-gated).
 
 ### 4.6 Authentication & Session
 - **Login** (`/login`) — credentials-based sign-in (username/email + password, bcrypt-hashed), rate-limited per IP to resist brute-force/credential-stuffing attempts, independent of the general API rate limit.

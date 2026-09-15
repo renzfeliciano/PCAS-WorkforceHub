@@ -107,7 +107,7 @@ const recruitmentGroup: NavGroup = {
   ],
 };
 
-/** My Profile is open to every role; Catalog Management and User management (the Permissions table) are Admin/HR only. */
+/** My Profile is open to every role; Catalog Management and User management are Admin/HR only. */
 function buildSettingsGroup(canManage: boolean): NavGroup {
   return {
     key: "settings",
@@ -122,7 +122,7 @@ function buildSettingsGroup(canManage: boolean): NavGroup {
               icon: Layers,
               exact: true,
             },
-            { href: "/settings/permissions", label: "User management", icon: ShieldCheck },
+            { href: "/settings/user-management", label: "User management", icon: ShieldCheck },
           ]
         : []),
       { href: "/settings/profile", label: "My profile", icon: User, exact: true },

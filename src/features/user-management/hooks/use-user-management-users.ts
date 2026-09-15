@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usersClient } from "@/features/permissions/api/users-client";
-import type { UserListParams } from "@/features/permissions/api/users-client";
+import { usersClient } from "@/features/user-management/api/users-client";
+import type { UserListParams } from "@/features/user-management/api/users-client";
 import { createRequestCache } from "@/lib/request-cache";
 import type { CreateUserInput, UpdateUserInput } from "@/schemas/user";
 import type { AppUser } from "@/types/user";
@@ -16,7 +16,7 @@ const FILTER_DEBOUNCE_MS = 300;
 const CACHE_TTL_MS = 15_000;
 const cache = createRequestCache<{ items: AppUser[]; total: number }>(CACHE_TTL_MS);
 
-export function usePermissionUsers(
+export function useUserManagementUsers(
   { page, pageSize, sortBy, sortDir, query, role, status }: UserListParams,
   initialData?: UserListInitialData,
 ) {

@@ -3,11 +3,11 @@ import { isDataResetEnabled } from "@/lib/seed-flags";
 import { connectMongoDB } from "@/lib/mongodb";
 import { MongoUserRepository } from "@/repositories/user-repository";
 import { listUsers } from "@/services/user-service";
-import { PermissionsModule } from "@/features/permissions/permissions-module";
+import { UserManagementModule } from "@/features/user-management/user-management-module";
 
 const PAGE_SIZE = 10;
 
-export default async function PermissionsPage() {
+export default async function UserManagementPage() {
   await withRoleGuard(["Admin", "HR"]);
   await connectMongoDB();
   const { items, total } = await listUsers(new MongoUserRepository(), {
@@ -15,7 +15,7 @@ export default async function PermissionsPage() {
     pageSize: PAGE_SIZE,
   });
   return (
-    <PermissionsModule
+    <UserManagementModule
       dataResetEnabled={isDataResetEnabled()}
       initialData={{ items, total }}
     />

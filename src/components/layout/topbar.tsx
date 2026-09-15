@@ -22,7 +22,7 @@ const CRUMBS: Record<string, Crumb> = {
   "/recruitment/application-tracking": { parent: "Recruitment", page: "Application tracking" },
   "/case-monitoring": { parent: "Workspace", page: "Case monitoring" },
   "/events": { parent: "Workspace", page: "Events" },
-  "/settings/permissions": { parent: "Settings", page: "User management" },
+  "/settings/user-management": { parent: "Settings", page: "User management" },
   "/settings/catalog-management": { parent: "Settings", page: "Catalog management" },
 };
 

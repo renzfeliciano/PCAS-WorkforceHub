@@ -7,19 +7,19 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useCurrentUser } from "@/context/current-user-context";
 import { useSortState } from "@/hooks/use-sort-state";
-import { usePermissionUsers } from "@/features/permissions/hooks/use-permission-users";
-import type { UserListInitialData } from "@/features/permissions/hooks/use-permission-users";
-import { UsersTable } from "@/features/permissions/components/users-table";
-import { UsersFilters } from "@/features/permissions/components/users-filters";
-import { UserFormDialog } from "@/features/permissions/components/user-form-dialog";
-import { DeactivateUserDialog } from "@/features/permissions/components/deactivate-user-dialog";
-import { ResetDataDialog } from "@/features/permissions/components/reset-data-dialog";
-import { adminResetClient } from "@/features/permissions/api/admin-reset-client";
+import { useUserManagementUsers } from "@/features/user-management/hooks/use-user-management-users";
+import type { UserListInitialData } from "@/features/user-management/hooks/use-user-management-users";
+import { UsersTable } from "@/features/user-management/components/users-table";
+import { UsersFilters } from "@/features/user-management/components/users-filters";
+import { UserFormDialog } from "@/features/user-management/components/user-form-dialog";
+import { DeactivateUserDialog } from "@/features/user-management/components/deactivate-user-dialog";
+import { ResetDataDialog } from "@/features/user-management/components/reset-data-dialog";
+import { adminResetClient } from "@/features/user-management/api/admin-reset-client";
 import type { Role, AppUser } from "@/types/user";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-export function PermissionsModule({
+export function UserManagementModule({
   dataResetEnabled,
   initialData,
 }: Readonly<{ dataResetEnabled: boolean; initialData?: UserListInitialData }>) {
@@ -30,7 +30,7 @@ export function PermissionsModule({
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   const { sortBy, sortDir, toggleSort } = useSortState();
-  const { items, total, isLoading, isFetching, error, create, update, deactivate } = usePermissionUsers(
+  const { items, total, isLoading, isFetching, error, create, update, deactivate } = useUserManagementUsers(
     {
       page,
       pageSize,
@@ -93,7 +93,7 @@ export function PermissionsModule({
       />
       {isLoading ? (
         <TableSkeleton
-          columnWidths={["25%", "20%", "15%", "15%", "20%"]}
+          columnWidths={["20%", "15%", "15%", "18%", "12%", "12%"]}
           rows={pageSize}
         />
       ) : items.length === 0 ? (

@@ -1465,9 +1465,17 @@ thead .col-sticky-2 {
   text-align: center;
   font-size: 10px;
 }
+/*
+ * A `.case-filter` (label above its select, e.g. Role/Status) is taller than
+ * the plain `.search` box next to it — align-items: center left the search
+ * box floating above the selects instead of level with them. flex-end keeps
+ * every plain, label-less toolbar control (as on the Employee filters, which
+ * never uses .case-filter) unchanged, since those are already roughly the
+ * same height.
+ */
 .toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 14px;

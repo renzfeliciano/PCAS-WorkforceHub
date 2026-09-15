@@ -1,8 +1,11 @@
+import { Types } from "mongoose";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectMongoDB } from "@/lib/mongodb";
 import { ConflictError } from "@/lib/app-errors";
 import { MongoUserRepository } from "@/repositories/user-repository";
 import { UserModel } from "@/repositories/models/user-model";
+import { EmployeeModel } from "@/repositories/models/employee-model";
+import { SettingModel } from "@/repositories/models/setting-model";
 import type { CreateUserInput } from "@/schemas/user";
 
 const repository = new MongoUserRepository();
@@ -26,11 +29,27 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await UserModel.deleteMany({});
+  await EmployeeModel.deleteMany({});
+  await SettingModel.deleteMany({});
 });
 
 afterAll(async () => {
   await UserModel.deleteMany({});
+  await EmployeeModel.deleteMany({});
+  await SettingModel.deleteMany({});
 });
+
+function makeEmployee(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    name: "Doe, John",
+    gender: "Male",
+    positionId: new Types.ObjectId().toString(),
+    projectSiteId: new Types.ObjectId().toString(),
+    dateHired: "2024-01-01",
+    employmentStatusId: "status-1",
+    ...overrides,
+  };
+}
 
 describe("MongoUserRepository.create", () => {
   it("stores a bcrypt hash, never the plain password", async () => {
@@ -189,5 +208,76 @@ describe("MongoUserRepository.findAll", () => {
 
     const inactiveOnly = await repository.findAll({ status: "inactive" });
     expect(inactiveOnly.items.map((u) => u.id)).toEqual([toDeactivate.id]);
+  });
+
+  it("resolves a roster-linked account's position and project via employeeId -> Employee -> Setting.name", async () => {
+    const position = await SettingModel.create({ kind: "position", name: "Building Engineer" });
+    const project = await SettingModel.create({ kind: "project", name: "Sunrise Towers" });
+    const employee = await EmployeeModel.create(
+      makeEmployee({ positionId: position._id.toString(), projectSiteId: project._id.toString() }),
+    );
+    await repository.create(makeInput({ username: "linked-position", employeeId: employee._id.toString() }));
+
+    const result = await repository.findAll({});
+    const item = result.items.find((u) => u.username === "linked-position");
+    expect(item?.position).toBe("Building Engineer");
+    expect(item?.projectSite).toBe("Sunrise Towers");
+  });
+
+  it("shows a fallback position and project for an account with no employeeId at all", async () => {
+    await repository.create(makeInput({ username: "no-employee" }));
+
+    const result = await repository.findAll({});
+    const item = result.items.find((u) => u.username === "no-employee");
+    expect(item?.position).toBe("—");
+    expect(item?.projectSite).toBe("—");
+  });
+
+  it("shows a fallback position and project when the linked employee has since been deleted", async () => {
+    await repository.create(
+      makeInput({ username: "dangling-employee", employeeId: new Types.ObjectId().toString() }),
+    );
+
+    const result = await repository.findAll({});
+    const item = result.items.find((u) => u.username === "dangling-employee");
+    expect(item?.position).toBe("—");
+    expect(item?.projectSite).toBe("—");
+  });
+
+  it("shows a fallback position and project when the employee's catalog entries have since been deleted", async () => {
+    const employee = await EmployeeModel.create(makeEmployee());
+    await repository.create(makeInput({ username: "orphan-catalog", employeeId: employee._id.toString() }));
+
+    const result = await repository.findAll({});
+    const item = result.items.find((u) => u.username === "orphan-catalog");
+    expect(item?.position).toBe("—");
+    expect(item?.projectSite).toBe("—");
+  });
+
+  it("sorts by the resolved position name", async () => {
+    const posB = await SettingModel.create({ kind: "position", name: "Building Engineer" });
+    const posA = await SettingModel.create({ kind: "position", name: "Admin Aide" });
+    const empB = await EmployeeModel.create(makeEmployee({ positionId: posB._id.toString() }));
+    const empA = await EmployeeModel.create(makeEmployee({ positionId: posA._id.toString() }));
+    await repository.create(makeInput({ username: "sort-b", employeeId: empB._id.toString() }));
+    await repository.create(makeInput({ username: "sort-a", employeeId: empA._id.toString() }));
+
+    const ascending = await repository.findAll({ sortBy: "position", sortDir: "asc" });
+    expect(ascending.items.map((u) => u.username)).toEqual(["sort-a", "sort-b"]);
+
+    const descending = await repository.findAll({ sortBy: "position", sortDir: "desc" });
+    expect(descending.items.map((u) => u.username)).toEqual(["sort-b", "sort-a"]);
+  });
+
+  it("sorts by the resolved project name", async () => {
+    const projB = await SettingModel.create({ kind: "project", name: "Sunrise Towers" });
+    const projA = await SettingModel.create({ kind: "project", name: "Ayala Center" });
+    const empB = await EmployeeModel.create(makeEmployee({ projectSiteId: projB._id.toString() }));
+    const empA = await EmployeeModel.create(makeEmployee({ projectSiteId: projA._id.toString() }));
+    await repository.create(makeInput({ username: "proj-b", employeeId: empB._id.toString() }));
+    await repository.create(makeInput({ username: "proj-a", employeeId: empA._id.toString() }));
+
+    const ascending = await repository.findAll({ sortBy: "projectSite", sortDir: "asc" });
+    expect(ascending.items.map((u) => u.username)).toEqual(["proj-a", "proj-b"]);
   });
 });

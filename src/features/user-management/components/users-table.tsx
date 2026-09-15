@@ -52,6 +52,20 @@ export function UsersTable({
                 onSort={onSort}
               />
               <SortableHeader
+                field="position"
+                label="Position"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="projectSite"
+                label="Project"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader
                 field="username"
                 label="Username"
                 activeField={sortBy}
@@ -79,6 +93,8 @@ export function UsersTable({
             {users.map((user) => (
               <tr key={user.id} data-testid={`user-row-${user.id}`}>
                 <td>{user.name}</td>
+                <td>{user.position ?? "—"}</td>
+                <td>{user.projectSite ?? "—"}</td>
                 <td>{user.username}</td>
                 <td>{user.role}</td>
                 <td>

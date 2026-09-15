@@ -1,7 +1,9 @@
 import { compare, hash } from "bcryptjs";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, type PipelineStage } from "mongoose";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
 import { escapeRegex } from "@/lib/regex";
+import { lookupCatalogNameStage } from "@/repositories/catalog-lookup";
+import { EmployeeModel } from "@/repositories/models/employee-model";
 import { UserModel } from "@/repositories/models/user-model";
 import { resolveSort } from "@/repositories/sort";
 import type { CreateUserInput, UpdateUserInput } from "@/schemas/user";
@@ -13,6 +15,8 @@ const USER_SORT_FIELD_MAP = {
   username: "username",
   role: "role",
   active: "active",
+  position: "position",
+  projectSite: "projectSite",
 } as const;
 
 export type UserListFilters = {
@@ -84,15 +88,63 @@ export class MongoUserRepository implements UserRepository {
       const pattern = new RegExp(escapeRegex(filters.query.trim()), "i");
       match.$or = [{ name: pattern }, { username: pattern }, { email: pattern }];
     }
-    const [docs, total] = await Promise.all([
-      UserModel.find(match)
-        .sort(sort)
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .lean<UserDocument[]>(),
-      UserModel.countDocuments(match),
-    ]);
-    return { items: docs.map(toAppUser), total, page, pageSize };
+    // position/projectSite aren't fields on User at all — they're resolved
+    // through the linked Employee's positionId/projectSiteId, two hops away
+    // — so sorting/filtering by them needs an aggregation, not a plain
+    // find(). A user with no employeeId (a manually-created account) simply
+    // never matches the $lookup and falls through to the "—" fallback,
+    // same convention as a deleted-catalog-entry resolution elsewhere.
+    const pipeline: PipelineStage[] = [
+      { $match: match },
+      {
+        $lookup: {
+          from: EmployeeModel.collection.name,
+          let: { employeeId: "$employeeId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$_id", { $convert: { input: "$$employeeId", to: "objectId", onError: null, onNull: null } }],
+                },
+              },
+            },
+            { $project: { _id: 0, positionId: 1, projectSiteId: 1 } },
+          ],
+          as: "_employee",
+        },
+      },
+      { $addFields: { _employee: { $arrayElemAt: ["$_employee", 0] } } },
+      lookupCatalogNameStage("_employee.positionId", "_position") as PipelineStage,
+      lookupCatalogNameStage("_employee.projectSiteId", "_projectSite") as PipelineStage,
+      {
+        $addFields: {
+          position: { $ifNull: [{ $arrayElemAt: ["$_position.name", 0] }, "—"] },
+          projectSite: { $ifNull: [{ $arrayElemAt: ["$_projectSite.name", 0] }, "—"] },
+        },
+      },
+      // aggregate() bypasses Mongoose's schema-level `select: false`, so the
+      // sensitive/internal fields it normally hides have to be dropped here
+      // explicitly instead.
+      { $project: { passwordHash: 0, activeSessionId: 0, lastActivityAt: 0, _employee: 0, _position: 0, _projectSite: 0 } },
+      {
+        $facet: {
+          data: [{ $sort: sort }, { $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+          totalCount: [{ $count: "count" }],
+        },
+      },
+    ];
+
+    const [result] = await UserModel.aggregate<{
+      data: (UserDocument & { position: string; projectSite: string })[];
+      totalCount: { count: number }[];
+    }>(pipeline);
+    const items = (result?.data ?? []).map((doc) => ({
+      ...toAppUser(doc),
+      position: doc.position,
+      projectSite: doc.projectSite,
+    }));
+    const total = result?.totalCount[0]?.count ?? 0;
+    return { items, total, page, pageSize };
   }
 
   async findById(id: string): Promise<AppUser | null> {

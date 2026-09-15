@@ -4,7 +4,7 @@ import { emailSchema } from "@/schemas/shared";
 
 export const roleSchema = z.enum(["Admin", "HR", "Manager", "Employee"]);
 
-export const userSortFields = ["name", "username", "role", "active"] as const;
+export const userSortFields = ["name", "username", "role", "active", "position", "projectSite"] as const;
 
 export const userListQuerySchema = paginationQuerySchema(20)
   .extend(sortQuerySchema(userSortFields).shape)
