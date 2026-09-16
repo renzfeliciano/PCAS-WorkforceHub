@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useCurrentUser } from "@/context/current-user-context";
@@ -43,20 +43,34 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function EventsModule() {
+function cursorForMonth(month: string): Cursor {
+  const [year, monthNum] = month.split("-").map(Number);
+  return { year, monthIndex: monthNum - 1 };
+}
+
+export type EventsModuleInitialData = { items: WorkforceEvent[]; month: string };
+
+export function EventsModule({
+  initialData,
+}: Readonly<{ initialData?: EventsModuleInitialData }>) {
   const user = useCurrentUser();
   const canManage = canManageEvents(user.role);
   const isCompact = useMediaQuery("(max-width: 640px)");
   const maxVisiblePerDay = isCompact ? MAX_VISIBLE_PER_DAY_COMPACT : MAX_VISIBLE_PER_DAY;
 
   const [cursor, setCursor] = useState<Cursor>(() => {
+    if (initialData) return cursorForMonth(initialData.month);
     const now = new Date();
     return { year: now.getFullYear(), monthIndex: now.getMonth() };
   });
-  const [events, setEvents] = useState<WorkforceEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<WorkforceEvent[]>(initialData?.items ?? []);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // The mount effect below would otherwise immediately re-fetch the exact
+  // month the server already sent — skipped once, the same "hydrated"
+  // convention used by useEmployees/useCatalog.
+  const hydrated = useRef(initialData !== undefined);
 
   const month = monthKey(cursor);
   const cells = useMemo(() => buildCalendarCells(cursor), [cursor]);
@@ -81,7 +95,12 @@ export function EventsModule() {
   }
 
   useEffect(() => {
+    if (hydrated.current) {
+      hydrated.current = false;
+      return;
+    }
     let cancelled = false;
+    setIsLoading(true);
     eventsClient
       .listMonth(month)
       .then((result) => {
