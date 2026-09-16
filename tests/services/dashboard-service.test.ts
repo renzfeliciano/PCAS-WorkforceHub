@@ -264,6 +264,61 @@ describe("getDashboardSummary totalEmployees (active headcount)", () => {
   });
 });
 
+describe("getDashboardSummary — tenure/age/gender/recent/birthdays scoped to active headcount", () => {
+  const activeStatus = makeStatusSetting({ id: "status-regular", name: "Regular", countsAsActiveEmployment: true });
+  const inactiveStatus = makeStatusSetting({
+    id: "status-terminated",
+    name: "Terminated",
+    countsAsActiveEmployment: false,
+  });
+
+  it("excludes an inactive-status employee from tenureBreakdown", async () => {
+    const employees = [
+      makeEmployee({ employmentStatusId: "status-regular", dateHired: "2015-01-01" }), // 5+ years
+      makeEmployee({ employmentStatusId: "status-terminated", dateHired: "2015-01-01" }), // would also be 5+ years
+    ];
+    const summary = await makeSummary(employees, [], [activeStatus, inactiveStatus]);
+    expect(summary.tenureBreakdown.find((b) => b.label === "5+ years")?.count).toBe(1);
+  });
+
+  it("excludes an inactive-status employee from ageBreakdown", async () => {
+    const employees = [
+      makeEmployee({ employmentStatusId: "status-regular", birthDate: "2000-01-01" }), // Under 30
+      makeEmployee({ employmentStatusId: "status-terminated", birthDate: "2000-01-01" }),
+    ];
+    const summary = await makeSummary(employees, [], [activeStatus, inactiveStatus]);
+    expect(summary.ageBreakdown.find((b) => b.label === "Under 30")?.count).toBe(1);
+  });
+
+  it("excludes an inactive-status employee from genderBreakdown", async () => {
+    const employees = [
+      makeEmployee({ employmentStatusId: "status-regular", gender: "Female" }),
+      makeEmployee({ employmentStatusId: "status-terminated", gender: "Female" }),
+    ];
+    const summary = await makeSummary(employees, [], [activeStatus, inactiveStatus]);
+    expect(summary.genderBreakdown.find((b) => b.label === "Female")?.count).toBe(1);
+  });
+
+  it("excludes an inactive-status employee from recentEmployees", async () => {
+    const employees = [
+      makeEmployee({ id: "emp-active", employmentStatusId: "status-regular" }),
+      makeEmployee({ id: "emp-inactive", employmentStatusId: "status-terminated" }),
+    ];
+    const summary = await makeSummary(employees, [], [activeStatus, inactiveStatus]);
+    expect(summary.recentEmployees.map((e) => e.id)).toEqual(["emp-active"]);
+  });
+
+  it("excludes an inactive-status employee from birthdayCelebrants even if their birthday falls this month", async () => {
+    const employees = [
+      makeEmployee({ employmentStatusId: "status-regular", birthDate: "1990-06-10" }),
+      makeEmployee({ employmentStatusId: "status-terminated", birthDate: "1990-06-20" }),
+    ];
+    const summary = await makeSummary(employees, [], [activeStatus, inactiveStatus]);
+    expect(summary.birthdayCelebrants).toHaveLength(1);
+    expect(summary.birthdayCelebrants[0].employmentStatusId).toBe("status-regular");
+  });
+});
+
 describe("getDashboardSummary activeCases", () => {
   it("passes through the repository's active cases as-is", async () => {
     const activeCases = [makeCaseRecord({ caseNumber: "CASE-1" }), makeCaseRecord({ caseNumber: "CASE-2" })];

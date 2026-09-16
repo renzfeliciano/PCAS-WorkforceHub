@@ -135,7 +135,7 @@ export async function getDashboardSummary({
     )
     .slice(0, 8);
 
-  const withBirthDate = employees.filter(
+  const withBirthDate = activeEmployees.filter(
     (employee): employee is Employee & { birthDate: string } =>
       Boolean(employee.birthDate),
   );
@@ -145,7 +145,7 @@ export async function getDashboardSummary({
 
   const tenureBreakdown = countByBucket(
     TENURE_BUCKET_LABELS,
-    employees.map((employee) => tenureBucketLabel(employee.dateHired, asOfDate)),
+    activeEmployees.map((employee) => tenureBucketLabel(employee.dateHired, asOfDate)),
   );
   const ageBreakdown = countByBucket(
     AGE_BUCKET_LABELS,
@@ -153,7 +153,7 @@ export async function getDashboardSummary({
   );
   const genderBreakdown = countByBucket(
     GENDER_LABELS,
-    employees.map((employee) => employee.gender),
+    activeEmployees.map((employee) => employee.gender),
   );
 
   const months = trailingMonths(HIRING_TREND_MONTHS, asOfDate);
@@ -190,7 +190,7 @@ export async function getDashboardSummary({
       status,
       count,
     })),
-    recentEmployees: employees.slice(0, 5),
+    recentEmployees: activeEmployees.slice(0, 5),
     upcomingContractEndings,
     birthdayCelebrants,
     tenureBreakdown,
