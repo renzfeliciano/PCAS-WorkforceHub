@@ -2295,10 +2295,20 @@ thead .col-sticky-2 {
  * could lose that fight depending on source order.
  */
 .toggle-field {
+  /* Matches the 22px rhythm every standalone .modal-field already carries
+     above itself, so a toggle stacked after a standalone field (e.g. Name)
+     gets the same "fair" gap instead of sitting flush against it. Grids
+     (.form-grid) already space every row evenly via their own `gap` —
+     stacking this on top there would just make one row's gap uneven with
+     the rest, so it's reset to 0 in that context below. */
+  margin-top: 22px;
   padding: 11px 13px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--sidebar);
+}
+.form-grid .toggle-field {
+  margin-top: 0;
 }
 .toggle-field label {
   display: flex;
