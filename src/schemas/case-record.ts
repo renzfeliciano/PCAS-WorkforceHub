@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { paginationQuerySchema } from "@/schemas/list-query";
+import { paginationQuerySchema, sortQuerySchema } from "@/schemas/list-query";
+
+const caseRecordSortFields = [
+  "project",
+  "caseName",
+  "caseNumber",
+  "classification",
+  "status",
+  "legalCounsel",
+] as const;
 
 export const caseRecordSchema = z.object({
   projectId: z.string().trim().min(1, "Select a project"),
@@ -15,8 +24,11 @@ export const createCaseRecordSchema = caseRecordSchema;
 export const updateCaseRecordSchema = caseRecordSchema;
 export type CaseRecordInput = z.infer<typeof caseRecordSchema>;
 
-export const caseRecordListQuerySchema = paginationQuerySchema(20).extend({
-  projectId: z.string().trim().min(1).optional(),
-  classificationId: z.string().trim().min(1).optional(),
-  statusId: z.string().trim().min(1).optional(),
-});
+export const caseRecordListQuerySchema = paginationQuerySchema(10)
+  .extend(sortQuerySchema(caseRecordSortFields).shape)
+  .extend({
+    query: z.string().trim().optional(),
+    projectId: z.string().trim().min(1).optional(),
+    classificationId: z.string().trim().min(1).optional(),
+    statusId: z.string().trim().min(1).optional(),
+  });

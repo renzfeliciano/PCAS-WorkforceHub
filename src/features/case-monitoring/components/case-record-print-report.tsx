@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import type { CaseRecord } from "@/types/case-record";
 
 export type CaseRecordPrintFilterSummary = {
+  query?: string;
   project?: string;
   classification?: string;
   status?: string;
@@ -15,6 +16,7 @@ type CaseRecordPrintReportProps = Readonly<{
 
 function filterLine(filters: CaseRecordPrintFilterSummary) {
   const parts = [
+    filters.query && `Search: "${filters.query}"`,
     filters.project && `Project: ${filters.project}`,
     filters.classification && `Classification: ${filters.classification}`,
     filters.status && `Status: ${filters.status}`,

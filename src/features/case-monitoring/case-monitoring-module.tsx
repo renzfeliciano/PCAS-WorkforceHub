@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Plus, Printer, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { useCurrentUser } from "@/context/current-user-context";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useSortState } from "@/hooks/use-sort-state";
 import { canExportData, canManageCaseMonitoring } from "@/lib/rbac";
 import {
   caseRecordsClient,
@@ -21,7 +23,7 @@ import { exportCaseRecordsCsv } from "@/features/case-monitoring/utils/export-cs
 import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/catalog";
 import type { CaseRecord } from "@/types/case-record";
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 const BULK_FETCH_PAGE_SIZE = 100;
 const EMPTY_FILTERS: CaseFiltersValue = { projectId: "", classificationId: "", statusId: "" };
 
@@ -37,6 +39,9 @@ export function CaseMonitoringModule({
   const { activeItems: statuses } = useCatalogOptions("status", CASE_STATUS_CATEGORY);
 
   const [filters, setFilters] = useState<CaseFiltersValue>(EMPTY_FILTERS);
+  const [rawQuery, setRawQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(rawQuery, 300);
+  const { sortBy, sortDir, toggleSort } = useSortState();
   const [items, setItems] = useState<CaseRecord[]>(initialData?.items ?? []);
   const [total, setTotal] = useState(initialData?.total ?? 0);
   const [page, setPage] = useState(initialData?.page ?? 1);
@@ -49,15 +54,25 @@ export function CaseMonitoringModule({
   const [isPrinting, setIsPrinting] = useState(false);
   const [printData, setPrintData] = useState<{ records: CaseRecord[]; generatedAt: Date } | null>(null);
 
-  async function reload(nextPage = page, nextPageSize = pageSize, nextFilters = filters) {
+  async function reload(
+    nextPage = page,
+    nextPageSize = pageSize,
+    nextFilters = filters,
+    nextQuery = debouncedQuery,
+    nextSortBy = sortBy,
+    nextSortDir = sortDir,
+  ) {
     setIsLoading(true);
     try {
       const result = await caseRecordsClient.list({
         page: nextPage,
         pageSize: nextPageSize,
+        query: nextQuery || undefined,
         projectId: nextFilters.projectId || undefined,
         classificationId: nextFilters.classificationId || undefined,
         statusId: nextFilters.statusId || undefined,
+        sortBy: nextSortBy,
+        sortDir: nextSortDir,
       });
       setItems(result.items);
       setTotal(result.total);
@@ -77,30 +92,39 @@ export function CaseMonitoringModule({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Search and sort both reset back to page 1, same as a filter change — the
+  // very first run is skipped since the mount effect above already covers
+  // the initial load.
+  const skippedFirstRun = useRef(false);
+  useEffect(() => {
+    if (!skippedFirstRun.current) {
+      skippedFirstRun.current = true;
+      return;
+    }
+    reload(1, pageSize, filters, debouncedQuery, sortBy, sortDir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, sortBy, sortDir]);
+
   function handleFiltersChange(next: CaseFiltersValue) {
     setFilters(next);
     reload(1, pageSize, next);
   }
 
-  /** Every record matching the current filters, fetched page by page — used by both CSV export and Print so neither is limited to the one visible page. */
+  /** Every record matching the current search/filters, fetched page by page — used by both CSV export and Print so neither is limited to the one visible page. */
   async function fetchAllMatching(): Promise<CaseRecord[]> {
-    const first = await caseRecordsClient.list({
-      page: 1,
-      pageSize: BULK_FETCH_PAGE_SIZE,
+    const listParams = {
+      query: debouncedQuery || undefined,
       projectId: filters.projectId || undefined,
       classificationId: filters.classificationId || undefined,
       statusId: filters.statusId || undefined,
-    });
+      sortBy,
+      sortDir,
+    };
+    const first = await caseRecordsClient.list({ ...listParams, page: 1, pageSize: BULK_FETCH_PAGE_SIZE });
     const all = [...first.items];
     const totalPages = Math.ceil(first.total / BULK_FETCH_PAGE_SIZE);
     for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
-      const next = await caseRecordsClient.list({
-        page: currentPage,
-        pageSize: BULK_FETCH_PAGE_SIZE,
-        projectId: filters.projectId || undefined,
-        classificationId: filters.classificationId || undefined,
-        statusId: filters.statusId || undefined,
-      });
+      const next = await caseRecordsClient.list({ ...listParams, page: currentPage, pageSize: BULK_FETCH_PAGE_SIZE });
       all.push(...next.items);
     }
     return all;
@@ -133,6 +157,7 @@ export function CaseMonitoringModule({
   }
 
   const filterSummary = {
+    query: debouncedQuery || undefined,
     project: projects.find((item) => item.id === filters.projectId)?.name,
     classification: classifications.find((item) => item.id === filters.classificationId)?.name,
     status: statuses.find((item) => item.id === filters.statusId)?.name,
@@ -186,7 +211,13 @@ export function CaseMonitoringModule({
             )}
           </div>
         </div>
-        <CaseFilters value={filters} onChange={handleFiltersChange} />
+        <CaseFilters
+          query={rawQuery}
+          onQueryChange={setRawQuery}
+          value={filters}
+          onChange={handleFiltersChange}
+          isFetching={isLoading}
+        />
         {error && (
           <p className="inline-error" role="alert">
             {error}
@@ -206,6 +237,9 @@ export function CaseMonitoringModule({
           <CaseRecordTable
             records={items}
             startIndex={(page - 1) * pageSize}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={toggleSort}
             page={page}
             pageSize={pageSize}
             total={total}

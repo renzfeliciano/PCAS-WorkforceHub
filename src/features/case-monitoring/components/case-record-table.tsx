@@ -1,10 +1,15 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import type { CaseRecord } from "@/types/case-record";
+import type { SortDir } from "@/types/list-query";
 
 type CaseRecordTableProps = Readonly<{
   records: CaseRecord[];
   startIndex: number;
+  sortBy?: string;
+  sortDir?: SortDir;
+  onSort: (field: string) => void;
   page: number;
   pageSize: number;
   total: number;
@@ -18,6 +23,9 @@ type CaseRecordTableProps = Readonly<{
 export function CaseRecordTable({
   records,
   startIndex,
+  sortBy,
+  sortDir,
+  onSort,
   page,
   pageSize,
   total,
@@ -34,12 +42,24 @@ export function CaseRecordTable({
           <thead>
             <tr>
               <th className="col-index">#</th>
-              <th>Project</th>
-              <th>Case name</th>
-              <th>Case number</th>
-              <th>Classification</th>
-              <th>Status</th>
-              <th>Legal counsel</th>
+              <SortableHeader field="project" label="Project" activeField={sortBy} direction={sortDir} onSort={onSort} />
+              <SortableHeader field="caseName" label="Case name" activeField={sortBy} direction={sortDir} onSort={onSort} />
+              <SortableHeader field="caseNumber" label="Case number" activeField={sortBy} direction={sortDir} onSort={onSort} />
+              <SortableHeader
+                field="classification"
+                label="Classification"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
+              <SortableHeader field="status" label="Status" activeField={sortBy} direction={sortDir} onSort={onSort} />
+              <SortableHeader
+                field="legalCounsel"
+                label="Legal counsel"
+                activeField={sortBy}
+                direction={sortDir}
+                onSort={onSort}
+              />
               {canManage && <th />}
             </tr>
           </thead>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Search } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/catalog";
 
@@ -10,17 +12,29 @@ export type CaseFiltersValue = {
 };
 
 type CaseFiltersProps = Readonly<{
+  query: string;
+  onQueryChange: (value: string) => void;
   value: CaseFiltersValue;
   onChange: (value: CaseFiltersValue) => void;
+  isFetching?: boolean;
 }>;
 
-export function CaseFilters({ value, onChange }: CaseFiltersProps) {
+export function CaseFilters({ query, onQueryChange, value, onChange, isFetching }: CaseFiltersProps) {
   const { activeItems: projects } = useCatalogOptions("project");
   const { activeItems: classifications } = useCatalogOptions("status", CASE_CLASSIFICATION_CATEGORY);
   const { activeItems: statuses } = useCatalogOptions("status", CASE_STATUS_CATEGORY);
 
   return (
     <div className="toolbar case-filters">
+      <div className="search">
+        {isFetching ? <Spinner size={16} /> : <Search size={16} />}
+        <input
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="Search case name, number, counsel..."
+          data-testid="case-search"
+        />
+      </div>
       <label className="case-filter">
         <span>Project</span>
         <select

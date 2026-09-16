@@ -1,12 +1,24 @@
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, type PipelineStage } from "mongoose";
 import { NotFoundError } from "@/lib/app-errors";
-import { resolveCatalogNames } from "@/repositories/catalog-lookup";
+import { escapeRegex } from "@/lib/regex";
+import { lookupCatalogNameStage, resolveCatalogNames } from "@/repositories/catalog-lookup";
 import { CaseRecordModel } from "@/repositories/models/case-record-model";
 import { CatalogModel } from "@/repositories/models/catalog-model";
+import { resolveSort } from "@/repositories/sort";
 import { CASE_STATUS_CATEGORY } from "@/types/catalog";
 import type { CaseRecord } from "@/types/case-record";
+import type { SortDir } from "@/types/list-query";
 
 const ACTIVE_CASE_DASHBOARD_LIMIT = 5;
+
+const CASE_RECORD_SORT_FIELD_MAP = {
+  project: "project",
+  caseName: "caseName",
+  caseNumber: "caseNumber",
+  classification: "classification",
+  status: "status",
+  legalCounsel: "legalCounsel",
+} as const;
 
 export type CaseRecordPatch = {
   projectId: string;
@@ -24,6 +36,9 @@ export type CaseRecordListFilters = {
   projectId?: string;
   classificationId?: string;
   statusId?: string;
+  query?: string;
+  sortBy?: string;
+  sortDir?: SortDir;
 };
 export type CaseRecordListResult = {
   items: CaseRecord[];
@@ -85,23 +100,93 @@ async function resolveMany(docs: CaseRecordDocument[]): Promise<CaseRecord[]> {
   return docs.map((doc) => toCaseRecord(doc, names));
 }
 
+/** Same shape as `CaseRecordDocument`, plus the catalog names an aggregation pipeline already resolved. */
+type ResolvedCaseRecordDocument = CaseRecordDocument & {
+  project: string;
+  classification: string;
+  status: string;
+};
+
+function toResolvedCaseRecord(doc: ResolvedCaseRecordDocument): CaseRecord {
+  return {
+    id: doc._id.toString(),
+    projectId: doc.projectId,
+    project: doc.project,
+    caseName: doc.caseName,
+    caseNumber: doc.caseNumber,
+    classificationId: doc.classificationId,
+    classification: doc.classification,
+    statusId: doc.statusId,
+    status: doc.status,
+    legalCounsel: doc.legalCounsel,
+    briefHistory: doc.briefHistory,
+    createdAt: doc.createdAt.toISOString(),
+  };
+}
+
 export class MongoCaseRecordRepository implements CaseRecordRepository {
   async findAll(filters: CaseRecordListFilters): Promise<CaseRecordListResult> {
     const page = Math.max(1, filters.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
-    const match: Record<string, string> = {};
-    if (filters.projectId) match.projectId = filters.projectId;
-    if (filters.classificationId) match.classificationId = filters.classificationId;
-    if (filters.statusId) match.statusId = filters.statusId;
-    const [docs, total] = await Promise.all([
-      CaseRecordModel.find(match)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .lean<CaseRecordDocument[]>(),
-      CaseRecordModel.countDocuments(match),
-    ]);
-    const items = await resolveMany(docs);
+    const baseMatch: Record<string, string> = {};
+    if (filters.projectId) baseMatch.projectId = filters.projectId;
+    if (filters.classificationId) baseMatch.classificationId = filters.classificationId;
+    if (filters.statusId) baseMatch.statusId = filters.statusId;
+
+    const sort = resolveSort(
+      filters.sortBy,
+      filters.sortDir,
+      CASE_RECORD_SORT_FIELD_MAP,
+      { createdAt: -1 },
+    );
+
+    // project/classification/status are stored as catalog ids, so search,
+    // sort, and pagination all need the resolved display name — that
+    // requires an aggregation ($lookup the catalog) rather than a plain find().
+    const pipeline: PipelineStage[] = [
+      { $match: baseMatch },
+      lookupCatalogNameStage("projectId", "_project") as PipelineStage,
+      lookupCatalogNameStage("classificationId", "_classification") as PipelineStage,
+      lookupCatalogNameStage("statusId", "_status") as PipelineStage,
+      {
+        $addFields: {
+          // Same "—" fallback as a deleted-catalog-entry resolution
+          // elsewhere in this file, for a catalog id that no longer exists.
+          project: { $ifNull: [{ $arrayElemAt: ["$_project.name", 0] }, "—"] },
+          classification: { $ifNull: [{ $arrayElemAt: ["$_classification.name", 0] }, "—"] },
+          status: { $ifNull: [{ $arrayElemAt: ["$_status.name", 0] }, "—"] },
+        },
+      },
+      { $project: { _project: 0, _classification: 0, _status: 0 } },
+    ];
+    if (filters.query) {
+      const pattern = new RegExp(escapeRegex(filters.query.trim()), "i");
+      pipeline.push({
+        $match: {
+          $or: [
+            { caseName: pattern },
+            { caseNumber: pattern },
+            { legalCounsel: pattern },
+            { project: pattern },
+            { classification: pattern },
+            { status: pattern },
+          ],
+        },
+      });
+    }
+    pipeline.push({
+      $facet: {
+        data: [{ $sort: sort }, { $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+        totalCount: [{ $count: "count" }],
+      },
+    });
+
+    const [result] = await CaseRecordModel.aggregate<{
+      data: ResolvedCaseRecordDocument[];
+      totalCount: { count: number }[];
+    }>(pipeline);
+    const items = (result?.data ?? []).map(toResolvedCaseRecord);
+    const total = result?.totalCount[0]?.count ?? 0;
     return { items, total, page, pageSize };
   }
 
