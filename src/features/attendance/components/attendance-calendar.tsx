@@ -18,7 +18,8 @@ const MONTH_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "long", year: 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type Cursor = { year: number; monthIndex: number };
-type CalendarCell = { date: string; day: number } | null;
+/** A leading pad cell (before the 1st falls on a Sunday) has no date/day of its own; `key` is always present and stable so rendering never has to fall back to array position. */
+type CalendarCell = { key: string; pad: true } | { key: string; pad: false; date: string; day: number };
 
 function monthKey({ year, monthIndex }: Cursor) {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
@@ -27,9 +28,13 @@ function monthKey({ year, monthIndex }: Cursor) {
 function buildCalendarCells({ year, monthIndex }: Cursor): CalendarCell[] {
   const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
   const startWeekday = new Date(Date.UTC(year, monthIndex, 1)).getUTCDay();
-  const cells: CalendarCell[] = Array.from({ length: startWeekday }, () => null);
+  const cells: CalendarCell[] = Array.from({ length: startWeekday }, (_, weekday) => ({
+    key: `pad-${monthKey({ year, monthIndex })}-${weekday}`,
+    pad: true,
+  }));
   for (let day = 1; day <= daysInMonth; day += 1) {
-    cells.push({ date: `${monthKey({ year, monthIndex })}-${String(day).padStart(2, "0")}`, day });
+    const date = `${monthKey({ year, monthIndex })}-${String(day).padStart(2, "0")}`;
+    cells.push({ key: date, pad: false, date, day });
   }
   return cells;
 }
@@ -137,15 +142,15 @@ export function AttendanceCalendar({ employee }: Readonly<{ employee: Employee }
                 {weekday}
               </div>
             ))}
-            {cells.map((cell, index) => {
-              if (!cell) return <div className="attendance-calendar-cell empty" key={`pad-${index}`} />;
+            {cells.map((cell) => {
+              if (cell.pad) return <div className="attendance-calendar-cell empty" key={cell.key} />;
               const record = recordsByDate.get(cell.date);
               const isToday = cell.date === todayIso();
               const isFuture = cell.date > todayIso();
               return (
                 <button
                   type="button"
-                  key={cell.date}
+                  key={cell.key}
                   className={`attendance-calendar-cell${record ? " marked" : ""}${isToday ? " today" : ""}${isFuture ? " future" : ""}`}
                   onClick={() => canManage && !isFuture && setSelectedDate(cell.date)}
                   disabled={!canManage || isFuture}

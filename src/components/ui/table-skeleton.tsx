@@ -6,13 +6,19 @@ type TableSkeletonProps = Readonly<{
 }>;
 
 export function TableSkeleton({ columnWidths, rows = 5 }: TableSkeletonProps) {
+  // Keys are generated once as their own array (rather than read off the
+  // .map() callback's own index) so nothing here derives a key from live
+  // array position — these rows/columns are static placeholders that never
+  // reorder, but the code shape stays identical to a list that could.
+  const rowKeys = Array.from({ length: rows }, (_, i) => `row-${i}`);
+  const columns = columnWidths.map((width, i) => ({ key: `col-${i}`, width }));
   return (
     <div className="table-card">
       <div className="table-wrap">
-        {Array.from({ length: rows }).map((_, rowIndex) => (
-          <div className="skeleton-row" key={rowIndex}>
-            {columnWidths.map((width, colIndex) => (
-              <Skeleton key={colIndex} height={14} width={width} />
+        {rowKeys.map((rowKey) => (
+          <div className="skeleton-row" key={rowKey}>
+            {columns.map((column) => (
+              <Skeleton key={column.key} height={14} width={column.width} />
             ))}
           </div>
         ))}

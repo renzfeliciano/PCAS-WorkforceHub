@@ -1,5 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Generated once as its own array rather than read off the .map() callback's
+// index — these are static placeholder rows that never reorder, but the code
+// shape stays identical to a list that could.
+const SKELETON_ROW_KEYS = Array.from({ length: 4 }, (_, i) => `row-${i}`);
+
 function SkeletonCard() {
   return (
     <section className="settings-card">
@@ -13,8 +18,8 @@ function SkeletonCard() {
         <Skeleton width={27} height={27} className="skeleton-round" />
       </div>
       <div className="setting-list">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div className="setting-row" key={index}>
+        {SKELETON_ROW_KEYS.map((key) => (
+          <div className="setting-row" key={key}>
             <div className="setting-row-name">
               <Skeleton width={7} height={7} className="skeleton-round" />
               <div style={{ flex: 1 }}>
