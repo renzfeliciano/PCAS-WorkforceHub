@@ -10,7 +10,7 @@ import { canManageAttendanceRecord } from "@/lib/rbac";
 import { attendanceStatusTone } from "@/lib/attendance-status-tone";
 import { attendanceClient } from "@/features/attendance/api/attendance-client";
 import { AttendanceDayDialog } from "@/features/attendance/components/attendance-day-dialog";
-import { ATTENDANCE_STATUS_CATEGORY } from "@/types/settings";
+import { ATTENDANCE_STATUS_CATEGORY } from "@/types/catalog";
 import type { Employee } from "@/types/employee";
 import type { AttendanceRecord } from "@/types/attendance";
 
@@ -108,7 +108,7 @@ export function AttendanceCalendar({ employee }: Readonly<{ employee: Employee }
       <div className="page-head">
         <div>
           <Link href="/employees/attendance" className="back-link">
-            <ArrowLeft size={14} /> Attendance
+            <ArrowLeft size={16} /> Attendance
           </Link>
           <h1>{employee.name}</h1>
           <p className="muted">

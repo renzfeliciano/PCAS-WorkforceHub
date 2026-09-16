@@ -3608,16 +3608,39 @@ input[type="checkbox"].toggle-input:disabled {
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-bottom: 9px;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 7px 12px 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--muted);
+  background: var(--surface);
   text-decoration: none;
   font:
-    600 11px Arial,
+    600 12px Arial,
     sans-serif;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.back-link svg {
+  transition: transform 0.15s ease;
 }
 .back-link:hover {
-  color: var(--coral);
+  border-color: var(--coral);
+  color: var(--coral-dark);
+  background: var(--coral-tint);
+}
+.back-link:hover svg {
+  transform: translateX(-2px);
+}
+.back-link:active {
+  transform: scale(0.97);
+}
+.back-link:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
 }
 .attendance-calendar-card {
   padding: 20px;

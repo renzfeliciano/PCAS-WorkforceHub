@@ -60,7 +60,7 @@ export function AssetIssuanceDetail({ employee }: Readonly<{ employee: Employee 
       <div className="page-head">
         <div>
           <Link href="/employees/asset-issuance" className="back-link">
-            <ArrowLeft size={14} /> Asset issuance
+            <ArrowLeft size={16} /> Asset issuance
           </Link>
           <h1>{employee.name}</h1>
           <p className="muted">

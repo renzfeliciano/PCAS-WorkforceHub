@@ -210,7 +210,7 @@ export function LeaveDetail({ employee: initialEmployee }: Readonly<{ employee: 
       <div className="page-head">
         <div>
           <Link href="/employees/leave-management" className="back-link">
-            <ArrowLeft size={14} /> Leave management
+            <ArrowLeft size={16} /> Leave management
           </Link>
           <h1>{employee.name}</h1>
           <p className="muted">

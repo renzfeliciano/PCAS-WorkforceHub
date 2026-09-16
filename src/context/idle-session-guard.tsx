@@ -8,19 +8,33 @@ import { Button } from "@/components/ui/button";
 
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"] as const;
 
-// How often real client activity is allowed to ping the server to refresh
-// lastActivityAt. Without this, the server-side staleness check (middleware's
-// `authorized` callback) only ever sees a fresh timestamp right after sign-in
-// or an explicit "Stay signed in" click — a plain page load's own
-// getServerSession() call runs inside a Server Component, which the App
-// Router does not let set cookies, so it can't persist the refresh; a
-// client-driven API call can (it runs in a Route Handler), but plenty of
-// navigations don't fire one before the *next* navigation's middleware check
-// runs. Net effect without this ping: a user who is genuinely active (moving
-// the mouse, scrolling, clicking) but hasn't happened to trigger an API call
-// gets signed out well before any real idle time has passed. 60s is safely
-// below any sane inactivity window and keeps the DB ping cheap.
-const SERVER_PING_THROTTLE_MS = 60_000;
+// How often the client proactively re-validates the session with the server
+// while the user is active, refreshing lastActivityAt ahead of time instead
+// of only in reaction to a specific DOM event.
+//
+// An earlier version pinged once per activity event (throttled). That has a
+// race: a click that is both "activity" and a page navigation fires the ping
+// and the navigation's own request at the same instant, and the navigation's
+// server-side staleness check (proxy.ts's `authorized` callback) reads
+// whatever cookie the browser already has — which is almost always still
+// stale, since the ping's Set-Cookie response hasn't landed yet. A user who
+// pauses to read or fill out a field for longer than the throttle window,
+// then clicks a nav link, got signed out by the very click that proved they
+// were still there.
+//
+// Running this as a standing interval instead — independent of any specific
+// click — means the server-side timestamp is never more than one interval
+// stale by the time a later navigation happens, instead of racing it. Capped
+// at 60s (same DB-load budget as the previous per-event throttle) and
+// floored at 5s so an unusually short configured inactivity window still
+// gets several refreshes before it could lapse.
+const HEARTBEAT_MAX_MS = 60_000;
+const HEARTBEAT_MIN_MS = 5_000;
+const HEARTBEAT_DIVISOR = 4;
+
+function heartbeatIntervalFor(idleMs: number): number {
+  return Math.min(HEARTBEAT_MAX_MS, Math.max(HEARTBEAT_MIN_MS, Math.floor(idleMs / HEARTBEAT_DIVISOR)));
+}
 
 function formatCountdown(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -50,18 +64,37 @@ export function IdleSessionGuard({
   const [isExtending, setIsExtending] = useState(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const warningActiveRef = useRef(false);
-  const lastServerPingRef = useRef(0);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+    heartbeatIntervalRef.current = null;
+  }, []);
+
+  // Idempotent: safe to call from every activity event without restarting
+  // (and re-delaying) an already-running heartbeat.
+  const startHeartbeat = useCallback(() => {
+    if (heartbeatIntervalRef.current) return;
+    heartbeatIntervalRef.current = setInterval(() => {
+      void getSession();
+    }, heartbeatIntervalFor(idleMs));
+  }, [idleMs]);
 
   const clearTimers = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-  }, []);
+    stopHeartbeat();
+  }, [stopHeartbeat]);
 
   const startIdleTimer = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => {
       warningActiveRef.current = true;
+      // Once the warning is up, an unattended session shouldn't keep
+      // silently refreshing itself in the background — only an explicit
+      // "Stay signed in" (below) should extend it from here.
+      stopHeartbeat();
       let remaining = Math.max(1, Math.round(warningMs / 1000));
       setSecondsLeft(remaining);
       countdownIntervalRef.current = setInterval(() => {
@@ -74,7 +107,7 @@ export function IdleSessionGuard({
         setSecondsLeft(remaining);
       }, 1000);
     }, idleMs);
-  }, [idleMs, warningMs, clearTimers]);
+  }, [idleMs, warningMs, clearTimers, stopHeartbeat]);
 
   const handleStaySignedIn = useCallback(async () => {
     setIsExtending(true);
@@ -92,10 +125,11 @@ export function IdleSessionGuard({
       setSecondsLeft(null);
       clearTimers();
       startIdleTimer();
+      startHeartbeat();
     } finally {
       setIsExtending(false);
     }
-  }, [clearTimers, startIdleTimer]);
+  }, [clearTimers, startIdleTimer, startHeartbeat]);
 
   useEffect(() => {
     if (!idleMs || idleMs <= 0) return;
@@ -103,19 +137,21 @@ export function IdleSessionGuard({
     function handleActivity() {
       if (warningActiveRef.current) return;
       startIdleTimer();
-      const now = Date.now();
-      if (now - lastServerPingRef.current < SERVER_PING_THROTTLE_MS) return;
-      lastServerPingRef.current = now;
-      void getSession();
+      startHeartbeat();
     }
 
+    // Loading this page at all is itself evidence of recent activity, so
+    // both timers start immediately rather than waiting for a first DOM
+    // event — matching the pre-existing idle-timer behavior (a page left
+    // completely untouched after load still warns after idleMs).
     startIdleTimer();
+    startHeartbeat();
     for (const event of ACTIVITY_EVENTS) window.addEventListener(event, handleActivity, { passive: true });
     return () => {
       clearTimers();
       for (const event of ACTIVITY_EVENTS) window.removeEventListener(event, handleActivity);
     };
-  }, [idleMs, startIdleTimer, clearTimers]);
+  }, [idleMs, startIdleTimer, startHeartbeat, clearTimers]);
 
   if (secondsLeft === null) return null;
 
