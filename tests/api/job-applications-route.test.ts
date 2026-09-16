@@ -2,9 +2,9 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Session } from "next-auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import { JobApplicationModel } from "@/repositories/models/job-application-model";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import { DEFAULT_APPLICATION_STAGE_NAME } from "@/schemas/job-application";
-import { RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
+import { RECRUITMENT_STAGE_CATEGORY } from "@/types/catalog";
 import type { Role } from "@/types/user";
 
 // See tests/api/employees-route.test.ts for why mocking next-auth's
@@ -45,8 +45,8 @@ function validApplicationInput(overrides: Record<string, unknown> = {}) {
 beforeEach(async () => {
   await connectMongoDB();
   await JobApplicationModel.deleteMany({});
-  await SettingModel.deleteMany({ kind: "status", category: RECRUITMENT_STAGE_CATEGORY });
-  await SettingModel.create({
+  await CatalogModel.deleteMany({ kind: "status", category: RECRUITMENT_STAGE_CATEGORY });
+  await CatalogModel.create({
     kind: "status",
     category: RECRUITMENT_STAGE_CATEGORY,
     name: DEFAULT_APPLICATION_STAGE_NAME,
@@ -55,7 +55,7 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await JobApplicationModel.deleteMany({});
-  await SettingModel.deleteMany({ kind: "status", category: RECRUITMENT_STAGE_CATEGORY });
+  await CatalogModel.deleteMany({ kind: "status", category: RECRUITMENT_STAGE_CATEGORY });
 });
 
 describe("GET /api/v1/job-applications", () => {
@@ -141,7 +141,7 @@ describe("PATCH /api/v1/job-applications/[id]/stage", () => {
       jsonRequest("http://localhost/api/v1/job-applications", "POST", validApplicationInput()),
     );
     const id = (await created.json()).id as string;
-    const otherStage = await SettingModel.create({
+    const otherStage = await CatalogModel.create({
       kind: "status",
       category: RECRUITMENT_STAGE_CATEGORY,
       name: "Interview",

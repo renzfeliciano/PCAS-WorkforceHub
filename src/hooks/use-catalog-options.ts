@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { settingsClient } from "@/features/settings/api/settings-client";
+import { catalogClient } from "@/features/settings/api/catalog-client";
 import { createRequestCache } from "@/lib/request-cache";
-import type { SettingItem, SettingKind } from "@/types/settings";
+import type { CatalogItem, CatalogKind } from "@/types/catalog";
 
 const CACHE_TTL_MS = 60_000;
-const cache = createRequestCache<{ items: SettingItem[] }>(CACHE_TTL_MS);
+const cache = createRequestCache<{ items: CatalogItem[] }>(CACHE_TTL_MS);
 
-function fetchCatalog(kind: SettingKind, category?: string) {
-  return cache.get(`${kind}:${category ?? ""}`, () => settingsClient.list({ kind, category }));
+function fetchCatalog(kind: CatalogKind, category?: string) {
+  return cache.get(`${kind}:${category ?? ""}`, () => catalogClient.list({ kind, category }));
 }
 
-export function useCatalogOptions(kind: SettingKind, category?: string) {
-  const [items, setItems] = useState<SettingItem[]>([]);
+export function useCatalogOptions(kind: CatalogKind, category?: string) {
+  const [items, setItems] = useState<CatalogItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

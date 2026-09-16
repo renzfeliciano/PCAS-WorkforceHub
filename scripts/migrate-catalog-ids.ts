@@ -19,12 +19,12 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { EmployeeModel } from "@/repositories/models/employee-model";
 import { EventModel } from "@/repositories/models/event-model";
 import { JobApplicationModel } from "@/repositories/models/job-application-model";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import {
   EMPLOYMENT_STATUS_CATEGORY,
   EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
-} from "@/types/settings";
+} from "@/types/catalog";
 
 config({ path: ".env.local", override: true });
 config({ path: ".env" });
@@ -46,12 +46,12 @@ async function findOrCreateCatalogId(
 ): Promise<string> {
   if (cache.has(name)) return cache.get(name)!;
   const query = { kind, name, ...(category ? { category } : {}) };
-  const existing = await SettingModel.findOne(query).lean<{ _id: mongoose.Types.ObjectId } | null>();
+  const existing = await CatalogModel.findOne(query).lean<{ _id: mongoose.Types.ObjectId } | null>();
   const id = existing
     ? existing._id.toString()
     : await (async () => {
         console.warn(`No existing "${kind}" catalog entry named "${name}" — creating one so no data is lost.`);
-        const created = await SettingModel.create({ ...query, active: true });
+        const created = await CatalogModel.create({ ...query, active: true });
         return created._id.toString();
       })();
   cache.set(name, id);

@@ -5,7 +5,7 @@ import { ConflictError } from "@/lib/app-errors";
 import { MongoUserRepository } from "@/repositories/user-repository";
 import { UserModel } from "@/repositories/models/user-model";
 import { EmployeeModel } from "@/repositories/models/employee-model";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import type { CreateUserInput } from "@/schemas/user";
 
 const repository = new MongoUserRepository();
@@ -30,13 +30,13 @@ beforeAll(async () => {
 beforeEach(async () => {
   await UserModel.deleteMany({});
   await EmployeeModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 afterAll(async () => {
   await UserModel.deleteMany({});
   await EmployeeModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 function makeEmployee(overrides: Partial<Record<string, unknown>> = {}) {
@@ -210,9 +210,9 @@ describe("MongoUserRepository.findAll", () => {
     expect(inactiveOnly.items.map((u) => u.id)).toEqual([toDeactivate.id]);
   });
 
-  it("resolves a roster-linked account's position and project via employeeId -> Employee -> Setting.name", async () => {
-    const position = await SettingModel.create({ kind: "position", name: "Building Engineer" });
-    const project = await SettingModel.create({ kind: "project", name: "Sunrise Towers" });
+  it("resolves a roster-linked account's position and project via employeeId -> Employee -> Catalog.name", async () => {
+    const position = await CatalogModel.create({ kind: "position", name: "Building Engineer" });
+    const project = await CatalogModel.create({ kind: "project", name: "Sunrise Towers" });
     const employee = await EmployeeModel.create(
       makeEmployee({ positionId: position._id.toString(), projectSiteId: project._id.toString() }),
     );
@@ -255,8 +255,8 @@ describe("MongoUserRepository.findAll", () => {
   });
 
   it("sorts by the resolved position name", async () => {
-    const posB = await SettingModel.create({ kind: "position", name: "Building Engineer" });
-    const posA = await SettingModel.create({ kind: "position", name: "Admin Aide" });
+    const posB = await CatalogModel.create({ kind: "position", name: "Building Engineer" });
+    const posA = await CatalogModel.create({ kind: "position", name: "Admin Aide" });
     const empB = await EmployeeModel.create(makeEmployee({ positionId: posB._id.toString() }));
     const empA = await EmployeeModel.create(makeEmployee({ positionId: posA._id.toString() }));
     await repository.create(makeInput({ username: "sort-b", employeeId: empB._id.toString() }));
@@ -292,8 +292,8 @@ describe("MongoUserRepository.findAll", () => {
   });
 
   it("sorts by the resolved project name", async () => {
-    const projB = await SettingModel.create({ kind: "project", name: "Sunrise Towers" });
-    const projA = await SettingModel.create({ kind: "project", name: "Ayala Center" });
+    const projB = await CatalogModel.create({ kind: "project", name: "Sunrise Towers" });
+    const projA = await CatalogModel.create({ kind: "project", name: "Ayala Center" });
     const empB = await EmployeeModel.create(makeEmployee({ projectSiteId: projB._id.toString() }));
     const empA = await EmployeeModel.create(makeEmployee({ projectSiteId: projA._id.toString() }));
     await repository.create(makeInput({ username: "proj-b", employeeId: empB._id.toString() }));

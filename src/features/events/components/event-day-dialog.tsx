@@ -11,7 +11,7 @@ import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
 import { eventCategoryTone } from "@/lib/event-category-tone";
-import { EVENT_CATEGORY_CATEGORY } from "@/types/settings";
+import { EVENT_CATEGORY_CATEGORY } from "@/types/catalog";
 import type { EventInput } from "@/schemas/event";
 import type { WorkforceEvent } from "@/types/event";
 

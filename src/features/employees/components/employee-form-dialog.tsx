@@ -21,7 +21,7 @@ import {
   formatSssNumber,
   formatTinNumber,
 } from "@/lib/input-mask";
-import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
+import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/catalog";
 import type { Employee } from "@/types/employee";
 import type { EmployeeInput } from "@/schemas/employee";
 

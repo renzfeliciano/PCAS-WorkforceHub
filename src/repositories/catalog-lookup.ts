@@ -1,5 +1,5 @@
 import { isValidObjectId } from "mongoose";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 
 type CatalogNameDocument = { _id: { toString(): string }; name: string };
 
@@ -13,7 +13,7 @@ type CatalogNameDocument = { _id: { toString(): string }; name: string };
 export async function resolveCatalogNames(ids: readonly string[]): Promise<Map<string, string>> {
   const uniqueValidIds = [...new Set(ids)].filter((id) => isValidObjectId(id));
   if (!uniqueValidIds.length) return new Map();
-  const docs = await SettingModel.find({ _id: { $in: uniqueValidIds } })
+  const docs = await CatalogModel.find({ _id: { $in: uniqueValidIds } })
     .select({ name: 1 })
     .lean<CatalogNameDocument[]>();
   return new Map(docs.map((doc) => [doc._id.toString(), doc.name]));
@@ -34,7 +34,7 @@ export async function resolveCatalogName(id: string): Promise<string> {
 export function lookupCatalogNameStage(idField: string, as: string) {
   return {
     $lookup: {
-      from: SettingModel.collection.name,
+      from: CatalogModel.collection.name,
       let: { catalogId: `$${idField}` },
       pipeline: [
         {

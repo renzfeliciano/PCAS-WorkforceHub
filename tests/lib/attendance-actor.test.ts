@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildAttendanceActor } from "@/lib/attendance-actor";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
-import type { SettingRepository } from "@/repositories/setting-repository";
+import type { CatalogRepository } from "@/repositories/catalog-repository";
 import type { Employee } from "@/types/employee";
-import type { SettingItem } from "@/types/settings";
+import type { CatalogItem } from "@/types/catalog";
 
 function fakeEmployeeRepository(employee: Employee | null): EmployeeRepository {
   return {
@@ -27,10 +27,10 @@ function fakeEmployeeRepository(employee: Employee | null): EmployeeRepository {
   };
 }
 
-function fakeSettingRepository(positions: SettingItem[]): SettingRepository {
+function fakeCatalogRepository(positions: CatalogItem[]): CatalogRepository {
   return {
     findAll: async () => positions,
-    findById: async (id) => positions.find((p) => p.id === id) ?? null,
+    findById: async (id: string) => positions.find((p) => p.id === id) ?? null,
     create: async () => {
       throw new Error("not used");
     },
@@ -62,13 +62,14 @@ function makeEmployee(overrides: Partial<Employee> = {}): Employee {
   };
 }
 
-function makePosition(overrides: Partial<SettingItem> = {}): SettingItem {
+function makePosition(overrides: Partial<CatalogItem> = {}): CatalogItem {
   return {
     id: "pos-1",
     name: "Building Administrator/Property Manager",
     kind: "position",
     active: true,
     grantsAttendanceSelfService: true,
+    countsAsActiveEmployment: true,
     ...overrides,
   };
 }
@@ -77,7 +78,7 @@ describe("buildAttendanceActor", () => {
   it("does not resolve hasAttendanceSelfService for Admin/HR (they bypass ownership checks anyway)", async () => {
     const repositories = {
       employeeRepository: fakeEmployeeRepository(makeEmployee()),
-      settingRepository: fakeSettingRepository([makePosition()]),
+      catalogRepository: fakeCatalogRepository([makePosition()]),
     };
     const actor = await buildAttendanceActor(
       repositories,
@@ -90,7 +91,7 @@ describe("buildAttendanceActor", () => {
   it("does not resolve hasAttendanceSelfService for Manager, even with a granting position", async () => {
     const repositories = {
       employeeRepository: fakeEmployeeRepository(makeEmployee()),
-      settingRepository: fakeSettingRepository([makePosition()]),
+      catalogRepository: fakeCatalogRepository([makePosition()]),
     };
     const actor = await buildAttendanceActor(
       repositories,
@@ -103,7 +104,7 @@ describe("buildAttendanceActor", () => {
   it("resolves true for an Employee whose position grants attendance self-service", async () => {
     const repositories = {
       employeeRepository: fakeEmployeeRepository(makeEmployee({ positionId: "pos-1" })),
-      settingRepository: fakeSettingRepository([
+      catalogRepository: fakeCatalogRepository([
         makePosition({ id: "pos-1", grantsAttendanceSelfService: true }),
       ]),
     };
@@ -120,7 +121,7 @@ describe("buildAttendanceActor", () => {
   it("resolves true for a *different* position that also grants the flag — not tied to one fixed position", async () => {
     const repositories = {
       employeeRepository: fakeEmployeeRepository(makeEmployee({ positionId: "pos-2" })),
-      settingRepository: fakeSettingRepository([
+      catalogRepository: fakeCatalogRepository([
         makePosition({ id: "pos-1", name: "Building Administrator/Property Manager", grantsAttendanceSelfService: true }),
         makePosition({ id: "pos-2", name: "Site Supervisor", grantsAttendanceSelfService: true }),
       ]),
@@ -136,7 +137,7 @@ describe("buildAttendanceActor", () => {
   it("resolves false for a position that does not grant the flag", async () => {
     const repositories = {
       employeeRepository: fakeEmployeeRepository(makeEmployee({ positionId: "pos-3" })),
-      settingRepository: fakeSettingRepository([
+      catalogRepository: fakeCatalogRepository([
         makePosition({ id: "pos-3", name: "Front Desk Staff", grantsAttendanceSelfService: false }),
       ]),
     };
@@ -151,7 +152,7 @@ describe("buildAttendanceActor", () => {
   it("stops granting the exception the moment the position's flag is turned off — not cached", async () => {
     const repositories = {
       employeeRepository: fakeEmployeeRepository(makeEmployee({ positionId: "pos-1" })),
-      settingRepository: fakeSettingRepository([
+      catalogRepository: fakeCatalogRepository([
         makePosition({ id: "pos-1", grantsAttendanceSelfService: false }),
       ]),
     };
@@ -166,7 +167,7 @@ describe("buildAttendanceActor", () => {
   it("resolves false for an Employee with no linked employee record", async () => {
     const repositories = {
       employeeRepository: fakeEmployeeRepository(null),
-      settingRepository: fakeSettingRepository([]),
+      catalogRepository: fakeCatalogRepository([]),
     };
     const actor = await buildAttendanceActor(
       repositories,

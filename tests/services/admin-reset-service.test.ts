@@ -3,13 +3,13 @@ import { ForbiddenActionError } from "@/lib/app-errors";
 import { resetWorkspaceData } from "@/services/admin-reset-service";
 import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { LeaveTypeRepository } from "@/repositories/leave-type-repository";
-import type { SettingRepository } from "@/repositories/setting-repository";
+import type { CatalogRepository } from "@/repositories/catalog-repository";
 import { adminActor, hrActor, noopAudit } from "../test-utils";
 
 function fakeRepositories() {
   return {
     employeeRepository: { deleteAll: vi.fn(async () => {}) } as unknown as EmployeeRepository,
-    settingRepository: { deleteAll: vi.fn(async () => {}) } as unknown as SettingRepository,
+    catalogRepository: { deleteAll: vi.fn(async () => {}) } as unknown as CatalogRepository,
     leaveTypeRepository: { deleteAll: vi.fn(async () => {}) } as unknown as LeaveTypeRepository,
   };
 }
@@ -30,7 +30,7 @@ describe("resetWorkspaceData", () => {
     const repos = fakeRepositories();
     await resetWorkspaceData(repos, noopAudit, adminActor);
     expect(repos.employeeRepository.deleteAll).toHaveBeenCalled();
-    expect(repos.settingRepository.deleteAll).toHaveBeenCalled();
+    expect(repos.catalogRepository.deleteAll).toHaveBeenCalled();
     expect(repos.leaveTypeRepository.deleteAll).toHaveBeenCalled();
   });
 });

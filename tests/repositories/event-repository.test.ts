@@ -2,13 +2,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectMongoDB } from "@/lib/mongodb";
 import { NotFoundError } from "@/lib/app-errors";
 import { MongoEventRepository } from "@/repositories/event-repository";
-import { MongoSettingRepository } from "@/repositories/setting-repository";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
 import { EventModel } from "@/repositories/models/event-model";
-import { EVENT_CATEGORY_CATEGORY } from "@/types/settings";
+import { EVENT_CATEGORY_CATEGORY } from "@/types/catalog";
 import type { EventPatch } from "@/repositories/event-repository";
 
 const repository = new MongoEventRepository();
-const settings = new MongoSettingRepository();
+const settings = new MongoCatalogRepository();
 
 beforeAll(async () => {
   await connectMongoDB();

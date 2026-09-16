@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-export const settingKindSchema = z.enum(["position", "project", "status"]);
-export const settingItemSchema = z.object({
+export const catalogKindSchema = z.enum(["position", "project", "status"]);
+export const catalogItemSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  kind: settingKindSchema,
+  kind: catalogKindSchema,
   category: z.string().trim().min(1).max(60).optional(),
   description: z.string().trim().max(160).optional(),
   active: z.boolean().default(true),
@@ -12,20 +12,24 @@ export const settingItemSchema = z.object({
   // Optional (not .default()) so every other caller/fixture is unaffected;
   // an omitted key falls through to the model's own schema default.
   grantsAttendanceSelfService: z.boolean().optional(),
+  // Only meaningful for kind "status" + category "employment" — same
+  // optional/unused-elsewhere convention as grantsAttendanceSelfService above.
+  countsAsActiveEmployment: z.boolean().optional(),
 });
-export const createSettingSchema = settingItemSchema
+export const createCatalogSchema = catalogItemSchema
   .omit({ active: true })
   .refine((value) => value.kind !== "status" || Boolean(value.category), {
     message: "Category is required for status entries",
     path: ["category"],
   });
-export const updateSettingSchema = z.object({
+export const updateCatalogSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   category: z.string().trim().min(1).max(60).optional(),
   description: z.string().trim().max(160).optional(),
   active: z.boolean().optional(),
   grantsAttendanceSelfService: z.boolean().optional(),
+  countsAsActiveEmployment: z.boolean().optional(),
 });
-export type SettingItemInput = z.infer<typeof settingItemSchema>;
-export type CreateSettingInput = z.infer<typeof createSettingSchema>;
-export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;
+export type CatalogItemInput = z.infer<typeof catalogItemSchema>;
+export type CreateCatalogInput = z.infer<typeof createCatalogSchema>;
+export type UpdateCatalogInput = z.infer<typeof updateCatalogSchema>;

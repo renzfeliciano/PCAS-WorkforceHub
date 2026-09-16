@@ -3,7 +3,7 @@ import type { Session } from "next-auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import { AttendanceRecordModel } from "@/repositories/models/attendance-record-model";
 import { EmployeeModel } from "@/repositories/models/employee-model";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import type { Role } from "@/types/user";
 
 // See tests/api/employees-route.test.ts for why mocking next-auth's
@@ -44,7 +44,7 @@ async function makeEmployee(positionId = "pos-1", projectSiteId = "proj-1") {
 }
 
 async function makeBuildingAdministratorPosition() {
-  const doc = await SettingModel.create({
+  const doc = await CatalogModel.create({
     kind: "position",
     name: "Building Administrator/Property Manager",
     active: true,
@@ -57,13 +57,13 @@ beforeEach(async () => {
   await connectMongoDB();
   await AttendanceRecordModel.deleteMany({});
   await EmployeeModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 afterAll(async () => {
   await AttendanceRecordModel.deleteMany({});
   await EmployeeModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 describe("GET/POST /api/v1/employees/[id]/attendance", () => {

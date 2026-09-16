@@ -18,7 +18,7 @@ import { CaseRecordTable } from "@/features/case-monitoring/components/case-reco
 import { CaseRecordFormDialog } from "@/features/case-monitoring/components/case-record-form-dialog";
 import { CaseRecordPrintReport } from "@/features/case-monitoring/components/case-record-print-report";
 import { exportCaseRecordsCsv } from "@/features/case-monitoring/utils/export-csv";
-import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/settings";
+import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/catalog";
 import type { CaseRecord } from "@/types/case-record";
 
 const DEFAULT_PAGE_SIZE = 20;

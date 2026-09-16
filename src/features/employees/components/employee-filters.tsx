@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import type { SettingItem } from "@/types/settings";
+import type { CatalogItem } from "@/types/catalog";
 
 type EmployeeFiltersProps = Readonly<{
   query: string;
@@ -14,8 +14,8 @@ type EmployeeFiltersProps = Readonly<{
   onSelectedProjectIdChange: (value: string) => void;
   showArchived: boolean;
   onShowArchivedChange: (value: boolean) => void;
-  statuses: SettingItem[];
-  projects: SettingItem[];
+  statuses: CatalogItem[];
+  projects: CatalogItem[];
   canManage: boolean;
   /** Admin/HR can browse every project; everyone else is already scoped server-side to their own, so the picker would be misleading. */
   canViewAllProjects: boolean;

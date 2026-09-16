@@ -10,7 +10,7 @@ import { RemarksField } from "@/components/ui/remarks-field";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
 import { ApiRequestError } from "@/lib/api-client";
-import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/settings";
+import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/catalog";
 import type { CaseRecordInput } from "@/schemas/case-record";
 import type { CaseRecord } from "@/types/case-record";
 

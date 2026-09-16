@@ -6,10 +6,10 @@ import {
   seedAttendanceStatuses,
   seedCaseClassifications,
   seedCaseStatuses,
+  seedCatalogEntries,
   seedEventCategories,
   seedRecruitmentStages,
-  seedSettingsCatalog,
-} from "@/services/settings-seed-service";
+} from "@/services/catalog-seed-service";
 import { canEditCatalog } from "@/lib/rbac";
 import {
   ATTENDANCE_STATUS_CATEGORY,
@@ -17,8 +17,8 @@ import {
   CASE_STATUS_CATEGORY,
   EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
-} from "@/types/settings";
-import type { SettingKind } from "@/types/settings";
+} from "@/types/catalog";
+import type { CatalogKind } from "@/types/catalog";
 import { checkApiRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 import {
   isAttendanceStatusSeedingEnabled,
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       { status: 403, headers },
     );
   const body = (await request.json().catch(() => ({}))) as {
-    kind?: SettingKind;
+    kind?: CatalogKind;
     category?: string;
   };
   const kind = body.kind;
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
       { status: 403, headers },
     );
   await connectMongoDB();
-  const result = await seedSettingsCatalog([kind]);
+  const result = await seedCatalogEntries([kind]);
   return NextResponse.json(
     { inserted: result.upsertedCount, kind, requestId },
     { headers },

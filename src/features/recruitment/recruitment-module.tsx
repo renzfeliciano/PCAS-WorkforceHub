@@ -19,7 +19,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useCurrentUser } from "@/context/current-user-context";
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { canManageRecruitment } from "@/lib/rbac";
-import { RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
+import { RECRUITMENT_STAGE_CATEGORY } from "@/types/catalog";
 import { useJobApplicationsStore } from "@/features/recruitment/store/job-applications-store";
 import { ApplicationCard, ApplicationCardOverlay } from "@/features/recruitment/components/application-card";
 import { ApplicationFormDialog } from "@/features/recruitment/components/application-form-dialog";

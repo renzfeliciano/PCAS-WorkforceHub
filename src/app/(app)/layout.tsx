@@ -6,7 +6,7 @@ import { canAccessWorkspace } from "@/lib/rbac";
 import { buildAttendanceActor } from "@/lib/attendance-actor";
 import { connectMongoDB } from "@/lib/mongodb";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
-import { MongoSettingRepository } from "@/repositories/setting-repository";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
 import { CurrentUserProvider } from "@/context/current-user-context";
 import { SessionProvider } from "@/context/session-provider";
 import { ConcurrentSessionGuard } from "@/context/concurrent-session-guard";
@@ -15,7 +15,7 @@ import { WorkspaceLayout } from "@/components/layout/workspace-layout";
 import { parseDurationMs } from "@/lib/duration";
 
 const employeeRepository = new MongoEmployeeRepository();
-const settingRepository = new MongoSettingRepository();
+const catalogRepository = new MongoCatalogRepository();
 
 export default async function AppLayout({
   children,
@@ -26,7 +26,7 @@ export default async function AppLayout({
 
   await connectMongoDB();
   const actorContext = await buildAttendanceActor(
-    { employeeRepository, settingRepository },
+    { employeeRepository, catalogRepository },
     session.user,
     crypto.randomUUID(),
   );

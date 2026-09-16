@@ -1,13 +1,13 @@
-import type { SettingKind } from "@/types/settings";
+import type { CatalogKind } from "@/types/catalog";
 
-const flagNames: Record<SettingKind, string> = {
+const flagNames: Record<CatalogKind, string> = {
   position: "ENABLE_POSITIONS_SEEDING",
   project: "ENABLE_PROJECTS_SEEDING",
   status: "ENABLE_STATUSES_SEEDING",
 };
 
 export function isSeedingEnabled(
-  kind: SettingKind,
+  kind: CatalogKind,
   env: NodeJS.ProcessEnv = process.env,
 ) {
   return env[flagNames[kind]] === "true";

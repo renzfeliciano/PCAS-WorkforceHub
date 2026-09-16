@@ -2,11 +2,11 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { isGuardError, requireApiSession } from "@/lib/api-guard";
 import { apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
-import { settingKindSchema } from "@/schemas/settings";
-import { MongoSettingRepository } from "@/repositories/setting-repository";
-import { createSetting, listSettings } from "@/services/settings-service";
+import { catalogKindSchema } from "@/schemas/catalog";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
+import { createCatalogEntry, listCatalogEntries } from "@/services/catalog-service";
 
-const repository = new MongoSettingRepository();
+const repository = new MongoCatalogRepository();
 
 export async function GET(request: Request) {
   const guard = await requireApiSession(request);
@@ -14,12 +14,12 @@ export async function GET(request: Request) {
   const { requestId, headers } = guard;
   const searchParams = new URL(request.url).searchParams;
   const kindParam = searchParams.get("kind");
-  const kindResult = kindParam ? settingKindSchema.safeParse(kindParam) : undefined;
+  const kindResult = kindParam ? catalogKindSchema.safeParse(kindParam) : undefined;
   if (kindParam && !kindResult?.success)
     return mapServiceError(kindResult!.error, requestId, headers);
   try {
     await connectMongoDB();
-    const items = await listSettings(repository, {
+    const items = await listCatalogEntries(repository, {
       kind: kindResult?.data,
       category: searchParams.get("category") ?? undefined,
     });
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   try {
     await connectMongoDB();
-    const item = await createSetting(
+    const item = await createCatalogEntry(
       repository,
       auditLogger,
       { role: session.user.role, id: session.user.id, requestId },

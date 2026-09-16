@@ -4,12 +4,12 @@ import { apiError, apiJson, mapServiceError } from "@/lib/api-response";
 import { auditLogger } from "@/lib/audit-logger";
 import { isDataResetEnabled } from "@/lib/seed-flags";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
-import { MongoSettingRepository } from "@/repositories/setting-repository";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
 import { MongoLeaveTypeRepository } from "@/repositories/leave-type-repository";
 import { resetWorkspaceData } from "@/services/admin-reset-service";
 
 const employeeRepository = new MongoEmployeeRepository();
-const settingRepository = new MongoSettingRepository();
+const catalogRepository = new MongoCatalogRepository();
 const leaveTypeRepository = new MongoLeaveTypeRepository();
 
 export async function POST(request: Request) {
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   try {
     await connectMongoDB();
     await resetWorkspaceData(
-      { employeeRepository, settingRepository, leaveTypeRepository },
+      { employeeRepository, catalogRepository, leaveTypeRepository },
       auditLogger,
       { role: session.user.role, id: session.user.id, requestId },
     );

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Session } from "next-auth";
 import { connectMongoDB } from "@/lib/mongodb";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import type { Role } from "@/types/user";
 
 // See tests/api/employees-route.test.ts for why mocking next-auth's
@@ -18,9 +18,9 @@ function sessionFor(role: Role): Session {
   } as Session;
 }
 
-const { GET, POST } = await import("@/app/api/v1/settings/route");
-const { PATCH, DELETE } = await import("@/app/api/v1/settings/[id]/route");
-const { POST: SEED } = await import("@/app/api/v1/settings/seed/route");
+const { GET, POST } = await import("@/app/api/v1/catalogs/route");
+const { PATCH, DELETE } = await import("@/app/api/v1/catalogs/[id]/route");
+const { POST: SEED } = await import("@/app/api/v1/catalogs/seed/route");
 
 function jsonRequest(url: string, method: string, body?: unknown) {
   return new Request(url, {
@@ -38,7 +38,7 @@ const originalSeedFlag = process.env.ENABLE_POSITIONS_SEEDING;
 
 beforeEach(async () => {
   await connectMongoDB();
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 afterEach(() => {
@@ -47,55 +47,55 @@ afterEach(() => {
 });
 
 afterAll(async () => {
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
-describe("GET /api/v1/settings", () => {
+describe("GET /api/v1/catalogs", () => {
   it("returns 401 when there is no session", async () => {
     getServerSessionMock.mockResolvedValue(null);
-    const response = await GET(jsonRequest("http://localhost/api/v1/settings", "GET"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/catalogs", "GET"));
     expect(response.status).toBe(401);
   });
 
   it("returns 400 for an invalid kind filter", async () => {
     getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
-    const response = await GET(jsonRequest("http://localhost/api/v1/settings?kind=bogus", "GET"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/catalogs?kind=bogus", "GET"));
     expect(response.status).toBe(400);
   });
 
-  it("lists settings for any authenticated role", async () => {
+  it("lists catalog entries for any authenticated role", async () => {
     getServerSessionMock.mockResolvedValue(sessionFor("Admin"));
-    await POST(jsonRequest("http://localhost/api/v1/settings", "POST", validPositionInput()));
+    await POST(jsonRequest("http://localhost/api/v1/catalogs", "POST", validPositionInput()));
 
     getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
-    const response = await GET(jsonRequest("http://localhost/api/v1/settings?kind=position", "GET"));
+    const response = await GET(jsonRequest("http://localhost/api/v1/catalogs?kind=position", "GET"));
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.items).toHaveLength(1);
   });
 });
 
-describe("POST /api/v1/settings", () => {
-  it("returns 403 for a role that cannot manage settings", async () => {
+describe("POST /api/v1/catalogs", () => {
+  it("returns 403 for a role that cannot manage catalog entries", async () => {
     getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
     const response = await POST(
-      jsonRequest("http://localhost/api/v1/settings", "POST", validPositionInput()),
+      jsonRequest("http://localhost/api/v1/catalogs", "POST", validPositionInput()),
     );
     expect(response.status).toBe(403);
   });
 
-  it("creates a setting for HR", async () => {
+  it("creates a catalog entry for HR", async () => {
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     const response = await POST(
-      jsonRequest("http://localhost/api/v1/settings", "POST", validPositionInput()),
+      jsonRequest("http://localhost/api/v1/catalogs", "POST", validPositionInput()),
     );
     expect(response.status).toBe(201);
   });
 
-  it("creates a setting for Admin", async () => {
+  it("creates a catalog entry for Admin", async () => {
     getServerSessionMock.mockResolvedValue(sessionFor("Admin"));
     const response = await POST(
-      jsonRequest("http://localhost/api/v1/settings", "POST", validPositionInput()),
+      jsonRequest("http://localhost/api/v1/catalogs", "POST", validPositionInput()),
     );
     const body = await response.json();
     expect(response.status).toBe(201);
@@ -103,19 +103,19 @@ describe("POST /api/v1/settings", () => {
   });
 });
 
-describe("PATCH/DELETE /api/v1/settings/[id]", () => {
-  async function seedSetting() {
+describe("PATCH/DELETE /api/v1/catalogs/[id]", () => {
+  async function seedEntry() {
     getServerSessionMock.mockResolvedValue(sessionFor("Admin"));
     const created = await POST(
-      jsonRequest("http://localhost/api/v1/settings", "POST", validPositionInput()),
+      jsonRequest("http://localhost/api/v1/catalogs", "POST", validPositionInput()),
     );
     return (await created.json()).id as string;
   }
 
-  it("deactivates a setting for Admin", async () => {
-    const id = await seedSetting();
+  it("deactivates a catalog entry for Admin", async () => {
+    const id = await seedEntry();
     const response = await PATCH(
-      jsonRequest(`http://localhost/api/v1/settings/${id}`, "PATCH", { active: false }),
+      jsonRequest(`http://localhost/api/v1/catalogs/${id}`, "PATCH", { active: false }),
       { params: Promise.resolve({ id }) },
     );
     const body = await response.json();
@@ -123,43 +123,43 @@ describe("PATCH/DELETE /api/v1/settings/[id]", () => {
     expect(body.active).toBe(false);
   });
 
-  it("updates a setting for HR", async () => {
-    const id = await seedSetting();
+  it("updates a catalog entry for HR", async () => {
+    const id = await seedEntry();
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     const response = await PATCH(
-      jsonRequest(`http://localhost/api/v1/settings/${id}`, "PATCH", { active: false }),
+      jsonRequest(`http://localhost/api/v1/catalogs/${id}`, "PATCH", { active: false }),
       { params: Promise.resolve({ id }) },
     );
     expect(response.status).toBe(200);
   });
 
-  it("deletes a setting for Admin", async () => {
-    const id = await seedSetting();
+  it("deletes a catalog entry for Admin", async () => {
+    const id = await seedEntry();
     const response = await DELETE(
-      jsonRequest(`http://localhost/api/v1/settings/${id}`, "DELETE"),
+      jsonRequest(`http://localhost/api/v1/catalogs/${id}`, "DELETE"),
       { params: Promise.resolve({ id }) },
     );
     expect(response.status).toBe(200);
-    await expect(SettingModel.findById(id)).resolves.toBeNull();
+    await expect(CatalogModel.findById(id)).resolves.toBeNull();
   });
 
-  it("returns 403 when HR tries to delete a setting", async () => {
-    const id = await seedSetting();
+  it("returns 403 when HR tries to delete a catalog entry", async () => {
+    const id = await seedEntry();
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     const response = await DELETE(
-      jsonRequest(`http://localhost/api/v1/settings/${id}`, "DELETE"),
+      jsonRequest(`http://localhost/api/v1/catalogs/${id}`, "DELETE"),
       { params: Promise.resolve({ id }) },
     );
     expect(response.status).toBe(403);
   });
 });
 
-describe("POST /api/v1/settings/seed", () => {
+describe("POST /api/v1/catalogs/seed", () => {
   it("returns 403 when seeding is disabled for the requested kind", async () => {
     delete process.env.ENABLE_POSITIONS_SEEDING;
     getServerSessionMock.mockResolvedValue(sessionFor("Admin"));
     const response = await SEED(
-      jsonRequest("http://localhost/api/v1/settings/seed", "POST", { kind: "position" }),
+      jsonRequest("http://localhost/api/v1/catalogs/seed", "POST", { kind: "position" }),
     );
     const body = await response.json();
     expect(response.status).toBe(403);
@@ -170,7 +170,7 @@ describe("POST /api/v1/settings/seed", () => {
     process.env.ENABLE_POSITIONS_SEEDING = "true";
     getServerSessionMock.mockResolvedValue(sessionFor("Employee"));
     const response = await SEED(
-      jsonRequest("http://localhost/api/v1/settings/seed", "POST", { kind: "position" }),
+      jsonRequest("http://localhost/api/v1/catalogs/seed", "POST", { kind: "position" }),
     );
     expect(response.status).toBe(403);
   });
@@ -179,7 +179,7 @@ describe("POST /api/v1/settings/seed", () => {
     process.env.ENABLE_POSITIONS_SEEDING = "true";
     getServerSessionMock.mockResolvedValue(sessionFor("HR"));
     const response = await SEED(
-      jsonRequest("http://localhost/api/v1/settings/seed", "POST", { kind: "position" }),
+      jsonRequest("http://localhost/api/v1/catalogs/seed", "POST", { kind: "position" }),
     );
     const body = await response.json();
     expect(response.status).toBe(200);
@@ -190,7 +190,7 @@ describe("POST /api/v1/settings/seed", () => {
     process.env.ENABLE_POSITIONS_SEEDING = "true";
     getServerSessionMock.mockResolvedValue(sessionFor("Admin"));
     const response = await SEED(
-      jsonRequest("http://localhost/api/v1/settings/seed", "POST", { kind: "position" }),
+      jsonRequest("http://localhost/api/v1/catalogs/seed", "POST", { kind: "position" }),
     );
     const body = await response.json();
     expect(response.status).toBe(200);

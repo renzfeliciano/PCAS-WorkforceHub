@@ -1,5 +1,5 @@
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import type { SettingItem } from "@/types/settings";
+import type { CatalogItem } from "@/types/catalog";
 
 export function DeleteSettingDialog({
   item,
@@ -7,7 +7,7 @@ export function DeleteSettingDialog({
   onConfirm,
   onDeactivate,
 }: Readonly<{
-  item: SettingItem;
+  item: CatalogItem;
   onClose: () => void;
   onConfirm: () => Promise<void>;
   onDeactivate?: () => Promise<void>;

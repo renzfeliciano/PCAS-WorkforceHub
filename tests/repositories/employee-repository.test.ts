@@ -3,11 +3,11 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { ConflictError } from "@/lib/app-errors";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
 import { EmployeeModel } from "@/repositories/models/employee-model";
-import { MongoSettingRepository } from "@/repositories/setting-repository";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
 import type { EmployeeInput } from "@/schemas/employee";
 
 const repository = new MongoEmployeeRepository();
-const settings = new MongoSettingRepository();
+const settings = new MongoCatalogRepository();
 
 beforeAll(async () => {
   // connectMongoDB() itself now guarantees every model's indexes (including

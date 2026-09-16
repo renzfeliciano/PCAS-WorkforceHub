@@ -1,4 +1,4 @@
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import {
   attendanceStatusCatalog,
   caseClassificationCatalog,
@@ -14,30 +14,30 @@ import {
   EMPLOYMENT_STATUS_CATEGORY,
   EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
-} from "@/types/settings";
-import type { SettingKind } from "@/types/settings";
+} from "@/types/catalog";
+import type { CatalogKind } from "@/types/catalog";
 
-type SeedRecord = { name: string; kind: SettingKind; category?: string; sortOrder: number };
+type SeedRecord = { name: string; kind: CatalogKind; category?: string; sortOrder: number };
 
-function upsertSettings(records: SeedRecord[]) {
+function upsertCatalogEntries(records: SeedRecord[]) {
   const operations = records.map((record) => {
-    const { sortOrder, ...setting } = record;
+    const { sortOrder, ...entry } = record;
     return {
       updateOne: {
-        filter: setting,
+        filter: entry,
         update: {
           $set: { sortOrder },
-          $setOnInsert: { ...setting, active: true },
+          $setOnInsert: { ...entry, active: true },
         },
         upsert: true,
       },
     };
   });
-  return SettingModel.bulkWrite(operations, { ordered: false });
+  return CatalogModel.bulkWrite(operations, { ordered: false });
 }
 
-export async function seedSettingsCatalog(
-  kinds: readonly SettingKind[] = ["position", "project", "status"],
+export async function seedCatalogEntries(
+  kinds: readonly CatalogKind[] = ["position", "project", "status"],
 ) {
   const records = kinds.flatMap((kind) =>
     seedCatalog[kind].map((name, sortOrder) => ({
@@ -47,7 +47,7 @@ export async function seedSettingsCatalog(
       ...(kind === "status" ? { category: EMPLOYMENT_STATUS_CATEGORY } : {}),
     })),
   );
-  return upsertSettings(records);
+  return upsertCatalogEntries(records);
 }
 
 export async function seedAttendanceStatuses() {
@@ -57,7 +57,7 @@ export async function seedAttendanceStatuses() {
     category: ATTENDANCE_STATUS_CATEGORY,
     sortOrder,
   }));
-  return upsertSettings(records);
+  return upsertCatalogEntries(records);
 }
 
 export async function seedRecruitmentStages() {
@@ -67,7 +67,7 @@ export async function seedRecruitmentStages() {
     category: RECRUITMENT_STAGE_CATEGORY,
     sortOrder,
   }));
-  return upsertSettings(records);
+  return upsertCatalogEntries(records);
 }
 
 export async function seedEventCategories() {
@@ -77,7 +77,7 @@ export async function seedEventCategories() {
     category: EVENT_CATEGORY_CATEGORY,
     sortOrder,
   }));
-  return upsertSettings(records);
+  return upsertCatalogEntries(records);
 }
 
 export async function seedCaseClassifications() {
@@ -87,7 +87,7 @@ export async function seedCaseClassifications() {
     category: CASE_CLASSIFICATION_CATEGORY,
     sortOrder,
   }));
-  return upsertSettings(records);
+  return upsertCatalogEntries(records);
 }
 
 export async function seedCaseStatuses() {
@@ -97,5 +97,5 @@ export async function seedCaseStatuses() {
     category: CASE_STATUS_CATEGORY,
     sortOrder,
   }));
-  return upsertSettings(records);
+  return upsertCatalogEntries(records);
 }

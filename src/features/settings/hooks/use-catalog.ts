@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { settingsClient } from "@/features/settings/api/settings-client";
+import { catalogClient } from "@/features/settings/api/catalog-client";
 import { createRequestCache } from "@/lib/request-cache";
-import type { CreateSettingInput, UpdateSettingInput } from "@/schemas/settings";
-import type { SettingItem, SettingKind } from "@/types/settings";
+import type { CreateCatalogInput, UpdateCatalogInput } from "@/schemas/catalog";
+import type { CatalogItem, CatalogKind } from "@/types/catalog";
 
 const CACHE_TTL_MS = 15_000;
-const cache = createRequestCache<{ items: SettingItem[] }>(CACHE_TTL_MS);
+const cache = createRequestCache<{ items: CatalogItem[] }>(CACHE_TTL_MS);
 
-export function useSettingsCatalog(initialItems?: SettingItem[]) {
-  const [items, setItems] = useState<SettingItem[]>(initialItems ?? []);
+export function useCatalog(initialItems?: CatalogItem[]) {
+  const [items, setItems] = useState<CatalogItem[]>(initialItems ?? []);
   const [isLoading, setIsLoading] = useState(initialItems === undefined);
   const [error, setError] = useState<string | null>(null);
   const hydrated = useRef(initialItems !== undefined);
@@ -18,7 +18,7 @@ export function useSettingsCatalog(initialItems?: SettingItem[]) {
   const load = useCallback(async () => {
     cache.clear();
     try {
-      const result = await settingsClient.list();
+      const result = await catalogClient.list();
       setItems(result.items);
       setError(null);
     } catch (err) {
@@ -35,7 +35,7 @@ export function useSettingsCatalog(initialItems?: SettingItem[]) {
     }
     let cancelled = false;
     cache
-      .get("settings", () => settingsClient.list())
+      .get("catalog", () => catalogClient.list())
       .then((result) => {
         if (cancelled) return;
         setItems(result.items);
@@ -53,16 +53,16 @@ export function useSettingsCatalog(initialItems?: SettingItem[]) {
   }, []);
 
   const create = useCallback(
-    async (input: CreateSettingInput) => {
-      const item = await settingsClient.create(input);
+    async (input: CreateCatalogInput) => {
+      const item = await catalogClient.create(input);
       await load();
       return item;
     },
     [load],
   );
   const update = useCallback(
-    async (id: string, input: UpdateSettingInput) => {
-      const item = await settingsClient.update(id, input);
+    async (id: string, input: UpdateCatalogInput) => {
+      const item = await catalogClient.update(id, input);
       await load();
       return item;
     },
@@ -70,14 +70,14 @@ export function useSettingsCatalog(initialItems?: SettingItem[]) {
   );
   const remove = useCallback(
     async (id: string) => {
-      await settingsClient.delete(id);
+      await catalogClient.delete(id);
       await load();
     },
     [load],
   );
   const seed = useCallback(
-    async (kind: SettingKind, category?: string) => {
-      await settingsClient.seed(kind, category);
+    async (kind: CatalogKind, category?: string) => {
+      await catalogClient.seed(kind, category);
       await load();
     },
     [load],

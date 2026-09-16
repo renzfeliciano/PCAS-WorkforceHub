@@ -2,8 +2,8 @@ import { isValidObjectId } from "mongoose";
 import { NotFoundError } from "@/lib/app-errors";
 import { resolveCatalogNames } from "@/repositories/catalog-lookup";
 import { CaseRecordModel } from "@/repositories/models/case-record-model";
-import { SettingModel } from "@/repositories/models/setting-model";
-import { CASE_STATUS_CATEGORY } from "@/types/settings";
+import { CatalogModel } from "@/repositories/models/catalog-model";
+import { CASE_STATUS_CATEGORY } from "@/types/catalog";
 import type { CaseRecord } from "@/types/case-record";
 
 const ACTIVE_CASE_DASHBOARD_LIMIT = 5;
@@ -117,7 +117,7 @@ export class MongoCaseRecordRepository implements CaseRecordRepository {
     // gap STANDARDS.md already documents for employmentStatusId's
     // needsEndOfContract check). Renaming "Ongoing" in Catalog Management
     // would silently stop matching here.
-    const ongoingStatus = await SettingModel.findOne({
+    const ongoingStatus = await CatalogModel.findOne({
       kind: "status",
       category: CASE_STATUS_CATEGORY,
       name: "Ongoing",

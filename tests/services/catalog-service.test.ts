@@ -1,22 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { ForbiddenActionError, NotFoundError } from "@/lib/app-errors";
-import { createSetting, deleteSetting, updateSetting } from "@/services/settings-service";
-import type { SettingRepository } from "@/repositories/setting-repository";
-import type { SettingItem } from "@/types/settings";
+import { createCatalogEntry, deleteCatalogEntry, updateCatalogEntry } from "@/services/catalog-service";
+import type { CatalogRepository } from "@/repositories/catalog-repository";
+import type { CatalogItem } from "@/types/catalog";
 import { adminActor, employeeActor, hrActor, noopAudit } from "../test-utils";
 
-function makeSetting(overrides: Partial<SettingItem> = {}): SettingItem {
+function makeSetting(overrides: Partial<CatalogItem> = {}): CatalogItem {
   return {
     id: "setting-1",
     name: "Manila Office",
     kind: "project",
     active: true,
     grantsAttendanceSelfService: false,
+    countsAsActiveEmployment: true,
     ...overrides,
   };
 }
 
-function fakeRepository(seed: SettingItem[] = []): SettingRepository {
+function fakeRepository(seed: CatalogItem[] = []): CatalogRepository {
   const items = new Map(seed.map((s) => [s.id, s]));
   return {
     findAll: async () => [...items.values()],
@@ -43,17 +44,17 @@ function fakeRepository(seed: SettingItem[] = []): SettingRepository {
   };
 }
 
-describe("createSetting", () => {
+describe("createCatalogEntry", () => {
   it("is Admin/HR only — Employee cannot manage catalog settings", async () => {
     const repo = fakeRepository();
     await expect(
-      createSetting(repo, noopAudit, employeeActor, { name: "Manila Office", kind: "project" }),
+      createCatalogEntry(repo, noopAudit, employeeActor, { name: "Manila Office", kind: "project" }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("creates a catalog entry for HR", async () => {
     const repo = fakeRepository();
-    const item = await createSetting(repo, noopAudit, hrActor, {
+    const item = await createCatalogEntry(repo, noopAudit, hrActor, {
       name: "Manila Office",
       kind: "project",
     });
@@ -63,13 +64,13 @@ describe("createSetting", () => {
   it("requires a category for a status-kind entry", async () => {
     const repo = fakeRepository();
     await expect(
-      createSetting(repo, noopAudit, adminActor, { name: "Present", kind: "status" }),
+      createCatalogEntry(repo, noopAudit, adminActor, { name: "Present", kind: "status" }),
     ).rejects.toThrow();
   });
 
   it("creates a position/project entry for Admin without a category", async () => {
     const repo = fakeRepository();
-    const item = await createSetting(repo, noopAudit, adminActor, {
+    const item = await createCatalogEntry(repo, noopAudit, adminActor, {
       name: "Manila Office",
       kind: "project",
     });
@@ -79,7 +80,7 @@ describe("createSetting", () => {
 
   it("creates a status entry for Admin when a category is given", async () => {
     const repo = fakeRepository();
-    const item = await createSetting(repo, noopAudit, adminActor, {
+    const item = await createCatalogEntry(repo, noopAudit, adminActor, {
       name: "Present",
       kind: "status",
       category: "attendance",
@@ -88,44 +89,44 @@ describe("createSetting", () => {
   });
 });
 
-describe("updateSetting", () => {
+describe("updateCatalogEntry", () => {
   it("is Admin/HR only", async () => {
     const repo = fakeRepository([makeSetting()]);
     await expect(
-      updateSetting(repo, noopAudit, employeeActor, "setting-1", { active: false }),
+      updateCatalogEntry(repo, noopAudit, employeeActor, "setting-1", { active: false }),
     ).rejects.toBeInstanceOf(ForbiddenActionError);
   });
 
   it("throws NotFoundError for a missing setting", async () => {
     const repo = fakeRepository([]);
     await expect(
-      updateSetting(repo, noopAudit, adminActor, "missing", { active: false }),
+      updateCatalogEntry(repo, noopAudit, adminActor, "missing", { active: false }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("deactivates a catalog entry for Admin", async () => {
     const repo = fakeRepository([makeSetting()]);
-    const updated = await updateSetting(repo, noopAudit, adminActor, "setting-1", { active: false });
+    const updated = await updateCatalogEntry(repo, noopAudit, adminActor, "setting-1", { active: false });
     expect(updated.active).toBe(false);
   });
 
   it("updates a catalog entry for HR", async () => {
     const repo = fakeRepository([makeSetting()]);
-    const updated = await updateSetting(repo, noopAudit, hrActor, "setting-1", { active: false });
+    const updated = await updateCatalogEntry(repo, noopAudit, hrActor, "setting-1", { active: false });
     expect(updated.active).toBe(false);
   });
 });
 
-describe("deleteSetting", () => {
+describe("deleteCatalogEntry", () => {
   it("is Admin-only", async () => {
     const repo = fakeRepository([makeSetting()]);
-    await expect(deleteSetting(repo, noopAudit, hrActor, "setting-1")).rejects.toBeInstanceOf(
+    await expect(deleteCatalogEntry(repo, noopAudit, hrActor, "setting-1")).rejects.toBeInstanceOf(
       ForbiddenActionError,
     );
   });
 
   it("deletes for Admin", async () => {
     const repo = fakeRepository([makeSetting()]);
-    await expect(deleteSetting(repo, noopAudit, adminActor, "setting-1")).resolves.toBeUndefined();
+    await expect(deleteCatalogEntry(repo, noopAudit, adminActor, "setting-1")).resolves.toBeUndefined();
   });
 });

@@ -3,26 +3,28 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EmployeeFilters } from "@/features/employees/components/employee-filters";
-import type { SettingItem } from "@/types/settings";
+import type { CatalogItem } from "@/types/catalog";
 
-function statusItem(overrides: Partial<SettingItem> = {}): SettingItem {
+function statusItem(overrides: Partial<CatalogItem> = {}): CatalogItem {
   return {
     id: "status-1",
     name: "Regular",
     kind: "status",
     active: true,
     grantsAttendanceSelfService: false,
+    countsAsActiveEmployment: true,
     ...overrides,
   };
 }
 
-function projectItem(overrides: Partial<SettingItem> = {}): SettingItem {
+function projectItem(overrides: Partial<CatalogItem> = {}): CatalogItem {
   return {
     id: "proj-1",
     name: "Rufino Tower",
     kind: "project",
     active: true,
     grantsAttendanceSelfService: false,
+    countsAsActiveEmployment: true,
     ...overrides,
   };
 }

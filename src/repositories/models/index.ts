@@ -8,12 +8,12 @@
 export { AssetIssuanceModel } from "@/repositories/models/asset-issuance-model";
 export { AttendanceRecordModel } from "@/repositories/models/attendance-record-model";
 export { AuditLogModel } from "@/repositories/models/audit-log-model";
+export { CatalogModel } from "@/repositories/models/catalog-model";
 export { EmployeeModel } from "@/repositories/models/employee-model";
 export { EventModel } from "@/repositories/models/event-model";
 export { JobApplicationModel } from "@/repositories/models/job-application-model";
 export { LeaveBalanceChangeModel } from "@/repositories/models/leave-balance-change-model";
 export { LeaveRecordModel } from "@/repositories/models/leave-record-model";
 export { LeaveTypeModel } from "@/repositories/models/leave-type-model";
-export { SettingModel } from "@/repositories/models/setting-model";
 export { TravelOrderModel } from "@/repositories/models/travel-order-model";
 export { UserModel } from "@/repositories/models/user-model";

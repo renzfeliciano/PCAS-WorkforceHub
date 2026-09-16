@@ -6,22 +6,28 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { Toggle } from "@/components/ui/toggle";
-import type { SettingItem, SettingKind } from "@/types/settings";
+import { EMPLOYMENT_STATUS_CATEGORY, type CatalogItem, type CatalogKind } from "@/types/catalog";
 
 type SettingFormDialogProps = Readonly<{
   mode: "create" | "edit";
-  kind: SettingKind;
+  kind: CatalogKind;
+  category?: string;
   label: string;
   submitLabel?: string;
   placeholder?: string;
-  initialValue?: SettingItem;
+  initialValue?: CatalogItem;
   onClose: () => void;
-  onSubmit: (input: { name: string; grantsAttendanceSelfService?: boolean }) => Promise<void>;
+  onSubmit: (input: {
+    name: string;
+    grantsAttendanceSelfService?: boolean;
+    countsAsActiveEmployment?: boolean;
+  }) => Promise<void>;
 }>;
 
 export function SettingFormDialog({
   mode,
   kind,
+  category,
   label,
   submitLabel,
   placeholder,
@@ -33,6 +39,10 @@ export function SettingFormDialog({
   const [grantsAttendanceSelfService, setGrantsAttendanceSelfService] = useState(
     initialValue?.grantsAttendanceSelfService ?? false,
   );
+  const [countsAsActiveEmployment, setCountsAsActiveEmployment] = useState(
+    initialValue?.countsAsActiveEmployment ?? true,
+  );
+  const isEmploymentStatus = kind === "status" && category === EMPLOYMENT_STATUS_CATEGORY;
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,6 +59,7 @@ export function SettingFormDialog({
       await onSubmit({
         name: value,
         ...(kind === "position" ? { grantsAttendanceSelfService } : {}),
+        ...(isEmploymentStatus ? { countsAsActiveEmployment } : {}),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -120,6 +131,16 @@ export function SettingFormDialog({
           hint="Anyone holding this position can create, edit, and delete their own attendance record (Admin/HR can still do this for anyone regardless)."
           checked={grantsAttendanceSelfService}
           onChange={setGrantsAttendanceSelfService}
+          fullWidth
+        />
+      )}
+      {isEmploymentStatus && (
+        <Toggle
+          name="countsAsActiveEmployment"
+          label="Counts as active employment"
+          hint="Employees on this status are included in the dashboard's active headcount (e.g. Total employees). Turn this off for statuses like Terminated, Resigned, or AWOL."
+          checked={countsAsActiveEmployment}
+          onChange={setCountsAsActiveEmployment}
           fullWidth
         />
       )}

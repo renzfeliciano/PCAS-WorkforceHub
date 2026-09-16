@@ -3,9 +3,11 @@ import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { EventRepository } from "@/repositories/event-repository";
 import type { JobApplicationRepository } from "@/repositories/job-application-repository";
 import type { CaseRecordRepository } from "@/repositories/case-record-repository";
+import type { CatalogRepository } from "@/repositories/catalog-repository";
 import type { Employee } from "@/types/employee";
 import type { WorkforceEvent } from "@/types/event";
 import type { CaseRecord } from "@/types/case-record";
+import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/catalog";
 
 export type DistributionBucket = { label: string; count: number };
 export type HiringTrendPoint = { month: string; label: string; count: number };
@@ -32,6 +34,7 @@ export type DashboardRepositories = {
   eventRepository: EventRepository;
   jobApplicationRepository: JobApplicationRepository;
   caseRecordRepository: CaseRecordRepository;
+  catalogRepository: CatalogRepository;
 };
 
 const UPCOMING_WINDOW_DAYS = 30;
@@ -90,8 +93,26 @@ export async function getDashboardSummary({
   eventRepository,
   jobApplicationRepository,
   caseRecordRepository,
+  catalogRepository,
 }: DashboardRepositories): Promise<DashboardSummary> {
   const employees = await employeeRepository.findActiveForDashboard();
+
+  // Employment status is a flexible catalog (Settings > Employment statuses),
+  // not a hardcoded list — an Admin/HR marks which statuses count toward
+  // "active" headcount (see CatalogItem.countsAsActiveEmployment). A status
+  // defaults to counting as active, so only entries explicitly opted out
+  // (e.g. Terminated/Resigned/AWOL) are excluded here; an employee whose
+  // status id doesn't resolve to any catalog entry at all (deleted, bad
+  // data) still counts, same as the "default active" convention above.
+  const employmentStatuses = await catalogRepository.findAll({
+    kind: "status",
+    category: EMPLOYMENT_STATUS_CATEGORY,
+  });
+  const inactiveStatusIds = new Set(
+    employmentStatuses.filter((status) => !status.countsAsActiveEmployment).map((status) => status.id),
+  );
+  const activeEmployees = employees.filter((employee) => !inactiveStatusIds.has(employee.employmentStatusId));
+
   const statusCounts = new Map<string, number>();
   for (const employee of employees)
     statusCounts.set(
@@ -164,7 +185,7 @@ export async function getDashboardSummary({
     .slice(0, PIPELINE_STAGE_LIMIT);
 
   return {
-    totalEmployees: employees.length,
+    totalEmployees: activeEmployees.length,
     statusBreakdown: [...statusCounts.entries()].map(([status, count]) => ({
       status,
       count,

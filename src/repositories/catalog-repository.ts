@@ -1,35 +1,36 @@
 import { isValidObjectId } from "mongoose";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import type {
-  CreateSettingInput,
-  UpdateSettingInput,
-} from "@/schemas/settings";
-import type { SettingItem, SettingKind } from "@/types/settings";
+  CreateCatalogInput,
+  UpdateCatalogInput,
+} from "@/schemas/catalog";
+import type { CatalogItem, CatalogKind } from "@/types/catalog";
 
-export type SettingListFilters = { kind?: SettingKind; category?: string };
+export type CatalogListFilters = { kind?: CatalogKind; category?: string };
 
-export interface SettingRepository {
-  findAll(filters?: SettingListFilters): Promise<SettingItem[]>;
-  findById(id: string): Promise<SettingItem | null>;
-  create(input: CreateSettingInput): Promise<SettingItem>;
-  update(id: string, patch: UpdateSettingInput): Promise<SettingItem>;
+export interface CatalogRepository {
+  findAll(filters?: CatalogListFilters): Promise<CatalogItem[]>;
+  findById(id: string): Promise<CatalogItem | null>;
+  create(input: CreateCatalogInput): Promise<CatalogItem>;
+  update(id: string, patch: UpdateCatalogInput): Promise<CatalogItem>;
   delete(id: string): Promise<void>;
   deleteAll(): Promise<void>;
 }
 
-type SettingDocument = {
+type CatalogDocument = {
   _id: { toString(): string };
   name: string;
-  kind: SettingKind;
+  kind: CatalogKind;
   category?: string;
   description?: string;
   sortOrder?: number;
   active: boolean;
   grantsAttendanceSelfService?: boolean;
+  countsAsActiveEmployment?: boolean;
 };
 
-function toSettingItem(doc: SettingDocument): SettingItem {
+function toCatalogItem(doc: CatalogDocument): CatalogItem {
   return {
     id: doc._id.toString(),
     name: doc.name,
@@ -40,6 +41,10 @@ function toSettingItem(doc: SettingDocument): SettingItem {
     // Documents saved before this field existed have none on disk — a
     // .lean() read never applies the schema's default.
     grantsAttendanceSelfService: doc.grantsAttendanceSelfService ?? false,
+    // Same convention, but defaults to true (not false) — a status entry
+    // saved before this flag existed should keep counting as active rather
+    // than silently vanishing from headcount.
+    countsAsActiveEmployment: doc.countsAsActiveEmployment ?? true,
   };
 }
 
@@ -52,27 +57,27 @@ function isDuplicateKeyError(error: unknown): boolean {
   );
 }
 
-export class MongoSettingRepository implements SettingRepository {
-  async findAll(filters: SettingListFilters = {}): Promise<SettingItem[]> {
+export class MongoCatalogRepository implements CatalogRepository {
+  async findAll(filters: CatalogListFilters = {}): Promise<CatalogItem[]> {
     const query: Record<string, unknown> = {};
     if (filters.kind) query.kind = filters.kind;
     if (filters.category) query.category = filters.category;
-    const docs = await SettingModel.find(query)
+    const docs = await CatalogModel.find(query)
       .sort({ kind: 1, category: 1, sortOrder: 1, createdAt: 1, name: 1 })
-      .lean<SettingDocument[]>();
-    return docs.map(toSettingItem);
+      .lean<CatalogDocument[]>();
+    return docs.map(toCatalogItem);
   }
 
-  async findById(id: string): Promise<SettingItem | null> {
+  async findById(id: string): Promise<CatalogItem | null> {
     if (!isValidObjectId(id)) return null;
-    const doc = await SettingModel.findById(id).lean<SettingDocument | null>();
-    return doc ? toSettingItem(doc) : null;
+    const doc = await CatalogModel.findById(id).lean<CatalogDocument | null>();
+    return doc ? toCatalogItem(doc) : null;
   }
 
-  async create(input: CreateSettingInput): Promise<SettingItem> {
+  async create(input: CreateCatalogInput): Promise<CatalogItem> {
     try {
-      const doc = await SettingModel.create({ ...input, active: true });
-      return toSettingItem(doc.toObject() as SettingDocument);
+      const doc = await CatalogModel.create({ ...input, active: true });
+      return toCatalogItem(doc.toObject() as CatalogDocument);
     } catch (error) {
       if (isDuplicateKeyError(error))
         throw new ConflictError(
@@ -82,16 +87,16 @@ export class MongoSettingRepository implements SettingRepository {
     }
   }
 
-  async update(id: string, patch: UpdateSettingInput): Promise<SettingItem> {
+  async update(id: string, patch: UpdateCatalogInput): Promise<CatalogItem> {
     if (!isValidObjectId(id)) throw new NotFoundError("Setting not found");
     try {
-      const doc = await SettingModel.findByIdAndUpdate(
+      const doc = await CatalogModel.findByIdAndUpdate(
         id,
         { $set: patch },
         { new: true },
-      ).lean<SettingDocument | null>();
+      ).lean<CatalogDocument | null>();
       if (!doc) throw new NotFoundError("Setting not found");
-      return toSettingItem(doc);
+      return toCatalogItem(doc);
     } catch (error) {
       if (isDuplicateKeyError(error))
         throw new ConflictError(
@@ -103,11 +108,11 @@ export class MongoSettingRepository implements SettingRepository {
 
   async delete(id: string): Promise<void> {
     if (!isValidObjectId(id)) throw new NotFoundError("Setting not found");
-    const result = await SettingModel.findByIdAndDelete(id);
+    const result = await CatalogModel.findByIdAndDelete(id);
     if (!result) throw new NotFoundError("Setting not found");
   }
 
   async deleteAll(): Promise<void> {
-    await SettingModel.deleteMany({});
+    await CatalogModel.deleteMany({});
   }
 }

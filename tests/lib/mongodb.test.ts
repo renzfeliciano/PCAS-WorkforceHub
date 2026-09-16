@@ -15,7 +15,7 @@ describe("connectMongoDB — index readiness", () => {
     const checks: [collection: string, indexName: string][] = [
       ["employees", "employeeNumber_1"],
       ["users", "username_1"],
-      ["settings", "kind_1_category_1_name_1"],
+      ["catalogs", "kind_1_category_1_name_1"],
       ["attendancerecords", "employeeId_1_date_1"],
       ["leavetypes", "code_1"],
     ];

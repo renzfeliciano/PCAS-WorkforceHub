@@ -1,7 +1,7 @@
-import type { SettingKind } from "@/types/settings";
+import type { CatalogKind } from "@/types/catalog";
 import type { LeaveEligibility } from "@/types/leave-type";
 
-export const seedCatalog: Record<SettingKind, readonly string[]> = {
+export const seedCatalog: Record<CatalogKind, readonly string[]> = {
   position: [
     "President",
     "Operations Manager",

@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { SelectField, type SelectOption } from "@/components/ui/select-field";
 import { RemarksField } from "@/components/ui/remarks-field";
 import { useInlineFormValidation } from "@/hooks/use-inline-form-validation";
-import type { SettingItem } from "@/types/settings";
+import type { CatalogItem } from "@/types/catalog";
 import type { AttendanceRecord } from "@/types/attendance";
 
 type AttendanceDayDialogProps = Readonly<{
   employeeName: string;
   date: string;
   existing: AttendanceRecord | null;
-  statuses: SettingItem[];
+  statuses: CatalogItem[];
   onClose: () => void;
   onSave: (input: { statusId: string; remarks?: string }) => Promise<void>;
   onDelete?: () => Promise<void>;

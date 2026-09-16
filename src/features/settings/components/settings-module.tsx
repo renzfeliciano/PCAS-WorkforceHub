@@ -3,7 +3,7 @@
 import { ShieldCheck } from "lucide-react";
 import { useCurrentUser } from "@/context/current-user-context";
 import { canDeleteCatalog, canEditCatalog } from "@/lib/rbac";
-import { useSettingsCatalog } from "@/features/settings/hooks/use-settings-catalog";
+import { useCatalog } from "@/features/settings/hooks/use-catalog";
 import { useLeaveTypes } from "@/features/settings/hooks/use-leave-types";
 import { SettingsCatalogSection } from "@/features/settings/components/settings-catalog-section";
 import { LeaveTypesSection } from "@/features/settings/components/leave-types-section";
@@ -15,13 +15,13 @@ import {
   EMPLOYMENT_STATUS_CATEGORY,
   EVENT_CATEGORY_CATEGORY,
   RECRUITMENT_STAGE_CATEGORY,
-} from "@/types/settings";
-import type { SettingItem, SettingKind } from "@/types/settings";
+} from "@/types/catalog";
+import type { CatalogItem, CatalogKind } from "@/types/catalog";
 import type { LeaveType } from "@/types/leave-type";
 
 type CatalogSection = {
   key: string;
-  kind: SettingKind;
+  kind: CatalogKind;
   category?: string;
   label: string;
   seedEnabled: boolean;
@@ -38,14 +38,14 @@ export function SettingsModule({
   initialSettings,
   initialLeaveTypes,
 }: Readonly<{
-  seedFlags: Record<SettingKind, boolean>;
+  seedFlags: Record<CatalogKind, boolean>;
   attendanceStatusSeedEnabled: boolean;
   recruitmentStageSeedEnabled: boolean;
   eventCategorySeedEnabled: boolean;
   caseClassificationSeedEnabled: boolean;
   caseStatusSeedEnabled: boolean;
   leaveTypeSeedEnabled: boolean;
-  initialSettings?: SettingItem[];
+  initialSettings?: CatalogItem[];
   initialLeaveTypes?: LeaveType[];
 }>) {
   const sections: CatalogSection[] = [
@@ -94,7 +94,7 @@ export function SettingsModule({
       seedEnabled: caseStatusSeedEnabled,
     },
   ];
-  const settings = useSettingsCatalog(initialSettings);
+  const settings = useCatalog(initialSettings);
   const leaveTypes = useLeaveTypes(initialLeaveTypes);
   const user = useCurrentUser();
   const canEdit = canEditCatalog(user.role);

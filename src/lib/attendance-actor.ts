@@ -1,5 +1,5 @@
 import type { EmployeeRepository } from "@/repositories/employee-repository";
-import type { SettingRepository } from "@/repositories/setting-repository";
+import type { CatalogRepository } from "@/repositories/catalog-repository";
 import type { Role } from "@/types/user";
 
 export type AttendanceActor = {
@@ -21,7 +21,7 @@ export type AttendanceActor = {
  * Manager was intentionally excluded from the exception.
  */
 export async function buildAttendanceActor(
-  repositories: { employeeRepository: EmployeeRepository; settingRepository: SettingRepository },
+  repositories: { employeeRepository: EmployeeRepository; catalogRepository: CatalogRepository },
   session: { role: Role; id: string; employeeId?: string },
   requestId: string,
 ): Promise<AttendanceActor> {
@@ -31,7 +31,7 @@ export async function buildAttendanceActor(
     const employee = await repositories.employeeRepository.findById(session.employeeId);
     if (employee) {
       projectSiteId = employee.projectSiteId;
-      const position = await repositories.settingRepository.findById(employee.positionId);
+      const position = await repositories.catalogRepository.findById(employee.positionId);
       hasAttendanceSelfService = position?.grantsAttendanceSelfService ?? false;
     }
   }

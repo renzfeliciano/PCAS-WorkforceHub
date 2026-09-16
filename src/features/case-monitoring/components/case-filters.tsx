@@ -1,7 +1,7 @@
 "use client";
 
 import { useCatalogOptions } from "@/hooks/use-catalog-options";
-import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/settings";
+import { CASE_CLASSIFICATION_CATEGORY, CASE_STATUS_CATEGORY } from "@/types/catalog";
 
 export type CaseFiltersValue = {
   projectId: string;

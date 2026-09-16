@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Session } from "next-auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CaseRecordModel } from "@/repositories/models/case-record-model";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 import type { Role } from "@/types/user";
 
 // See tests/api/employees-route.test.ts for why mocking next-auth's
@@ -31,7 +31,7 @@ function jsonRequest(url: string, method: string, body?: unknown) {
 }
 
 async function makeSetting(kind: "project" | "status", name: string, category?: string) {
-  const doc = await SettingModel.create({ kind, name, category });
+  const doc = await CatalogModel.create({ kind, name, category });
   return doc._id.toString();
 }
 
@@ -57,12 +57,12 @@ function validInput(ids: { projectId: string; classificationId: string; statusId
 beforeEach(async () => {
   await connectMongoDB();
   await CaseRecordModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 afterAll(async () => {
   await CaseRecordModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 describe("GET /api/v1/case-records", () => {

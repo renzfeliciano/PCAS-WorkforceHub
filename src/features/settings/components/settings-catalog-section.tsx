@@ -6,25 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { SettingFormDialog } from "@/features/settings/components/setting-form-dialog";
 import { DeleteSettingDialog } from "@/features/settings/components/delete-setting-dialog";
-import type { SettingItem, SettingKind } from "@/types/settings";
+import { EMPLOYMENT_STATUS_CATEGORY, type CatalogItem, type CatalogKind } from "@/types/catalog";
 
 type SettingsCatalogSectionProps = Readonly<{
-  kind: SettingKind;
+  kind: CatalogKind;
   label: string;
-  items: SettingItem[];
+  items: CatalogItem[];
   category?: string;
   seedEnabled: boolean;
   canEdit: boolean;
   canDelete: boolean;
   onCreate: (input: {
     name: string;
-    kind: SettingKind;
+    kind: CatalogKind;
     category?: string;
     grantsAttendanceSelfService?: boolean;
+    countsAsActiveEmployment?: boolean;
   }) => Promise<void>;
   onUpdate: (
     id: string,
-    input: { name: string; grantsAttendanceSelfService?: boolean },
+    input: { name: string; grantsAttendanceSelfService?: boolean; countsAsActiveEmployment?: boolean },
   ) => Promise<void>;
   onToggle: (id: string, active: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -46,8 +47,8 @@ export function SettingsCatalogSection({
   onSeed,
 }: SettingsCatalogSectionProps) {
   const [adding, setAdding] = useState(false);
-  const [editing, setEditing] = useState<SettingItem | null>(null);
-  const [deleting, setDeleting] = useState<SettingItem | null>(null);
+  const [editing, setEditing] = useState<CatalogItem | null>(null);
+  const [deleting, setDeleting] = useState<CatalogItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -83,7 +84,7 @@ export function SettingsCatalogSection({
     }
   }
 
-  async function handleToggle(item: SettingItem) {
+  async function handleToggle(item: CatalogItem) {
     setTogglingId(item.id);
     try {
       await onToggle(item.id, !item.active);
@@ -134,6 +135,11 @@ export function SettingsCatalogSection({
                 {item.grantsAttendanceSelfService && (
                   <small title="Anyone holding this position can create, edit, and delete their own attendance record.">
                     Attendance self-service
+                  </small>
+                )}
+                {kind === "status" && category === EMPLOYMENT_STATUS_CATEGORY && !item.countsAsActiveEmployment && (
+                  <small title="Employees on this status are excluded from the dashboard's active headcount.">
+                    Not active headcount
                   </small>
                 )}
                 {item.description && <small>{item.description}</small>}
@@ -194,17 +200,18 @@ export function SettingsCatalogSection({
         <SettingFormDialog
           mode="create"
           kind={kind}
+          category={category}
           label={singularLabel}
           placeholder={namePlaceholder}
           onClose={() => setAdding(false)}
-          onSubmit={async ({ name, grantsAttendanceSelfService }) => {
+          onSubmit={async ({ name, grantsAttendanceSelfService, countsAsActiveEmployment }) => {
             if (
               items.some(
                 (item) => item.name.toLowerCase() === name.toLowerCase(),
               )
             )
               throw new Error("This option already exists.");
-            await onCreate({ name, kind, category, grantsAttendanceSelfService });
+            await onCreate({ name, kind, category, grantsAttendanceSelfService, countsAsActiveEmployment });
             setAdding(false);
           }}
           submitLabel={`Add ${kind}`}
@@ -214,6 +221,7 @@ export function SettingsCatalogSection({
         <SettingFormDialog
           mode="edit"
           kind={kind}
+          category={category}
           label={singularLabel}
           placeholder={namePlaceholder}
           initialValue={editing}

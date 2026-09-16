@@ -2,12 +2,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectMongoDB } from "@/lib/mongodb";
 import { ConflictError, NotFoundError } from "@/lib/app-errors";
 import { MongoAttendanceRecordRepository } from "@/repositories/attendance-record-repository";
-import { MongoSettingRepository } from "@/repositories/setting-repository";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
 import { AttendanceRecordModel } from "@/repositories/models/attendance-record-model";
-import { ATTENDANCE_STATUS_CATEGORY } from "@/types/settings";
+import { ATTENDANCE_STATUS_CATEGORY } from "@/types/catalog";
 
 const repository = new MongoAttendanceRecordRepository();
-const settings = new MongoSettingRepository();
+const settings = new MongoCatalogRepository();
 const EMPLOYEE_ID = "507f1f77bcf86cd799439011";
 
 beforeAll(async () => {

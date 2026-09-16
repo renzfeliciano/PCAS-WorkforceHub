@@ -4,11 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import { buildAttendanceActor } from "@/lib/attendance-actor";
 import { MongoEmployeeRepository } from "@/repositories/employee-repository";
-import { MongoSettingRepository } from "@/repositories/setting-repository";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
 import { AttendanceModule } from "@/features/attendance/attendance-module";
 
 const employeeRepository = new MongoEmployeeRepository();
-const settingRepository = new MongoSettingRepository();
+const catalogRepository = new MongoCatalogRepository();
 
 // HR/Admin get the searchable list of every employee's attendance, scoped to
 // everyone. A self-service employee (e.g. a Building Administrator) gets the
@@ -24,7 +24,7 @@ export default async function AttendancePage() {
   if (session.user.role === "Employee") {
     await connectMongoDB();
     const actor = await buildAttendanceActor(
-      { employeeRepository, settingRepository },
+      { employeeRepository, catalogRepository },
       session.user,
       crypto.randomUUID(),
     );

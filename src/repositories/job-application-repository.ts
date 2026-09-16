@@ -3,8 +3,8 @@ import { NotFoundError } from "@/lib/app-errors";
 import { resolveCatalogNames } from "@/repositories/catalog-lookup";
 import { DEFAULT_APPLICATION_STAGE_NAME } from "@/schemas/job-application";
 import { JobApplicationModel } from "@/repositories/models/job-application-model";
-import { SettingModel } from "@/repositories/models/setting-model";
-import { RECRUITMENT_STAGE_CATEGORY } from "@/types/settings";
+import { CatalogModel } from "@/repositories/models/catalog-model";
+import { RECRUITMENT_STAGE_CATEGORY } from "@/types/catalog";
 import type { JobApplication } from "@/types/job-application";
 
 export type JobApplicationPatch = {
@@ -69,7 +69,7 @@ async function resolveMany(docs: JobApplicationDocument[]): Promise<JobApplicati
 
 /** The default stage a new application lands in, resolved by name from the recruitment stage catalog (not a hardcoded id, since catalog ids aren't stable across environments/seeds). */
 async function resolveDefaultStageId(): Promise<string> {
-  const setting = await SettingModel.findOne({
+  const setting = await CatalogModel.findOne({
     kind: "status",
     category: RECRUITMENT_STAGE_CATEGORY,
     name: DEFAULT_APPLICATION_STAGE_NAME,

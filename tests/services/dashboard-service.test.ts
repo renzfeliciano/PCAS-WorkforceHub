@@ -4,8 +4,11 @@ import type { EmployeeRepository } from "@/repositories/employee-repository";
 import type { EventRepository } from "@/repositories/event-repository";
 import type { JobApplicationRepository } from "@/repositories/job-application-repository";
 import type { CaseRecordRepository } from "@/repositories/case-record-repository";
+import type { CatalogRepository } from "@/repositories/catalog-repository";
 import type { Employee } from "@/types/employee";
 import type { CaseRecord } from "@/types/case-record";
+import type { CatalogItem } from "@/types/catalog";
+import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/catalog";
 
 function makeEmployee(overrides: Partial<Employee> = {}): Employee {
   return {
@@ -68,6 +71,34 @@ const fakeJobApplicationRepository: JobApplicationRepository = {
   delete: async () => {},
 };
 
+function makeStatusSetting(overrides: Partial<CatalogItem> = {}): CatalogItem {
+  return {
+    id: `status-${Math.random()}`,
+    name: "Regular",
+    kind: "status",
+    category: EMPLOYMENT_STATUS_CATEGORY,
+    active: true,
+    grantsAttendanceSelfService: false,
+    countsAsActiveEmployment: true,
+    ...overrides,
+  };
+}
+
+function fakeCatalogRepository(items: CatalogItem[]): CatalogRepository {
+  return {
+    findAll: async () => items,
+    findById: async (id: string) => items.find((i) => i.id === id) ?? null,
+    create: async () => {
+      throw new Error("not implemented");
+    },
+    update: async () => {
+      throw new Error("not implemented");
+    },
+    delete: async () => {},
+    deleteAll: async () => {},
+  };
+}
+
 function makeCaseRecordRepository(activeCases: CaseRecord[] = []): CaseRecordRepository {
   return {
     findAll: async () => ({ items: activeCases, total: activeCases.length, page: 1, pageSize: 20 }),
@@ -83,12 +114,17 @@ function makeCaseRecordRepository(activeCases: CaseRecord[] = []): CaseRecordRep
   };
 }
 
-function makeSummary(employees: Employee[], activeCases: CaseRecord[] = []) {
+function makeSummary(
+  employees: Employee[],
+  activeCases: CaseRecord[] = [],
+  employmentStatuses: CatalogItem[] = [],
+) {
   return getDashboardSummary({
     employeeRepository: fakeEmployeeRepository(employees),
     eventRepository: fakeEventRepository,
     jobApplicationRepository: fakeJobApplicationRepository,
     caseRecordRepository: makeCaseRecordRepository(activeCases),
+    catalogRepository: fakeCatalogRepository(employmentStatuses),
   });
 }
 
@@ -177,6 +213,54 @@ describe("getDashboardSummary tenure/age breakdown", () => {
       { label: "Male", count: 2 },
       { label: "Female", count: 1 },
     ]);
+  });
+});
+
+describe("getDashboardSummary totalEmployees (active headcount)", () => {
+  it("excludes an employee whose employment status is flagged as not counting toward active headcount", async () => {
+    const employees = [
+      makeEmployee({ employmentStatusId: "status-regular", employmentStatus: "Regular" }),
+      makeEmployee({ employmentStatusId: "status-terminated", employmentStatus: "Terminated" }),
+    ];
+    const employmentStatuses = [
+      makeStatusSetting({ id: "status-regular", name: "Regular", countsAsActiveEmployment: true }),
+      makeStatusSetting({ id: "status-terminated", name: "Terminated", countsAsActiveEmployment: false }),
+    ];
+    const summary = await makeSummary(employees, [], employmentStatuses);
+    expect(summary.totalEmployees).toBe(1);
+  });
+
+  it("defaults an employment status to counting as active when the catalog doesn't say otherwise", async () => {
+    const employees = [makeEmployee()];
+    const summary = await makeSummary(employees, [], []);
+    expect(summary.totalEmployees).toBe(1);
+  });
+
+  it("still counts an employee whose status id no longer resolves to any catalog entry, rather than silently dropping them", async () => {
+    const employees = [makeEmployee({ employmentStatusId: "deleted-status" })];
+    const employmentStatuses = [
+      makeStatusSetting({ id: "status-terminated", name: "Terminated", countsAsActiveEmployment: false }),
+    ];
+    const summary = await makeSummary(employees, [], employmentStatuses);
+    expect(summary.totalEmployees).toBe(1);
+  });
+
+  it("does not change statusBreakdown, which still reports every non-archived employee by status regardless of the active flag", async () => {
+    const employees = [
+      makeEmployee({ employmentStatusId: "status-regular", employmentStatus: "Regular" }),
+      makeEmployee({ employmentStatusId: "status-terminated", employmentStatus: "Terminated" }),
+    ];
+    const employmentStatuses = [
+      makeStatusSetting({ id: "status-regular", name: "Regular", countsAsActiveEmployment: true }),
+      makeStatusSetting({ id: "status-terminated", name: "Terminated", countsAsActiveEmployment: false }),
+    ];
+    const summary = await makeSummary(employees, [], employmentStatuses);
+    expect(summary.statusBreakdown).toEqual(
+      expect.arrayContaining([
+        { status: "Regular", count: 1 },
+        { status: "Terminated", count: 1 },
+      ]),
+    );
   });
 });
 

@@ -5,12 +5,14 @@ import { MongoEmployeeRepository } from "@/repositories/employee-repository";
 import { MongoEventRepository } from "@/repositories/event-repository";
 import { MongoJobApplicationRepository } from "@/repositories/job-application-repository";
 import { MongoCaseRecordRepository } from "@/repositories/case-record-repository";
+import { MongoCatalogRepository } from "@/repositories/catalog-repository";
 import { getDashboardSummary } from "@/services/dashboard-service";
 
 const employeeRepository = new MongoEmployeeRepository();
 const eventRepository = new MongoEventRepository();
 const jobApplicationRepository = new MongoJobApplicationRepository();
 const caseRecordRepository = new MongoCaseRecordRepository();
+const catalogRepository = new MongoCatalogRepository();
 
 export async function GET(request: Request) {
   const guard = await requireApiSession(request);
@@ -23,6 +25,7 @@ export async function GET(request: Request) {
       eventRepository,
       jobApplicationRepository,
       caseRecordRepository,
+      catalogRepository,
     });
     return apiJson(summary, requestId, headers);
   } catch (error) {

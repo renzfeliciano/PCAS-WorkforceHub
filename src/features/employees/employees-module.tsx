@@ -11,7 +11,7 @@ import { useCatalogOptions } from "@/hooks/use-catalog-options";
 import { useLeaveTypeOptions } from "@/hooks/use-leave-type-options";
 import { useSortState } from "@/hooks/use-sort-state";
 import { canDeleteEmployees, canEditEmployees, canExportData } from "@/lib/rbac";
-import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/settings";
+import { EMPLOYMENT_STATUS_CATEGORY } from "@/types/catalog";
 import { EmployeeTable } from "@/features/employees/components/employee-table";
 import { EmployeeFilters } from "@/features/employees/components/employee-filters";
 import { EmployeeFormDialog } from "@/features/employees/components/employee-form-dialog";

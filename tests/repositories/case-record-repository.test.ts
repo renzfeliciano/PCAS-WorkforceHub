@@ -3,12 +3,12 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { NotFoundError } from "@/lib/app-errors";
 import { MongoCaseRecordRepository } from "@/repositories/case-record-repository";
 import { CaseRecordModel } from "@/repositories/models/case-record-model";
-import { SettingModel } from "@/repositories/models/setting-model";
+import { CatalogModel } from "@/repositories/models/catalog-model";
 
 const repository = new MongoCaseRecordRepository();
 
 async function makeSetting(kind: "project" | "status", name: string, category?: string) {
-  const doc = await SettingModel.create({ kind, name, category });
+  const doc = await CatalogModel.create({ kind, name, category });
   return doc._id.toString();
 }
 
@@ -26,12 +26,12 @@ function validInput(overrides: Record<string, unknown> = {}, ids: { projectId: s
 beforeEach(async () => {
   await connectMongoDB();
   await CaseRecordModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 afterAll(async () => {
   await CaseRecordModel.deleteMany({});
-  await SettingModel.deleteMany({});
+  await CatalogModel.deleteMany({});
 });
 
 describe("MongoCaseRecordRepository.create / findAll", () => {
@@ -55,7 +55,7 @@ describe("MongoCaseRecordRepository.create / findAll", () => {
     const classificationId = await makeSetting("status", "Civil Case", "case-classification");
     const statusId = await makeSetting("status", "Ongoing", "case-status");
     await repository.create(validInput({}, { projectId, classificationId, statusId }));
-    await SettingModel.deleteMany({});
+    await CatalogModel.deleteMany({});
 
     const result = await repository.findAll({ page: 1, pageSize: 20 });
     expect(result.items[0].project).toBe("—");

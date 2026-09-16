@@ -1,29 +1,29 @@
 import type { AuditLogger } from "@/lib/audit-logger";
 import { ForbiddenActionError } from "@/lib/app-errors";
 import { canDeleteCatalog, canEditCatalog } from "@/lib/rbac";
-import { createSettingSchema, updateSettingSchema } from "@/schemas/settings";
-import type { SettingListFilters, SettingRepository } from "@/repositories/setting-repository";
-import type { SettingItem } from "@/types/settings";
+import { createCatalogSchema, updateCatalogSchema } from "@/schemas/catalog";
+import type { CatalogListFilters, CatalogRepository } from "@/repositories/catalog-repository";
+import type { CatalogItem } from "@/types/catalog";
 import type { Role } from "@/types/user";
 
 type Actor = { role: Role; id: string; requestId: string };
 
-export async function listSettings(
-  repository: SettingRepository,
-  filters?: SettingListFilters,
-): Promise<SettingItem[]> {
+export async function listCatalogEntries(
+  repository: CatalogRepository,
+  filters?: CatalogListFilters,
+): Promise<CatalogItem[]> {
   return repository.findAll(filters);
 }
 
-export async function createSetting(
-  repository: SettingRepository,
+export async function createCatalogEntry(
+  repository: CatalogRepository,
   audit: AuditLogger,
   actor: Actor,
   input: unknown,
-): Promise<SettingItem> {
+): Promise<CatalogItem> {
   if (!canEditCatalog(actor.role))
     throw new ForbiddenActionError("Only Admin and HR may manage catalog settings");
-  const validInput = createSettingSchema.parse(input);
+  const validInput = createCatalogSchema.parse(input);
   const item = await repository.create(validInput);
   await audit.record({
     action: "setting.created",
@@ -35,16 +35,16 @@ export async function createSetting(
   return item;
 }
 
-export async function updateSetting(
-  repository: SettingRepository,
+export async function updateCatalogEntry(
+  repository: CatalogRepository,
   audit: AuditLogger,
   actor: Actor,
   id: string,
   input: unknown,
-): Promise<SettingItem> {
+): Promise<CatalogItem> {
   if (!canEditCatalog(actor.role))
     throw new ForbiddenActionError("Only Admin and HR may manage catalog settings");
-  const validInput = updateSettingSchema.parse(input);
+  const validInput = updateCatalogSchema.parse(input);
   const item = await repository.update(id, validInput);
   await audit.record({
     action: "setting.updated",
@@ -56,8 +56,8 @@ export async function updateSetting(
   return item;
 }
 
-export async function deleteSetting(
-  repository: SettingRepository,
+export async function deleteCatalogEntry(
+  repository: CatalogRepository,
   audit: AuditLogger,
   actor: Actor,
   id: string,
