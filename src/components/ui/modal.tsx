@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
-import { useEffect, useId, useRef, type FormEventHandler, type ReactNode } from "react";
+import type { FormEventHandler, ReactNode } from "react";
 import { IconButton } from "@/components/ui/icon-button";
+import { useDialogA11y } from "@/hooks/use-dialog-a11y";
 
 type ModalProps = Readonly<{
   eyebrow?: string;
@@ -33,31 +34,7 @@ export function Modal({
   backdropClassName,
   showRequiredHint,
 }: ModalProps) {
-  const titleId = useId();
-  const descriptionId = useId();
-  const dialogRef = useRef<HTMLDivElement | HTMLFormElement>(null);
-
-  // WAI-ARIA dialog pattern: move focus in on open, return it to whatever
-  // triggered the modal on close, and let Escape close it like every other
-  // native dialog. A full focus trap (cycling Tab within the dialog) is
-  // deliberately not implemented here — this covers the behavior screen
-  // reader and keyboard users actually rely on without the larger risk of
-  // breaking existing form tab order across every modal that reuses this.
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    dialogRef.current?.focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      previouslyFocused?.focus();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for this modal instance's lifetime; onClose identity changing shouldn't re-run the open/close focus handling.
-  }, []);
+  const { titleId, descriptionId, dialogRef } = useDialogA11y<HTMLDivElement | HTMLFormElement>(onClose);
 
   const modalClassName = ["modal", className].filter(Boolean).join(" ");
   const head = (

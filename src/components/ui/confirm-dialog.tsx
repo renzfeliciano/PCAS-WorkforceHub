@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useDialogA11y } from "@/hooks/use-dialog-a11y";
 
 type ConfirmDialogProps = Readonly<{
   icon?: string;
@@ -37,6 +38,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [pending, setPending] = useState<"confirm" | "deactivate" | null>(null);
   const [error, setError] = useState("");
+  const { titleId, descriptionId, dialogRef } = useDialogA11y<HTMLDivElement>(onClose);
 
   async function run(action: "confirm" | "deactivate", handler: () => void | Promise<void>) {
     setPending(action);
@@ -51,11 +53,22 @@ export function ConfirmDialog({
 
   return (
     <div className="backdrop">
-      <div className="modal warning-modal" data-testid="confirm-dialog">
+      <div
+        ref={dialogRef}
+        className="modal warning-modal"
+        data-testid="confirm-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+      >
         <div className="warning-icon">{icon}</div>
         <p className="eyebrow">{eyebrow}</p>
-        <h2>{title}</h2>
-        <p className="muted">{description}</p>
+        <h2 id={titleId}>{title}</h2>
+        <p className="muted" id={descriptionId}>
+          {description}
+        </p>
         {error && (
           <p className="inline-error" role="alert">
             {error}

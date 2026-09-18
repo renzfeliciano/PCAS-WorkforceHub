@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { useDialogA11y } from "@/hooks/use-dialog-a11y";
 
 const CONFIRM_PHRASE = "RESET";
 
@@ -16,6 +17,7 @@ export function ResetDataDialog({ onClose, onConfirm }: ResetDataDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const canConfirm = confirmText.trim().toUpperCase() === CONFIRM_PHRASE;
+  const { titleId, descriptionId, dialogRef } = useDialogA11y<HTMLDivElement>(onClose);
 
   async function handleConfirm() {
     setIsSubmitting(true);
@@ -30,11 +32,19 @@ export function ResetDataDialog({ onClose, onConfirm }: ResetDataDialogProps) {
 
   return (
     <div className="backdrop">
-      <div className="modal warning-modal">
+      <div
+        ref={dialogRef}
+        className="modal warning-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+      >
         <div className="warning-icon">!</div>
         <p className="eyebrow">Irreversible action</p>
-        <h2>Reset all workspace data?</h2>
-        <p className="muted">
+        <h2 id={titleId}>Reset all workspace data?</h2>
+        <p className="muted" id={descriptionId}>
           This permanently deletes every employee, position, project, employment status, and
           leave type. User accounts and sign-in are not affected.
         </p>

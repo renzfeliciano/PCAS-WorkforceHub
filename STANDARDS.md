@@ -2,7 +2,7 @@
 
 *Every claim in [SYSTEM_ANALYSIS.md](SYSTEM_ANALYSIS.md) and README.md's "Security & Accessibility Standards" section, traced to the exact file and line that enforces it, plus how to check it yourself. If a line number below doesn't match what's in the file, treat the claim as unverified and flag it — this document is meant to be checked against the code, not trusted on its own.*
 
-*Last verified: 2026-09-09 (adds §10 Entity References, covering the position/projectSite/travel-order id-reference fix).*
+*Last verified: 2026-09-18 (adds §15 Enterprise UI/UX Design Bar; fixes §11's ConfirmDialog/ResetDataDialog accessibility gap found while applying it).*
 
 ## How to use this file
 
@@ -94,8 +94,10 @@ Each row is a claim → the file/line that implements it → a command or manual
 
 | Claim | Enforced in | Verify it yourself |
 | --- | --- | --- |
-| Every dialog in the app is built on one shared, accessible Modal component | [src/components/ui/modal.tsx:80-81](src/components/ui/modal.tsx) (`role: "dialog"`, `"aria-modal": true`) | `grep -rln "from \"@/components/ui/modal\"" src/features/` — every feature's dialogs should import from here, not build their own |
-| Escape closes the dialog; focus moves in on open and returns to the trigger on close | [src/components/ui/modal.tsx:40-54](src/components/ui/modal.tsx) | Open any modal, press `Tab` then `Escape` — focus should return to whatever button opened it |
+| Every dialog in the app — form dialogs via `Modal`, and confirm/destructive-action dialogs via `ConfirmDialog`/`ResetDataDialog` — shares one WAI-ARIA contract (`role="dialog"`, `aria-modal`, labelled/described-by) through a single extracted hook, not three separately-maintained implementations | [src/hooks/use-dialog-a11y.ts](src/hooks/use-dialog-a11y.ts) (`useDialogA11y`), used by [src/components/ui/modal.tsx](src/components/ui/modal.tsx), [src/components/ui/confirm-dialog.tsx](src/components/ui/confirm-dialog.tsx), and [src/features/user-management/components/reset-data-dialog.tsx](src/features/user-management/components/reset-data-dialog.tsx) | `grep -rl "useDialogA11y" src` — should list exactly those three consumers; `npm test -- confirm-dialog reset-data-dialog modal` — each has a "renders the WAI-ARIA dialog contract" test |
+| Escape closes the dialog; focus moves in on open and returns to the trigger on close — for every dialog type, not just form dialogs | [src/hooks/use-dialog-a11y.ts](src/hooks/use-dialog-a11y.ts) | Open any modal or confirm dialog, press `Tab` then `Escape` — focus should return to whatever button opened it |
+
+**Fixed 2026-09-18:** `ConfirmDialog` and `ResetDataDialog` (the destructive/irreversible-action dialogs — delete, deactivate, and "reset all workspace data") originally hand-rolled their own backdrop/modal markup instead of using `Modal`, so they had none of the above: no `role="dialog"`, no `aria-modal`, no Escape-to-close, no focus management. The previous version of this row's verify command (`grep ... src/features/`) didn't catch it because the gap was in the shared `src/components/ui/` primitive itself, not in a feature file. Fixed by extracting the behavior `Modal` already had into `useDialogA11y`, so all three now share one implementation instead of three.
 
 ## 12. Responsive Design
 
@@ -127,6 +129,22 @@ Things claimed nowhere as "done" but worth being explicit about, so this documen
 - **Not every repository, API route, or UI component has a test yet** — attendance-record, travel-order, asset-issuance, job-application, event, and leave-type repositories; all routes besides `/api/v1/employees`, `/api/v1/employees/[id]/leave-records`, and `/api/v1/users`; and every component/feature besides `Modal` and `ConfirmDialog` — all follow patterns already proven by the ones covered, but aren't individually tested.
 - **CSP is production-only by design** (see §6) — anyone checking security headers against `npm run dev` will not see it and should not conclude it's missing.
 - **Cloudinary and Upstash are configured as dependencies** but require the client's own account credentials in `.env.local`/hosting environment to be active — they are not "on" by default in a fresh clone.
+
+## 15. Enterprise UI/UX Design Bar (No AI-Slop)
+
+*The bar this app already meets, written down so future work doesn't regress toward a generic, templated look. "AI-slop" here means: a default component-library look nobody customized, decorative flourishes with no functional reason, filler copy, or inconsistent one-off styling per component instead of the app's own shared tokens.*
+
+| Claim | Enforced in | Verify it yourself |
+| --- | --- | --- |
+| No generic UI-kit or decorative-animation dependency (Radix/shadcn primitives, Headless UI, Framer Motion) — every dialog, dropdown, and control is hand-built against this app's own markup and CSS | [src/components/ui/modal.tsx](src/components/ui/modal.tsx) (custom Modal, not a lifted library component); `package.json` has no `radix-ui`/`shadcn`/`@headlessui`/`framer-motion` entry | `grep -iE "radix|shadcn|headlessui|framer-motion" package.json` — should return nothing |
+| A small, deliberate color palette (`--ink`/`--muted`/`--line`/`--paper`/`--sidebar`/`--surface`/`--coral`/etc.), reused everywhere through CSS variables, with its own validated dark-mode remap — not ad hoc inline hex codes or a default Tailwind/indigo-500 palette sprinkled per component | [src/app/globals.css:3-32](src/app/globals.css:3) (light tokens), [src/app/globals.css:125-151](src/app/globals.css:125) (dark-mode remap, including a chart-ramp re-validated against the actual dark `--surface`) | `grep -c "var(--" src/app/globals.css` (400+ uses as of this writing); spot-check a component file for stray inline hex instead of a token |
+| No decorative gradient backgrounds or glassmorphism (backdrop-blur panels, frosted-glass cards) anywhere — surfaces are flat, tokened colors; the one gradient in the app (a conic-gradient progress ring) encodes real data, not decoration | [src/app/globals.css](src/app/globals.css) (`.ring` at ~line 1450 is the only gradient, and it's a percentage-fill dial, not a background) | `grep -n "gradient\|backdrop-blur" src/app/globals.css` — the only hits should be functional (a data ring/chart), never a page or card background |
+| Typography is a deliberate, non-default stack (Georgia/Times New Roman serif for headings and identity text, Arial for dense data/UI text) — not the generic Inter/system-ui default most templated or AI-generated interfaces fall back to | [src/app/globals.css:192](src/app/globals.css:192) (`body { font-family: Georgia, "Times New Roman", serif; }`), plus per-element `font: ... Arial` overrides throughout for tabular/UI text | `grep -n "font-family\|font:" src/app/globals.css \| grep -iE "georgia\|arial"` |
+| No emoji used as UI iconography, status markers, or copy — every icon is a real vector icon from one consistent set | `lucide-react` imported throughout, e.g. [src/app/error.tsx:5](src/app/error.tsx:5) | `grep -rlP "[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]" src --include=*.tsx` (requires a Unicode-aware grep) — should return nothing |
+| No filler, placeholder, or generic marketing copy (lorem ipsum, "Welcome back!", "Awesome", "Amazing") — every string names the specific thing that screen actually does | (absence of a pattern) | `grep -rniE "lorem ipsum\|welcome back!\|awesome\|amazing" src --include=*.tsx` — should return nothing |
+| Non-obvious layout and CSS decisions carry a comment explaining *why*, evidence the design was reasoned through case-by-case rather than templated — e.g. why the sidebar tint is a flat scrim and not a gradient, why two table columns are individually offset for sticky positioning, why a settings row uses an exact 50/10/40 grid split | [src/app/globals.css:263-271](src/app/globals.css:263) (sidebar scrim), [src/app/globals.css:931-938](src/app/globals.css:931) (sticky column offsets), [src/app/globals.css:1997-2005](src/app/globals.css:1997) (settings-row grid split) | Open `globals.css` — a comment above a non-obvious rule should state the constraint it's solving, not restate the CSS itself |
+
+**Process convention (not code):** before styling a new page or component, match this file's existing tokens and hand-built patterns rather than reaching for a default component library, a decorative gradient/glassmorphism treatment, or placeholder copy. If a genuinely new visual pattern is needed, it gets the same treatment as everything above — its own token usage, a real (non-filler) label, and a comment justifying any non-obvious decision — not a lifted default. This applies with extra weight to AI-assisted changes, where an unreviewed default is the likeliest way "AI-slop" would enter an otherwise deliberately designed app.
 
 ## How to re-generate this file's line numbers
 
