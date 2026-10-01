@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
 
   providers: [
     CredentialsProvider({
-      name: "PCAS-WorkforceHub",
+      name: "EychAr",
 
       credentials: {
         username: {

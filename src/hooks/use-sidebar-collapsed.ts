@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-const STORAGE_KEY = "workforcehub.sidebar-collapsed";
+const STORAGE_KEY = "eychar.sidebar-collapsed";
 const listeners = new Set<() => void>();
 
 function readStoredValue(): boolean {

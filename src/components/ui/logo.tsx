@@ -15,7 +15,7 @@ export function Logo({ size = 34 }: LogoProps) {
     >
       <Image
         src="/assets/images/pcas-logo-transparent.png"
-        alt="PCAS WorkforceHub"
+        alt="PCAS"
         width={TRANSPARENT_LOGO_INTRINSIC_WIDTH}
         height={TRANSPARENT_LOGO_INTRINSIC_HEIGHT}
         style={{ width: "100%", height: "auto" }}

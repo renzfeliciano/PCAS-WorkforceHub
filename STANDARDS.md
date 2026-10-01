@@ -1,4 +1,4 @@
-# WorkforceHub — Standards Verification Checklist
+# EychAr — Standards Verification Checklist
 
 *Every claim in [SYSTEM_ANALYSIS.md](SYSTEM_ANALYSIS.md) and README.md's "Security & Accessibility Standards" section, traced to the exact file and line that enforces it, plus how to check it yourself. If a line number below doesn't match what's in the file, treat the claim as unverified and flag it — this document is meant to be checked against the code, not trusted on its own.*
 

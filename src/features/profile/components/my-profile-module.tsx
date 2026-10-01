@@ -126,7 +126,7 @@ export function MyProfileModule({ name, username, role, mustChangePassword }: My
             <b>Update your password to continue</b>
             <p>
               You&apos;re signing in with the default password issued when your account was
-              created. Set a new one below to unlock the rest of WorkforceHub.
+              created. Set a new one below to unlock the rest of EychAr.
             </p>
           </div>
         </div>

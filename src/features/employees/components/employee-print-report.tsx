@@ -34,7 +34,7 @@ export function EmployeePrintReport({ employees, leaveTypes, filters, generatedA
   return (
     <div className="print-report">
       <div className="print-report-header">
-        <h1>PCAS WorkforceHub — Employee Roster</h1>
+        <h1>PCAS · EychAr — Employee Roster</h1>
         <p>Filters: {filterLine(filters)}</p>
         <p>
           Generated {generatedAt.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })} ·{" "}

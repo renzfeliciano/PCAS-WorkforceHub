@@ -13,9 +13,9 @@ export type RateLimitKind = "read" | "write" | "auth";
  * each tier gets its own Redis key prefix so they never share a budget.
  */
 const LIMITS: Record<RateLimitKind, { requests: number; window: "1 m"; prefix: string }> = {
-  read: { requests: 120, window: "1 m", prefix: "workforcehub:api:read" },
-  write: { requests: 30, window: "1 m", prefix: "workforcehub:api:write" },
-  auth: { requests: 5, window: "1 m", prefix: "workforcehub:auth" },
+  read: { requests: 120, window: "1 m", prefix: "eychar:api:read" },
+  write: { requests: 30, window: "1 m", prefix: "eychar:api:write" },
+  auth: { requests: 5, window: "1 m", prefix: "eychar:auth" },
 };
 
 const limiters = new Map<RateLimitKind, Ratelimit | null>();

@@ -35,7 +35,7 @@ export function WorkspaceLayout({
         <Topbar onToggleNav={() => setMobileNavOpen((current) => !current)} />
         <div className="content">{children}</div>
         <footer className="app-footer">
-          &copy; {new Date().getFullYear()} PCAS WorkforceHub. All rights reserved.
+          &copy; {new Date().getFullYear()} PCAS. All rights reserved. · EychAr by Renz
         </footer>
       </section>
     </main>

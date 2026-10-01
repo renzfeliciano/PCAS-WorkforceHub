@@ -268,7 +268,7 @@ export function Sidebar({
       <div className="brand">
         <Logo size={34} />
         <span className="brand-text">
-          Workforce<span className="brand-accent">Hub</span>
+          Eych<span className="brand-accent">Ar</span>
         </span>
       </div>
       <nav aria-label="Main navigation">

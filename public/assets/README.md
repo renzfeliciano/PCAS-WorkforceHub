@@ -1,4 +1,4 @@
-# WorkforceHub Assets
+# EychAr Assets
 
 Use this directory for versioned, public, non-sensitive assets only.
 

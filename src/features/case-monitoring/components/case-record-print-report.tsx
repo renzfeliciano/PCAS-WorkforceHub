@@ -35,7 +35,7 @@ export function CaseRecordPrintReport({ records, filters, generatedAt }: CaseRec
   return (
     <div className="print-report">
       <div className="print-report-header">
-        <h1>PCAS WorkforceHub — Case Monitoring Report</h1>
+        <h1>PCAS · EychAr — Case Monitoring Report</h1>
         <p>Filters: {filterLine(filters)}</p>
         <p>
           Generated {generatedAt.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })} ·{" "}

@@ -7,9 +7,9 @@ import { TopProgressBar } from "@/components/layout/top-progress-bar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PCAS WorkforceHub",
+  title: "EychAr · PCAS",
   description:
-    "A focused HRIS workspace for teams, employees, and leave credits.",
+    "EychAr by Renz — your HRIS, simplified. A focused workspace for teams, employees, and leave credits.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

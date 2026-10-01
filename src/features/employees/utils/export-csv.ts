@@ -55,5 +55,5 @@ export function exportEmployeesCsv(
     employee.tinNumber ?? "",
     ...leaveTypes.map((type) => leaveBalanceCell(employee, type)),
   ]);
-  downloadCsv(headers, rows, "pcas-workforcehub-employees.csv");
+  downloadCsv(headers, rows, "pcas-eychar-employees.csv");
 }

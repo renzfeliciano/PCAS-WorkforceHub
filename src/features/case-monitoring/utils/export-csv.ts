@@ -23,5 +23,5 @@ export function exportCaseRecordsCsv(records: readonly CaseRecord[]) {
     record.legalCounsel ?? "",
     record.briefHistory ?? "",
   ]);
-  downloadCsv(HEADERS, rows, "pcas-workforcehub-case-monitoring.csv");
+  downloadCsv(HEADERS, rows, "pcas-eychar-case-monitoring.csv");
 }

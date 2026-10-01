@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 4000
+    },
+    {
+      "name": "hris-workforcehub-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\Users\\Renzo Payod\\Personal Files\\hris-workforcehub", "run", "dev"],
+      "port": 4100
     }
   ]
 }

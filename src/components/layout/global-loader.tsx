@@ -21,11 +21,11 @@ export function GlobalLoader() {
       </div>
       <div className="global-loader-copy">
         <p className="global-loader-text">
-          Workforce<b>Hub</b>
+          Eych<b>Ar</b>
         </p>
         {/* <output> carries an implicit role="status" (aria-live="polite"),
             so only the text that actually needs announcing sits inside it —
-            not the decorative skyline or static "WorkforceHub" heading. */}
+            not the decorative skyline or static "EychAr" heading. */}
         <output className="global-loader-caption">Loading your workspace…</output>
       </div>
     </div>

@@ -1,4 +1,4 @@
-# WorkforceHub Architecture
+# EychAr Architecture
 
 *This describes the system as it actually stands today. For a line-by-line, re-verifiable trace of every security/accessibility/testing claim below, see [STANDARDS.md](STANDARDS.md) — that file is the source of truth when the two disagree.*
 

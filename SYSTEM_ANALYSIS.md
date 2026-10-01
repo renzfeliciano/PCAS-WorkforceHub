@@ -1,10 +1,10 @@
-# PCAS WorkforceHub — System Analysis
+# EychAr — System Analysis
 
 *Prepared as a technical and functional overview for client review. Reflects the system as implemented, not aspirational scope.*
 
 ## 1. Executive Summary
 
-WorkforceHub is a modular Human Resource Information System (HRIS) built for PCAS to manage the full employee lifecycle — records, attendance, leave, travel, company assets, recruitment, and internal events — behind role-based access control, with an audit trail on every mutation.
+EychAr is a modular Human Resource Information System (HRIS) built for PCAS to manage the full employee lifecycle — records, attendance, leave, travel, company assets, recruitment, and internal events — behind role-based access control, with an audit trail on every mutation.
 
 It is built on a modern, server-rendered web stack (Next.js/React/TypeScript), backed by MongoDB Atlas, and deployed on Vercel. The codebase follows a strict layered architecture (UI → Services → Repositories → Database) so business rules live in one place, are enforced on the server regardless of what the UI shows, and are independently testable.
 
@@ -141,4 +141,4 @@ How this system gets built and maintained is as much a part of what's being deli
 
 ## 11. Summary for Decision-Makers
 
-WorkforceHub is not a prototype wearing production styling — the authorization, validation, and audit rules that matter for an HR system of record are enforced at the service layer on every request, independent of the UI, and are backed by an automated test suite that catches regressions before they reach users. The module boundaries (Employees, Leave, Attendance, Travel, Assets, Recruitment, Events, Settings) map directly onto how the business already operates, and each is independently extensible — new leave types, recruitment stages, attendance statuses, or employment statuses are configuration, not code changes. And unlike a document that only asserts quality, every claim above about security and testing is traceable to a specific line of code in [STANDARDS.md](STANDARDS.md) — nothing here has to be taken on faith.
+EychAr is not a prototype wearing production styling — the authorization, validation, and audit rules that matter for an HR system of record are enforced at the service layer on every request, independent of the UI, and are backed by an automated test suite that catches regressions before they reach users. The module boundaries (Employees, Leave, Attendance, Travel, Assets, Recruitment, Events, Settings) map directly onto how the business already operates, and each is independently extensible — new leave types, recruitment stages, attendance statuses, or employment statuses are configuration, not code changes. And unlike a document that only asserts quality, every claim above about security and testing is traceable to a specific line of code in [STANDARDS.md](STANDARDS.md) — nothing here has to be taken on faith.

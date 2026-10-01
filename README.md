@@ -1,292 +1,238 @@
-# WorkforceHub
+# EychAr by Renz
 
-WorkforceHub is a modular HRIS for employee records, project assignments, employment catalogs, leave credits, and workforce operations. It is designed for incremental delivery, strict authorization, and deployment to Vercel Hobby.
+> *Say it "H-R."* Your HRIS, simplified.
 
-> **Status:** Phase 1 modular foundation. The UI, MongoDB adapters, bcrypt-backed Auth.js credentials flow, role guard, versioned settings seed endpoint, and client-owned environment model are implemented. Employee CRUD persistence, complete audit storage, and distributed rate-limit enforcement remain integration work.
+EychAr is a web-based HR information system that moves day-to-day HR work out of spreadsheets and into one secure workspace. It brings employee records, leave, attendance, recruitment, and HR operations together, with role-based access for administrators, HR staff, managers, and employees.
+
+This deployment is configured for **PCAS**.
 
 ## Contents
 
-- [Product Scope](#product-scope)
+- [Key Features](#key-features)
+- [How It's Built](#how-its-built)
 - [Technology](#technology)
-- [Architecture](#architecture)
-- [Domain Model](#domain-model)
-- [Authorization](#authorization)
-- [Local Development](#local-development)
+- [Getting Started](#getting-started)
+- [Scripts](#scripts)
+- [Project Structure](#project-structure)
+- [Roles & Permissions](#roles--permissions)
 - [Environment Management](#environment-management)
-- [Delivery Roadmap](#delivery-roadmap)
-- [Production Readiness](#production-readiness)
+- [Database Seeding](#database-seeding)
 - [Security & Accessibility Standards](#security--accessibility-standards)
 - [Engineering Conventions](#engineering-conventions)
+- [What's Next](#whats-next)
 
-## Product Scope
+## Key Features
 
-### Available in Phase 1
+- **Employee roster**: search, filters, sorting, CSV export, and print-ready reports.
+- **Leave credit management**: per-type balances with a full change history.
+- **Attendance**: calendar-based logging, plus a self-service "My attendance" view.
+- **Travel orders, asset issuance, and case monitoring**: each with its own records, filters, and reports.
+- **Events calendar**: company events and important dates.
+- **Recruitment pipeline**: drag-and-drop Kanban board for job applications.
+- **Live dashboard**: headcount, tenure, demographics, expiring contracts, hiring trends, and upcoming birthdays.
+- **Admin-configurable catalogs**: positions, projects/sites, employment statuses, leave types, and more.
+- **User management**: provision accounts, assign roles, and deactivate users. New accounts must change their default password on first sign-in.
 
-- Workforce dashboard with employee totals, status summaries, recent employees, and upcoming events.
-- Employee roster with search, status filtering, responsive table layout, CSV export, and print view.
-- Employee creation modal with catalog-backed position, project/site, and employment-status fields.
-- Leave-credit action for Sick Leave (SL) and Vacation Leave (VL).
-- Settings catalog for positions, projects/sites, and employment statuses.
-- Active/inactive catalog states. Only active entries are available in new employee dropdowns; inactive entries remain available for reactivation.
-- Permanent deletion controls for catalog records.
+## How It's Built
 
-### Employee Record
-
-The employee contract includes:
-
-| Field                          | Description                                                       |
-| ------------------------------ | ----------------------------------------------------------------- |
-| Employee number                | Stable human-readable identifier                                  |
-| Employee name                  | Employee's full name                                              |
-| Position                       | Reference to the position catalog                                 |
-| Project/site                   | Reference to the project catalog                                  |
-| Date hired                     | Employment start date                                             |
-| End of contract                | Contract end date                                                 |
-| Employment status              | Contractual, Probationary, Regular, Terminated, Resigned, or AWOL |
-| Contact number                 | Primary contact number                                            |
-| Address                        | Residential address                                               |
-| SSS, PhilHealth, Pag-ibig, TIN | Government identifiers                                            |
-| Leave credits                  | `{ sickLeave, vacationLeave }`, measured in days                  |
-
-## Technology
-
-- Next.js App Router, currently pinned to the generated Next.js `16.3.4` release.
-- TypeScript with strict mode enabled.
-- Tailwind CSS and Lucide React.
-- Auth.js / NextAuth integration dependencies.
-- MongoDB Atlas, Mongoose, and the MongoDB Auth.js adapter. MongoDB ObjectIds are exposed to the application as strings; numeric SQL-style IDs are not used.
-- Zod for boundary validation, React Hook Form for form orchestration, and Zustand for shared client state where needed.
-- Cloudinary integration dependencies reserved for employee media.
-- Vercel Hobby as the deployment target.
-
-Automated tests are intentionally deferred. Vitest and Playwright should be introduced after the persistence and authentication contracts stabilize.
-
-## Architecture
-
-The dependency direction is deliberately one-way:
+A layered architecture keeps business rules and permissions on the server, so the interface is never the only thing standing in the way.
 
 ```text
 UI -> Services -> Repositories -> Database
 ```
 
-- `src/app/`: route composition, layouts, metadata, and route-level boundaries. Route handlers should be transport adapters, not business logic.
-- `src/components/`: reusable UI, forms, tables, and modal interactions.
-- `src/features/`: feature compositions for employees, dashboard, settings, leave, and future modules.
-- `src/services/`: use cases, authorization checks, validation orchestration, and audit coordination.
-- `src/repositories/`: persistence ports and Mongoose implementations. Components and services must not depend on Mongoose models directly.
-- `src/lib/`: infrastructure for database connections, Auth.js, sessions, Cloudinary, audit logging, rate limiting, and shared utilities.
-- `src/schemas/`: Zod schemas used at request and form boundaries.
-- `src/types/`: domain types, role definitions, and API contracts.
-- `scripts/seed.ts`: idempotent MongoDB Atlas catalog seed.
-- `public/assets/`: versioned public assets, organized into `brand/`, `icons/`, `images/`, `fonts/`, and `social/`.
+Security is built in:
 
-The current seed-backed shell is a preview surface. Before production, replace local state mutations with service calls while keeping the component contracts stable. The server-side Auth.js and Settings seed boundaries are already separated from the UI.
+- Passwords hashed with bcrypt
+- One active session per user, with an idle timeout and a "Still there?" warning
+- CSRF protection (SameSite cookies plus an explicit Origin check on API writes)
+- Strict security headers, including a production Content Security Policy
+- Zod validation on every request
+- Distributed rate limiting through Upstash Redis
+- An audit trail of every change
 
-## Domain Model
+The app was developed test-first. Lint, typecheck, and the full Vitest suite run automatically before every commit, and screens follow WAI-ARIA accessibility standards.
 
-Planned MongoDB collections:
+## Technology
 
-- `users`: identity, role, and account state.
-- `employees`: employee profile and references to catalog records.
-- `positions`: configurable position catalog with `active` state.
-- `projects`: configurable project/site catalog with `active` state.
-- `employment_statuses`: configurable status catalog with `active` state.
-- `leave_credit_ledger`: append-only SL/VL adjustments and balance snapshots.
-- `audit_logs`: actor, action, entity, before/after values, request ID, and timestamp.
-- `sessions`: active-session enforcement and inactivity tracking.
+| Area           | Stack                                                    |
+| -------------- | -------------------------------------------------------- |
+| Framework      | Next.js 16 (App Router), React 19, TypeScript (strict)   |
+| Styling        | Tailwind CSS 4, Lucide icons, next-themes (light/dark)   |
+| Data           | MongoDB Atlas, Mongoose                                  |
+| Auth           | Auth.js / NextAuth (credentials provider, JWT sessions)  |
+| Forms & state  | React Hook Form, Zod, Zustand                            |
+| Infrastructure | Upstash Redis (rate limiting), Vercel (hosting)          |
+| Quality        | Vitest, Testing Library, mongodb-memory-server, ESLint, Husky |
 
-Catalog records should be deactivated before deletion when historical employee references exist. Deletion must be rejected or handled as an archival operation when referential integrity requires it.
-
-## Authorization
-
-| Role     | Access                                                |
-| -------- | ----------------------------------------------------- |
-| Admin    | Full employee, leave, catalog, user, and audit access |
-| HR       | Employee, leave, catalog, and relevant audit access   |
-| Manager  | Team-scoped read access; future approval workflows    |
-| Employee | Own profile and future self-service workflows         |
-
-Admin and HR are the only roles allowed to update leave credits or manage positions, projects, and employment statuses. Hiding a button in the UI is not authorization; the service layer and API boundary must enforce the policy.
-
-Every mutation should execute in this order:
-
-1. Authenticate the request.
-2. Resolve the actor and tenant/workspace context.
-3. Authorize the operation.
-4. Validate input with Zod.
-5. Execute the service use case.
-6. Persist the mutation through a repository.
-7. Write an audit event with the request ID.
-8. Return a typed response.
-
-## Local Development
+## Getting Started
 
 Requirements: Node.js 20+ and npm.
 
 ```bash
 npm install
+cp .env.example .env.local   # then fill in your values
+npm run db:seed              # optional: seed the default catalogs
 npm run dev
 ```
 
-Open `http://localhost:3000`. The Phase 1 preview does not require database or Cloudinary keys. The protected app requires Auth.js configuration and a bootstrap account.
+Open `http://localhost:4000`. A MongoDB connection (`MONGODB_URI`) and an Auth.js secret (`AUTH_SECRET`) are required to sign in.
 
-Before opening a pull request, run:
+## Scripts
 
-```bash
-npm run lint
-npm run build
-```
+| Command             | What it does                                     |
+| ------------------- | ------------------------------------------------ |
+| `npm run dev`       | Start the dev server on port 4000                |
+| `npm run build`     | Production build                                 |
+| `npm start`         | Serve the production build on port 4000          |
+| `npm run lint`      | ESLint                                           |
+| `npm run typecheck` | Generate Next.js route types, then run `tsc`     |
+| `npm test`          | Run the Vitest suite once                        |
+| `npm run test:watch`| Vitest in watch mode                             |
+| `npm run db:seed`   | Idempotent catalog seed (see below)              |
 
-## Database Seeding
+The Husky pre-commit hook runs `lint`, `typecheck`, and `test`, and blocks the commit if any of them fail.
 
-After setting `MONGODB_URI` in `.env.local`, run:
+## Project Structure
 
-```bash
-npm run db:seed
-```
+- `src/app/`: routes, layouts, metadata, and `/api/v1` route handlers. Route handlers are transport adapters, not business logic.
+- `src/features/`: feature modules (employees, leave, attendance, travel orders, asset issuance, case monitoring, events, recruitment, dashboard, settings, profile, user management).
+- `src/components/`: shared UI, layout, and form fields.
+- `src/services/`: use cases, authorization checks, validation orchestration, and audit coordination.
+- `src/repositories/`: persistence ports and Mongoose models. Components and services never touch Mongoose models directly.
+- `src/lib/`: infrastructure (database connection, Auth.js, RBAC, rate limiting, sanitizing, shared utilities).
+- `src/schemas/`: Zod schemas used at request and form boundaries.
+- `src/types/`: domain types and API contracts.
+- `src/proxy.ts`: Next.js 16 request proxy (formerly middleware). Handles auth redirects, idle-timeout checks, the API Origin check, and blanket API rate limiting.
+- `scripts/`: seed and one-off migration scripts.
+- `tests/`: Vitest suites for API routes, components, lib, repositories, and services.
+- `public/assets/`: versioned static assets (`brand/`, `icons/`, `images/`, `fonts/`, `social/`).
 
-The seed creates or preserves 13 positions, 15 projects/sites, and the six initial employment statuses. It is safe to run repeatedly: records are upserted by `kind` and `name`, while MongoDB generates the `_id` automatically. Existing active/inactive state is not overwritten and existing records are not deleted.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for technical contracts and [SYSTEM_ANALYSIS.md](SYSTEM_ANALYSIS.md) for the system overview.
+
+## Roles & Permissions
+
+| Role     | Access                                                                                  |
+| -------- | --------------------------------------------------------------------------------------- |
+| Admin    | Everything, including archiving employees, deleting catalog entries, and workspace reset |
+| HR       | Employees, leave, attendance, travel orders, assets, recruitment, events, cases, catalogs, users, and exports |
+| Manager  | Read access to employees and leave                                                      |
+| Employee | Read access, own profile, and own attendance                                            |
+
+Permissions are defined in `src/lib/rbac.ts` and enforced on the server. Hiding a button in the UI is not authorization.
+
+Every mutation runs in this order:
+
+1. Authenticate the request.
+2. Resolve the actor.
+3. Authorize the operation.
+4. Validate input with Zod.
+5. Execute the service use case.
+6. Persist through a repository.
+7. Write an audit event.
+8. Return a typed response.
 
 ## Environment Management
 
-Commit only `.env.example`. Keep actual credentials in `.env.local` or the hosting provider's encrypted environment store. Never commit a connection string, API key, API secret, password, or Auth.js secret, even in an example file.
+Commit only `.env.example`. Keep real credentials in `.env.local` or the hosting provider's encrypted environment store, and never commit a connection string, API key, password, or Auth.js secret.
 
-```text
-.env.example       committed placeholders
-.env.local         local development; never commit
-.env.test          future automated-test environment
-Vercel Preview     preview database and preview credentials
-Vercel Production  production database and production credentials
-```
+| Variable(s)                                           | Purpose                                                        |
+| ----------------------------------------------------- | -------------------------------------------------------------- |
+| `MONGODB_URI`                                         | MongoDB Atlas connection string                                |
+| `AUTH_SECRET`, `NEXTAUTH_URL`, `AUTH_TRUST_HOST`      | Auth.js configuration                                          |
+| `SESSION_INACTIVITY_MINUTES`                          | Idle time before the "Still there?" warning (default 30 min)   |
+| `SESSION_INACTIVITY_TIMEOUT`                          | Countdown before automatic sign-out (default 30 s)             |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`  | Distributed rate limiting                                      |
+| `ENABLE_*_SEEDING`                                    | Which catalogs the seed creates                                |
+| `ENABLE_DATA_RESET`                                   | Enables the Admin-only "reset all workspace data" action       |
+| `NEXT_PUBLIC_API_MAX_RETRIES`                         | Client retries for transient API failures                      |
+| `CLOUDINARY_*`                                        | Reserved for employee media                                    |
 
-Create local configuration with:
+Use separate databases and secrets for local, Preview, and Production. Do not reuse production credentials locally.
 
-```bash
-cp .env.example .env.local
-```
+### Rate limiting
 
-Use separate MongoDB Atlas databases and Auth.js secrets for local, preview, and production. Do not reuse production credentials locally. The repository's `.gitignore` excludes `.env*`, so verify secrets are not force-added.
-
-When the production API rate limiter is enabled, add the appropriate Upstash Redis URL and token to the environment store. A distributed limiter is required for serverless deployments; an in-memory limiter is not sufficient across Vercel instances.
-
-The shared limiter is implemented in `src/lib/rate-limit.ts`. It uses a 30-request sliding window per minute and combines the authenticated subject with the request IP. `POST /api/v1/settings/seed` is the first protected endpoint; future API routes should call the same helper before authorization and mutation work. Rate-limited responses return HTTP `429`, `Retry-After`, `X-Request-Id`, and `X-RateLimit-*` headers. The limiter fails open only when Upstash variables are absent, which keeps local UI development usable; Preview and Production environments should always configure both values.
+`src/lib/rate-limit.ts` defines three sliding-window tiers per minute: **reads 120**, **writes 30**, and **auth 5**. Each tier has its own Redis key prefix (`eychar:*`). Limited responses return HTTP `429` with `Retry-After` and `X-RateLimit-*` headers. The limiter fails open only when the Upstash variables are missing, which keeps local development usable. Preview and Production should always set both.
 
 ### Client-owned deployment accounts
 
-The application is provider-account agnostic. For each client deployment, the client should own the following accounts and billing relationships:
+The application is provider-account agnostic. For each client deployment, the client owns these accounts and billing relationships:
 
 | Service       | Client-owned resource                                         | Environment values                                   |
 | ------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
 | Vercel        | Client team/project and billing                               | Project deployment settings                          |
 | MongoDB Atlas | Dedicated project, database, database user, and network rules | `MONGODB_URI`                                        |
-| Auth.js       | Client-generated secret and canonical application URL         | `AUTH_SECRET`, `AUTH_URL`                            |
+| Auth.js       | Client-generated secret and canonical application URL         | `AUTH_SECRET`, `NEXTAUTH_URL`                        |
 | Cloudinary    | Client cloud, upload policy, and API credentials              | `CLOUDINARY_*`                                       |
 | Upstash       | Client Redis database for distributed rate limiting           | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
 
-Recommended ownership transfer:
+Rotate any credential that was ever pasted into a file or shared in chat.
 
-1. The client creates the accounts under their organization email and enables billing directly.
-2. The client creates separate development, preview, and production resources where the provider supports them.
-3. The development team receives only the minimum environment values needed for the selected environment.
-4. Vercel Preview and Production variables are entered by the client owner or delegated administrator.
-5. The client retains account recovery, billing, and provider ownership; the application repository contains no provider-specific account identifiers.
+## Database Seeding
 
-Rotate any credential that was previously pasted into this file or shared in chat. Treat it as compromised, even if it was intended for development.
-
-### Auth.js bootstrap accounts
-
-The current credentials provider supports the first Admin and HR accounts through server-only environment variables:
-
-```env
-AUTH_ADMIN_EMAIL=admin@example.com
-AUTH_ADMIN_PASSWORD=use-a-long-random-password
-AUTH_HR_EMAIL=hr@example.com
-AUTH_HR_PASSWORD=use-a-long-random-password
+```bash
+npm run db:seed
 ```
 
-This is a temporary bootstrap adapter for the Phase 1 foundation. Before production, replace it with a MongoDB user repository and a password hashing provider. Do not use plaintext bootstrap passwords as a permanent identity store. Rotate any provider credentials that were previously placed in `.env.example`.
+The CLI seed upserts positions, projects/sites, and employment statuses, each gated by its `ENABLE_*_SEEDING` flag.
 
-## Delivery Roadmap
+The other default catalogs are seeded from inside the app by Admin or HR users, again gated by their flags:
 
-### Phase 1: Workforce foundation
+- `POST /api/v1/catalogs/seed`: attendance statuses, recruitment stages, event categories, and case-monitoring classifications and statuses
+- `POST /api/v1/leave-types/seed`: leave types
 
-Complete the current UI, replace remaining seed-backed employee mutations with repositories, add employee Mongoose models, implement the remaining `/api/v1` contracts, connect client-provisioned Auth.js users, and persist audit events. Add pagination, profile pages, edit/delete dialogs, and full API rate limiting.
-
-### Phase 2: Identity and operational security
-
-**Implemented:** single active session (server-side `activeSessionId` check invalidates a JWT the moment a user signs in elsewhere), inactivity timeout (checked live on every request in `middleware.ts`, not just lazily on the next client-side session fetch), CSRF-safe mutations (`SameSite=Lax` session cookie plus an explicit Origin check for state-changing `/api/*` requests), and security headers including a production-only CSP — see [Security & Accessibility Standards](#security--accessibility-standards).
-
-**Remaining:** password login or approved OAuth, forgot/reset password, role assignment, request IDs, structured errors, API versioning, and Redis-backed rate limiting.
-
-### Phase 3: Leave and attendance
-
-Add leave requests, approvals, holidays, attendance imports, balance calculation, and an append-only leave ledger. Keep balance changes traceable and policy-driven.
-
-### Phase 4: Workforce operations
-
-Add onboarding/offboarding checklists, contract renewal reminders, employee documents through Cloudinary, notifications, and configurable dashboard widgets. Use queued or event-driven work for reminders.
-
-### Phase 5: Payroll and reporting
-
-Add payroll-period snapshots, statutory exports, approval workflows, reporting, and versioned calculation services. Historical reports must use immutable snapshots rather than mutable employee fields.
-
-### Phase 6: Multi-tenant scale
-
-Add organization boundaries, tenant-scoped repositories, feature flags, retention policies, rate-limit tiers, observability, and query/index reviews based on production usage.
-
-## Production Readiness
-
-Before calling the application production-ready:
-
-- Replace all seed-backed mutations with authenticated service calls.
-- Implement MongoDB indexes and connection reuse for serverless execution.
-- Add `/api/v1` routes with consistent response envelopes and error codes.
-- Use a distributed rate limiter with separate limits for authentication, reads, and mutations.
-- Enforce RBAC on the server and record all CRUD and leave-credit changes in immutable audit logs.
-- Validate and sanitize every external input; never log government IDs or secrets. Any HTML rendered from user content must go through `sanitizeHtml()` — see below.
-- ~~Configure security headers~~ Done — see [Security & Accessibility Standards](#security--accessibility-standards). Still open: strict CORS policy where applicable, request IDs, and bounded payload sizes.
-- Add health/readiness checks that do not expose sensitive infrastructure details.
-- Configure Vercel Preview and Production variables independently.
-- Add unit and browser tests once the persistence/authentication boundary is implemented.
+All seeding is safe to run repeatedly. Existing records and their active/inactive state are never overwritten or deleted.
 
 ## Security & Accessibility Standards
 
-These are enforced patterns, checked at review time — not aspirations.
+These are enforced patterns, checked at review time, not aspirations.
 
 ### XSS
 
-JSX escapes every rendered text node automatically, and the codebase has no `dangerouslySetInnerHTML` or other raw-HTML sink today. If one is ever introduced, it must go through `sanitizeHtml()` in `src/lib/sanitize.ts` (backed by `isomorphic-dompurify`, safe to import from both server and client code) rather than rendering raw HTML directly. Plain JSX text interpolation never needs this — only an actual HTML-injection sink does.
+JSX escapes every rendered text node, and the codebase has no `dangerouslySetInnerHTML` or other raw-HTML sink. If one is ever introduced, it must go through `sanitizeHtml()` in `src/lib/sanitize.ts` (backed by `isomorphic-dompurify`).
 
 ### Injection (NoSQL)
 
-This app is MongoDB/Mongoose, so the SQL-injection equivalent is NoSQL operator injection. Two enforced rules:
+- Free-text searches that build a `$regex` filter escape metacharacters first with `escapeRegex()` from `src/lib/regex.ts`.
+- Credential or identity fields from a request body are checked with `typeof value === "string"` before reaching a query filter, since `{ username: { $ne: null } }` is truthy. See `authorize()` in `src/lib/auth.ts`.
 
-- Any free-text search that builds a `$regex` filter must escape regex metacharacters first — see `escapeRegex()` in `src/repositories/employee-repository.ts`.
-- Any credential or identity field taken from a request body must be explicitly `typeof value === "string"` checked before it reaches a query filter. Truthiness alone is not enough — `{ username: { $ne: null } }` is truthy. See `authorize()` in `src/lib/auth.ts`.
+### Sessions
+
+Sessions are JWTs with an 8-hour maximum lifetime. Signing in records a server-side `activeSessionId`, so signing in elsewhere invalidates the old session. `src/proxy.ts` checks inactivity on every request, not only on the next client-side session fetch.
 
 ### CSRF
 
-NextAuth's session cookie ships `SameSite=Lax` by default, which blocks cross-site fetch/XHR from carrying it. `middleware.ts` adds an explicit Origin-header check on top for state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) requests to `/api/*`, rejecting anything whose `Origin` doesn't match the app's own host — defense-in-depth, not reliance on a default the app doesn't directly control.
+NextAuth's session cookie ships `SameSite=Lax`. On top of that, `src/proxy.ts` rejects state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) `/api/*` requests whose `Origin` doesn't match the app's own host.
 
 ### Security headers
 
-`next.config.ts` always sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security`, plus a `Content-Security-Policy` in production builds only (kept out of dev so it never fights Turbopack's HMR websocket). Verify any header change against a real production build — `npm run build && npm start` — not just the dev server, since the CSP is invisible there by design.
+`next.config.ts` always sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security`, plus a `Content-Security-Policy` in production builds only (kept out of dev so it doesn't fight Turbopack's HMR websocket). Verify header changes against `npm run build && npm start`, not just the dev server.
 
 ### WAI-ARIA
 
-- `src/components/ui/modal.tsx` is the one Modal every dialog in the app composes — it carries `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, closes on Escape, and manages focus (moves in on open, returns to the trigger on close). Build new dialogs on top of it rather than a bespoke one.
-- Active navigation links carry `aria-current="page"` alongside their visual `.active` class; icon-only buttons carry `aria-label`; live-updating regions (toasts, the global loader) carry `role="status"`/`aria-live`.
+- `src/components/ui/modal.tsx` is the single Modal every dialog composes. It carries `role="dialog"`, `aria-modal`, and `aria-labelledby`/`aria-describedby`, closes on Escape, and manages focus. Build new dialogs on top of it.
+- Active navigation links carry `aria-current="page"`. Icon-only buttons carry `aria-label`. Live-updating regions (toasts, the global loader) use `role="status"` / `aria-live`.
 
 ## Engineering Conventions
 
 - Add a feature module and service use case before adding a new page.
 - Keep API contracts independent from component props.
 - Prefer stable IDs and references over display-name joins.
-- Treat audit logs and leave ledgers as immutable records.
+- Treat audit logs and leave-balance history as immutable records.
 - Prefer soft deletion or deactivation for referenced catalog data.
 - Make new permissions explicit in the RBAC policy.
 - Use additive schema changes and migration scripts for live data.
 - Keep external integrations behind `lib/` adapters and repository interfaces.
-- Do not place credentials, secrets, or real employee government IDs in seed data.
+- Never put credentials, secrets, or real government IDs in seed data or tests.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the current technical contracts and integration checklist.
+## What's Next
+
+- Onboarding and offboarding checklists, plus contract-renewal reminders
+- Employee documents and media through Cloudinary
+- Notifications and configurable dashboard widgets
+- Payroll-period snapshots, statutory exports, and reporting
+- Multi-tenant boundaries, feature flags, and observability
+
+---
+
+© 2026 PCAS. All rights reserved. · EychAr by Renz

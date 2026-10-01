@@ -64,11 +64,11 @@ export default function LoginPage() {
           <div className="brand">
             <Logo size={50} />
             <span className="brand-text mt-1">
-              Workforce<span className="brand-accent">Hub</span>
+              Eych<span className="brand-accent">Ar</span>
             </span>
           </div>
           <div className="login-copy">
-            <p className="eyebrow">Workforce management platform</p>
+            <p className="eyebrow">Your HRIS, simplified</p>
             <h1>Welcome back</h1>
             <p className="muted">
               Sign in to manage your workforce operations.
@@ -151,7 +151,7 @@ export default function LoginPage() {
           </div>
         </section>
         <footer className="app-footer login-footer">
-          &copy; {new Date().getFullYear()} PCAS WorkforceHub. All rights reserved.
+          &copy; {new Date().getFullYear()} PCAS. All rights reserved. · EychAr by Renz
         </footer>
       </div>
       <LoginBackgroundCarousel />
